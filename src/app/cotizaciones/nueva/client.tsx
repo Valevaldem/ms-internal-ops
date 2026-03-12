@@ -212,8 +212,8 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
         </section>
 
         {/* Precios (Interno) */}
-        <section className="bg-[#333333] text-white p-6 rounded-lg shadow-sm space-y-3">
-          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#8E8D8A]/30 pb-2 mb-4">Desglose (Uso Interno)</h3>
+        <section className="bg-[#F5F2EE]/50 border border-[#D8D3CC] text-[#333333] p-6 rounded-lg shadow-sm space-y-3">
+          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#D8D3CC] pb-2 mb-4">Desglose (Uso Interno)</h3>
 
           <div className="flex justify-between text-sm">
             <span className="text-[#8E8D8A]">Base del Modelo:</span>
@@ -225,23 +225,23 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
           </div>
 
           {msInternalAdjustment > 0 && (
-            <div className="flex justify-between text-sm text-[#C5B358]">
+            <div className="flex justify-between text-sm text-[#C5B358] font-medium">
               <span>Ajuste MS (+):</span>
               <span>${msInternalAdjustment.toLocaleString()}</span>
             </div>
           )}
 
-          <div className="flex items-center justify-between text-sm pt-2 border-t border-[#8E8D8A]/30 mt-2">
-            <label className="flex items-center gap-2 text-[#8E8D8A] cursor-pointer">
-              <input type="checkbox" {...register("marginProtectionEnabled")} className="rounded text-[#C5B358] focus:ring-[#C5B358] bg-[#333333] border-[#8E8D8A]" />
-              Protección Margen (15%)
+          <div className="flex items-center justify-between text-sm pt-2 border-t border-[#D8D3CC] mt-2">
+            <label className="flex items-center gap-2 text-[#333333] cursor-pointer font-medium">
+              <input type="checkbox" {...register("marginProtectionEnabled")} className="rounded text-[#C5B358] focus:ring-[#C5B358] bg-white border-[#D8D3CC]" />
+              Ajuste adicional (15%)
             </label>
-            {marginProtectionEnabled && <span className="text-[#C5B358]">${marginProtectionAmount.toLocaleString()}</span>}
+            {marginProtectionEnabled && <span className="text-[#C5B358] font-medium">${marginProtectionAmount.toLocaleString()}</span>}
           </div>
 
-          <div className="flex justify-between text-lg font-serif pt-4 mt-4 border-t border-[#8E8D8A]/50">
+          <div className="flex justify-between text-lg font-serif pt-4 mt-4 border-t border-[#D8D3CC]">
             <span>Precio Final Cliente:</span>
-            <span className="text-[#C5B358]">${finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+            <span className="text-[#C5B358] font-semibold">${finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
           </div>
         </section>
 
