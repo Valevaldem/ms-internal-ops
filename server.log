@@ -16,3 +16,5 @@ https://nextjs.org/telemetry
 ✓ Ready in 1052ms
  GET /robots.txt 404 in 3.5s (compile: 3.0s, render: 428ms)
  GET /cotizaciones/nueva 200 in 3.2s (compile: 2.5s, render: 651ms)
+○ Compiling / ...
+ GET / 200 in 5.9s (compile: 5.0s, render: 947ms)
