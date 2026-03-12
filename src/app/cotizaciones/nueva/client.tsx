@@ -234,7 +234,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
           <div className="flex items-center justify-between text-sm pt-2 border-t border-[#D8D3CC] mt-2">
             <label className="flex items-center gap-2 text-[#333333] cursor-pointer font-medium">
               <input type="checkbox" {...register("marginProtectionEnabled")} className="rounded text-[#C5B358] focus:ring-[#C5B358] bg-white border-[#D8D3CC]" />
-              Ajuste adicional (15%)
+              Ajuste interno
             </label>
             {marginProtectionEnabled && <span className="text-[#C5B358] font-medium">${marginProtectionAmount.toLocaleString()}</span>}
           </div>

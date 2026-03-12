@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import { Poppins } from 'next/font/google';
 import "./globals.css";
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Bell, Settings } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Bell, Settings, Calculator } from 'lucide-react';
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-poppins',
+});
 
 export const metadata: Metadata = {
   title: "Maria Salinas Ops",
@@ -19,7 +26,7 @@ export default function RootLayout({
         {/* Sidebar */}
         <aside className="w-64 bg-white border-r border-[#D8D3CC] flex flex-col items-center py-8 px-4 h-full shadow-sm">
           <div className="mb-12">
-            <h1 className="text-xl font-serif tracking-widest text-center text-[#333333] uppercase">
+            <h1 className={`text-xl ${poppins.className} tracking-widest text-center text-[#333333] uppercase font-medium`}>
               Maria Salinas
             </h1>
             <p className="text-xs text-center text-[#8E8D8A] tracking-wider mt-1">
@@ -33,13 +40,13 @@ export default function RootLayout({
             <div className="pt-4 pb-2">
               <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Cotizaciones</p>
             </div>
-            <SidebarLink href="/cotizaciones/nueva" icon={<FileText size={18} />} label="Nueva Cotización" />
+            <SidebarLink href="/cotizaciones/nueva" icon={<Calculator size={18} />} label="Nueva Cotización" />
             <SidebarLink href="/cotizaciones/historial" icon={<FileText size={18} />} label="Historial" />
 
             <div className="pt-4 pb-2">
               <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Órdenes</p>
             </div>
-            <SidebarLink href="/ordenes/produccion" icon={<ShoppingBag size={18} />} label="En Producción" />
+            <SidebarLink href="/ordenes/produccion" icon={<Settings size={18} />} label="En Producción" />
             <SidebarLink href="/ordenes/historial" icon={<ShoppingBag size={18} />} label="Historial de Órdenes" />
 
             <div className="pt-4 pb-2">
