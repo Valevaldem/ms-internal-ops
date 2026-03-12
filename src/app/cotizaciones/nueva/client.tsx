@@ -55,7 +55,21 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
 
   let baseForMargin = subtotalBeforeAdjustments + msInternalAdjustment
   const marginProtectionAmount = marginProtectionEnabled ? baseForMargin * 0.15 : 0
-  const finalClientPrice = baseForMargin + marginProtectionAmount
+  const rawClientPrice = baseForMargin + marginProtectionAmount
+
+  // Commercial rounding logic: always round UP to nearest X,000 | X,500 | X,850
+  const getRoundedCommercialPrice = (price: number) => {
+    if (price === 0) return 0;
+    const baseThousand = Math.floor(price / 1000) * 1000;
+    const remainder = price - baseThousand;
+
+    if (remainder === 0) return baseThousand;
+    if (remainder <= 500) return baseThousand + 500;
+    if (remainder <= 850) return baseThousand + 850;
+    return baseThousand + 1000;
+  };
+
+  const finalClientPrice = getRoundedCommercialPrice(rawClientPrice);
 
   const handleLotCodeChange = (index: number, code: string) => {
     const lot = catalogs.stones.find((s: any) => s.code === code)
