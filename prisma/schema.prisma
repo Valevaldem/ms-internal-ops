@@ -1,0 +1,160 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Sales Associates Catalog
+model SalesAssociate {
+  id                  String      @id @default(cuid()) @map("associate_id")
+  name                String      @map("associate_name")
+  activeStatus        Boolean     @default(true) @map("active_status")
+  appliesMsAdjustment Boolean     @default(false) @map("applies_ms_adjustment")
+
+  quotations          Quotation[]
+
+  @@map("sales_associates")
+}
+
+// 2. Models Catalog
+model Model {
+  id           String  @id @default(cuid()) @map("model_id")
+  name         String  @map("model_name")
+  pieceType    String  @map("piece_type")
+  basePrice    Float   @map("base_price")
+  activeStatus Boolean @default(true) @map("active_status")
+
+  @@map("models")
+}
+
+// 3. Stone Lot Catalog
+model StoneLot {
+  code         String  @id @map("lot_code")
+  stoneName    String  @map("stone_name")
+  cut          String
+  color        String
+  pricePerCt   Float   @map("price_per_ct")
+  activeStatus Boolean @default(true) @map("active_status")
+
+  @@map("stone_lots")
+}
+
+// Create Quotation Module
+model Quotation {
+  id                        String   @id @default(cuid()) @map("quotation_id")
+  quotationDate             DateTime @default(now()) @map("quotation_date")
+  clientNameOrUsername      String   @map("client_name_or_username")
+  phoneNumber               String?  @map("phone_number")
+  salesChannel              String   @map("sales_channel") // Store, WhatsApp, Instagram, Facebook, TikTok, Form
+
+  salesAssociateId          String   @map("sales_associate_id")
+  salesAssociate            SalesAssociate @relation(fields: [salesAssociateId], references: [id])
+
+  // Piece Information
+  pieceType                 String   @map("piece_type") // Ring, Chain, Earrings, Bracelet, Other
+  modelName                 String   @map("model_name")
+  modelBasePrice            Float    @map("model_base_price")
+  notes                     String?
+
+  // Stones
+  stones                    QuotationStone[]
+
+  // Pricing & Internal Rules
+  totalStonesPrice          Float    @map("total_stones_price")
+  subtotalBeforeAdjustments Float    @map("subtotal_before_adjustments") // totalStonesPrice + modelBasePrice
+
+  msInternalAdjustment      Float    @default(0) @map("ms_internal_adjustment") // +5000 if associate applies
+  marginProtectionEnabled   Boolean  @default(false) @map("margin_protection_enabled")
+  marginProtectionPercent   Float    @default(15) @map("margin_protection_percent")
+  marginProtectionAmount    Float    @default(0) @map("margin_protection_amount")
+
+  finalClientPrice          Float    @map("final_client_price")
+
+  // Validity
+  validUntil                DateTime @map("valid_until")
+  daysRemaining             Int      @map("days_remaining")
+
+  // Status & Tracking
+  status                    String   @default("Draft") // Draft, Sent, Waiting for Response, In Follow-Up, Extended, Expired, Converted, Cancelled, Deleted
+  followupCount             Int      @default(0) @map("followup_count")
+  tags                      String?  // warnings/tags separated by comma
+
+  // Conversion
+  order                     Order?
+
+  @@map("quotations")
+}
+
+model QuotationStone {
+  id             String    @id @default(cuid())
+  quotationId    String    @map("quotation_id")
+  quotation      Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  lotCode        String    @map("lot_code")
+  stoneName      String    @map("stone_name")
+  weightCt       Float     @map("weight_ct")
+  pricePerCt     Float     @map("price_per_ct")
+  stoneSubtotal  Float     @map("stone_subtotal") // weightCt * pricePerCt
+
+  @@map("quotation_stones")
+}
+
+// Converted Orders
+model Order {
+  id                     String    @id @default(cuid()) @map("order_id")
+  quotationId            String    @unique @map("quotation_id")
+  quotation              Quotation @relation(fields: [quotationId], references: [id])
+
+  referenceImageUrl      String?   @map("reference_image_url")
+  posTicketNumber        String?   @map("pos_ticket_number")
+  deliveryMethod         String    @map("delivery_method") // Shipping, Store Pickup
+
+  // Certificate Data
+  certificateTitle       String?   @map("certificate_title")
+  familyLastNameOrTitle  String?   @map("family_last_name_or_title")
+  certificateStatus      String    @default("Not Started") @map("certificate_status") // Not Started, Incomplete, Ready, Generated, Delivered
+  certificateMembers     CertificateMember[]
+
+  // Stages & Production Tracking
+  stage                  String    @default("Converted") // Converted, In Production, Finished, Shipped, Ready for Store Pickup, Delivered, Post-Sale Follow-Up Pending (5 days), Post-Sale Follow-Up Pending (1 month), Cycle Closed
+  productionStartDate    DateTime? @map("production_start_date")
+  estimatedProductionEnd DateTime? @map("estimated_production_end")
+  productionDaysElapsed  Int       @default(0) @map("production_days_elapsed")
+
+  // Delivery/Shipping Info (If Shipping)
+  shippingCarrier        String?   @map("shipping_carrier")
+  trackingNumber         String?   @map("tracking_number")
+  shippingDate           DateTime? @map("shipping_date")
+  estimatedDeliveryDate  DateTime? @map("estimated_delivery_date")
+  deliveredConfirmation  DateTime? @map("delivered_confirmation")
+
+  // Pickup Info (If Store Pickup)
+  pickupReadyDate        DateTime? @map("pickup_ready_date")
+  pickupCompletedDate    DateTime? @map("pickup_completed_date")
+
+  // Post-sale
+  postSale5DaysDate      DateTime? @map("post_sale_5_days_date")
+  postSale1MonthDate     DateTime? @map("post_sale_1_month_date")
+
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  @@map("orders")
+}
+
+model CertificateMember {
+  id                  String @id @default(cuid())
+  orderId             String @map("order_id")
+  order               Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  memberName          String @map("member_name")
+  representativeStone String @map("representative_stone")
+
+  @@map("certificate_members")
+}

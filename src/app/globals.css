@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F5F2EE; /* ms.beige */
+  --foreground: #333333; /* ms.charcoal */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #F5F2EE; /* keep light theme for brand consistency */
+    --foreground: #333333;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
