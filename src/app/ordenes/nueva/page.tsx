@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
-export default async function NuevaOrdenPage({ searchParams }: { searchParams: { quotationId?: string } }) {
-  const qid = searchParams.quotationId;
+export default async function NuevaOrdenPage({ searchParams }: { searchParams: Promise<{ quotationId?: string }> }) {
+  const params = await searchParams;
+  const qid = params.quotationId;
 
   if (!qid) {
     return (

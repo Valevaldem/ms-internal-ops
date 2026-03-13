@@ -88,7 +88,7 @@ export default async function Dashboard() {
               {expiringQuotations.map(q => (
                 <li key={q.id} className="text-sm">
                   <Link href={`/cotizaciones/historial`} className="text-amber-800 hover:underline font-medium">
-                    {q.id}
+                    {q.folio || q.id}
                   </Link>
                   <span className="text-amber-700 ml-2">({q.clientNameOrUsername})</span>
                   <div className="text-amber-600 text-xs mt-1">Vence: {q.validUntil.toLocaleDateString('es-MX')}</div>

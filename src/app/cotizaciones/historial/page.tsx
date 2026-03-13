@@ -98,7 +98,7 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
         <table className="w-full text-left text-sm">
           <thead className="bg-[#F5F2EE] text-[#8E8D8A] text-xs uppercase tracking-wider">
             <tr>
-              <th className="px-6 py-4 font-medium">ID / Cliente</th>
+              <th className="px-6 py-4 font-medium">Folio / Cliente</th>
               <th className="px-6 py-4 font-medium">Pieza / Asesor</th>
               <th className="px-6 py-4 font-medium">Vigencia</th>
               <th className="px-6 py-4 font-medium">Precio Final</th>
@@ -114,7 +114,7 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
               return (
                 <tr key={q.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-[#333333]">{q.id.split('-')[0]}..</div>
+                    <Link href={`/cotizaciones/${q.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors">{q.folio || q.id.split('-')[0] + '..'}</Link>
                     <div className="text-xs text-[#8E8D8A] truncate max-w-[150px]">{q.clientNameOrUsername}</div>
                   </td>
                   <td className="px-6 py-4">
@@ -132,7 +132,7 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
-                      q.status === 'Draft' ? 'bg-gray-100 text-gray-600' :
+                      q.status === 'Pendiente de respuesta' ? 'bg-gray-100 text-gray-600' :
                       q.status === 'Sent' ? 'bg-blue-50 text-blue-600' :
                       q.status === 'Converted' ? 'bg-green-50 text-green-600' :
                       q.status === 'Expired' ? 'bg-red-50 text-red-600' :
