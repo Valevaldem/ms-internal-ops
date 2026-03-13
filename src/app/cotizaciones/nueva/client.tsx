@@ -3,6 +3,7 @@
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { useState } from "react"
 import { createQuotation } from "./actions"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2 } from "lucide-react"
@@ -27,6 +28,8 @@ const schema = z.object({
 
 export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
   const router = useRouter()
+  const [invalidLots, setInvalidLots] = useState<number[]>([])
+
   const { register, control, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -72,13 +75,24 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
   const finalClientPrice = getRoundedCommercialPrice(rawClientPrice);
 
   const handleLotCodeChange = (index: number, code: string) => {
-    const lot = catalogs.stones.find((s: any) => s.code === code)
+    if (!code) {
+      setInvalidLots(prev => prev.filter(i => i !== index))
+      setValue(`stones.${index}.stoneName`, "")
+      setValue(`stones.${index}.pricePerCt`, 0)
+      setValue(`stones.${index}.stoneSubtotal`, 0)
+      return
+    }
+
+    const lot = catalogs.stones.find((s: any) => s.code.toUpperCase() === code.toUpperCase())
     if (lot) {
+      setInvalidLots(prev => prev.filter(i => i !== index))
+      setValue(`stones.${index}.lotCode`, lot.code)
       setValue(`stones.${index}.stoneName`, lot.stoneName)
       setValue(`stones.${index}.pricePerCt`, lot.pricePerCt)
       const weight = watch(`stones.${index}.weightCt`) || 0
       setValue(`stones.${index}.stoneSubtotal`, weight * lot.pricePerCt)
     } else {
+      setInvalidLots(prev => !prev.includes(index) ? [...prev, index] : prev)
       setValue(`stones.${index}.stoneName`, "")
       setValue(`stones.${index}.pricePerCt`, 0)
       setValue(`stones.${index}.stoneSubtotal`, 0)
@@ -92,8 +106,8 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
 
   const onSubmit = async (data: any) => {
     // Check invalid stones
-    if (data.stones.some((s: any) => !s.stoneName)) {
-      alert("Lote de piedra inválido.")
+    if (data.stones.some((s: any) => !s.stoneName) || invalidLots.length > 0) {
+      alert("Por favor corrige los lotes inválidos antes de continuar.")
       return
     }
 
@@ -215,10 +229,18 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
                   <input disabled value={`$${(watch(`stones.${index}.stoneSubtotal`) || 0).toLocaleString()}`} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-right" />
                 </div>
                 <div className="col-span-1 flex justify-end pb-2">
-                  <button type="button" onClick={() => remove(index)} className="text-red-400 hover:text-red-600 transition-colors">
+                  <button type="button" onClick={() => {
+                    remove(index)
+                    setInvalidLots(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i))
+                  }} className="text-red-400 hover:text-red-600 transition-colors">
                     <Trash2 size={16} />
                   </button>
                 </div>
+                {invalidLots.includes(index) && (
+                  <div className="col-span-12">
+                    <span className="text-xs text-red-500 mt-1 block">Lote de piedra inválido o no encontrado.</span>
+                  </div>
+                )}
               </div>
             ))}
             {fields.length === 0 && <p className="text-sm text-center text-[#8E8D8A] py-4">No hay piedras agregadas.</p>}
