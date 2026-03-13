@@ -82,6 +82,7 @@ model Quotation {
 
   // Status & Tracking
   status                    String   @default("Draft") // Draft, Sent, Waiting for Response, In Follow-Up, Extended, Expired, Converted, Cancelled, Deleted
+  folio                     String?  @unique
   followupCount             Int      @default(0) @map("followup_count")
   tags                      String?  // warnings/tags separated by comma
 
@@ -98,9 +99,10 @@ model QuotationStone {
 
   lotCode        String    @map("lot_code")
   stoneName      String    @map("stone_name")
+  quantity       Int       @default(1)
   weightCt       Float     @map("weight_ct")
   pricePerCt     Float     @map("price_per_ct")
-  stoneSubtotal  Float     @map("stone_subtotal") // weightCt * pricePerCt
+  stoneSubtotal  Float     @map("stone_subtotal") // quantity * weightCt * pricePerCt
 
   @@map("quotation_stones")
 }
