@@ -48,6 +48,7 @@ model StoneLot {
 // Create Quotation Module
 model Quotation {
   id                        String   @id @default(cuid()) @map("quotation_id")
+  folio                     String   @unique
   quotationDate             DateTime @default(now()) @map("quotation_date")
   clientNameOrUsername      String   @map("client_name_or_username")
   phoneNumber               String?  @map("phone_number")
@@ -98,6 +99,7 @@ model QuotationStone {
 
   lotCode        String    @map("lot_code")
   stoneName      String    @map("stone_name")
+  quantity       Int       @default(1) @map("quantity")
   weightCt       Float     @map("weight_ct")
   pricePerCt     Float     @map("price_per_ct")
   stoneSubtotal  Float     @map("stone_subtotal") // weightCt * pricePerCt

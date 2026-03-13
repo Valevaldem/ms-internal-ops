@@ -19,6 +19,7 @@ const schema = z.object({
   stones: z.array(z.object({
     lotCode: z.string().min(1, "Requerido"),
     stoneName: z.string(),
+    quantity: z.number().min(1, "Mínimo 1").default(1),
     weightCt: z.number().min(0.01),
     pricePerCt: z.number(),
     stoneSubtotal: z.number()
@@ -27,7 +28,7 @@ const schema = z.object({
 
 export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
   const router = useRouter()
-  const { register, control, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
+  const { register, control, handleSubmit, watch, setValue, setError, clearErrors, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       salesChannel: "Store",
@@ -72,16 +73,28 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
   const finalClientPrice = getRoundedCommercialPrice(rawClientPrice);
 
   const handleLotCodeChange = (index: number, code: string) => {
-    const lot = catalogs.stones.find((s: any) => s.code === code)
+    const normalizedCode = (code || "").trim().toUpperCase()
+    if (!normalizedCode) {
+      setValue(`stones.${index}.stoneName`, "")
+      setValue(`stones.${index}.pricePerCt`, 0)
+      setValue(`stones.${index}.stoneSubtotal`, 0)
+      clearErrors(`stones.${index}.lotCode`)
+      return
+    }
+
+    const lot = catalogs.stones.find((s: any) => s.code.toUpperCase() === normalizedCode)
+
     if (lot) {
       setValue(`stones.${index}.stoneName`, lot.stoneName)
       setValue(`stones.${index}.pricePerCt`, lot.pricePerCt)
       const weight = watch(`stones.${index}.weightCt`) || 0
       setValue(`stones.${index}.stoneSubtotal`, weight * lot.pricePerCt)
+      clearErrors(`stones.${index}.lotCode`)
     } else {
       setValue(`stones.${index}.stoneName`, "")
       setValue(`stones.${index}.pricePerCt`, 0)
       setValue(`stones.${index}.stoneSubtotal`, 0)
+      setError(`stones.${index}.lotCode`, { type: "manual", message: "Lote no encontrado" })
     }
   }
 
@@ -91,9 +104,15 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
   }
 
   const onSubmit = async (data: any) => {
+    // Check valid stones exist
+    if (!data.stones || data.stones.length === 0) {
+      alert("Debes agregar al menos una piedra válida para crear la cotización.")
+      return
+    }
+
     // Check invalid stones
-    if (data.stones.some((s: any) => !s.stoneName)) {
-      alert("Lote de piedra inválido.")
+    if (data.stones.some((s: any) => !s.stoneName || s.stoneName === "")) {
+      alert("Hay un lote de piedra inválido o vacío. Por favor revisa las filas marcadas en rojo.")
       return
     }
 
@@ -190,7 +209,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-[#F5F2EE] pb-2">
             <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold">Piedras</h3>
-            <button type="button" onClick={() => append({ lotCode: "", stoneName: "", weightCt: 0, pricePerCt: 0, stoneSubtotal: 0 })} className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium">
+            <button type="button" onClick={() => append({ lotCode: "", stoneName: "", quantity: 1, weightCt: 0, pricePerCt: 0, stoneSubtotal: 0 })} className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium">
               <Plus size={14} /> Agregar Piedra
             </button>
           </div>
@@ -198,13 +217,23 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
           <div className="space-y-3">
             {fields.map((field, index) => (
               <div key={field.id} className="grid grid-cols-12 gap-2 items-end bg-[#F5F2EE]/30 p-3 rounded-md border border-[#F5F2EE]">
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Lote</label>
-                  <input {...register(`stones.${index}.lotCode`)} onBlur={(e) => handleLotCodeChange(index, e.target.value)} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white uppercase" placeholder="Ej: D-001" />
+                  <input {...register(`stones.${index}.lotCode`)} onBlur={(e) => handleLotCodeChange(index, e.target.value)} onChange={(e) => {
+                    register(`stones.${index}.lotCode`).onChange(e);
+                    handleLotCodeChange(index, e.target.value);
+                  }} className={`w-full border ${(errors as any).stones?.[index]?.lotCode ? 'border-red-500 text-red-600' : 'border-[#D8D3CC]'} rounded p-2 text-sm bg-white uppercase focus:outline-none focus:border-[#C5B358]`} placeholder="Ej: D-001" />
+                  {(errors as any).stones?.[index]?.lotCode && (
+                    <span className="text-red-500 text-[10px] font-medium block mt-1">{(errors as any).stones[index].lotCode.message}</span>
+                  )}
                 </div>
                 <div className="col-span-3">
                   <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Nombre</label>
                   <input disabled {...register(`stones.${index}.stoneName`)} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-[#8E8D8A]" />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Cant</label>
+                  <input type="number" step="1" {...register(`stones.${index}.quantity`, { valueAsNumber: true })} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Peso (ct)</label>

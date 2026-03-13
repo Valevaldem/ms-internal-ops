@@ -23,6 +23,17 @@ async function extendValidity(formData: FormData) {
     });
     revalidatePath("/cotizaciones/historial");
   }
+
+}
+
+async function unarchiveQuotation(formData: FormData) {
+  "use server";
+  const id = formData.get("id") as string;
+  await prisma.quotation.update({
+    where: { id },
+    data: { status: "Pendiente de respuesta" }
+  });
+  revalidatePath("/cotizaciones/historial");
 }
 
 async function archiveQuotation(formData: FormData) {
@@ -114,7 +125,9 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
               return (
                 <tr key={q.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-[#333333]">{q.id.split('-')[0]}..</div>
+                    <Link href={`/cotizaciones/${q.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors">
+                      {q.folio || q.id.split('-')[0]}
+                    </Link>
                     <div className="text-xs text-[#8E8D8A] truncate max-w-[150px]">{q.clientNameOrUsername}</div>
                   </td>
                   <td className="px-6 py-4">
@@ -161,6 +174,14 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
                         <input type="hidden" name="id" value={q.id} />
                         <button type="submit" className="text-[10px] bg-white border border-red-200 text-red-500 hover:text-white hover:bg-red-500 px-2 py-1 rounded transition-colors uppercase tracking-wider">
                           Archivar
+                        </button>
+                      </form>
+                    )}
+                    {tab === 'archived' && (
+                      <form action={unarchiveQuotation} className="inline-block ml-4">
+                        <input type="hidden" name="id" value={q.id} />
+                        <button type="submit" className="text-[10px] bg-white border border-blue-200 text-blue-500 hover:text-white hover:bg-blue-500 px-2 py-1 rounded transition-colors uppercase tracking-wider">
+                          Desarchivar
                         </button>
                       </form>
                     )}

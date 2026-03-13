@@ -4,16 +4,9 @@ import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
-export default async function HistorialOrdenesPage(props: { searchParams: Promise<{ tab?: string }> }) {
-  const searchParams = await props.searchParams;
-  const tab = searchParams.tab || 'active';
-
-  const whereClause: any = tab === 'archived'
-    ? { stage: 'Cycle Closed' }
-    : { stage: { in: ["Delivered", "Post-Sale Follow-Up Pending (5 days)", "Post-Sale Follow-Up Pending (1 month)"] } };
-
+export default async function HistorialOrdenesPage() {
   const orders = await prisma.order.findMany({
-    where: whereClause,
+    where: { stage: { in: ["Delivered", "Post-Sale Follow-Up Pending (5 days)", "Post-Sale Follow-Up Pending (1 month)", "Cycle Closed"] } },
     include: { quotation: { include: { salesAssociate: true } } },
     orderBy: { updatedAt: 'desc' }
   });
@@ -30,20 +23,11 @@ export default async function HistorialOrdenesPage(props: { searchParams: Promis
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-serif text-[#333333]">Historial de Órdenes Completadas</h2>
           <p className="text-sm text-[#8E8D8A] mt-1">Registro de órdenes entregadas y seguimientos post-venta</p>
         </div>
-      </div>
-
-      <div className="flex gap-4 border-b border-[#D8D3CC] mb-4">
-        <Link href={`/ordenes/historial`} className={`pb-2 px-1 text-sm font-medium ${tab !== 'archived' ? 'text-[#333333] border-b-2 border-[#C5B358]' : 'text-[#8E8D8A] hover:text-[#333333]'}`}>
-          Activas
-        </Link>
-        <Link href={`/ordenes/historial?tab=archived`} className={`pb-2 px-1 text-sm font-medium ${tab === 'archived' ? 'text-[#333333] border-b-2 border-[#C5B358]' : 'text-[#8E8D8A] hover:text-[#333333]'}`}>
-          Cerradas (Archivo)
-        </Link>
       </div>
 
       <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm">
