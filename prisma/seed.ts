@@ -3,33 +3,35 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('Seeding database with MVP catalogs...')
+  console.log('Seeding database with operational catalogs...')
 
   // 1. Sales Associates
   await prisma.salesAssociate.createMany({
     data: [
-      { name: 'Ana M', activeStatus: true, appliesMsAdjustment: true },
-      { name: 'Carlos S', activeStatus: true, appliesMsAdjustment: false },
+      { name: 'MS', activeStatus: true, appliesMsAdjustment: true },
+      { name: 'Fernanda Pérez', activeStatus: true, appliesMsAdjustment: false },
     ],
   })
 
   // 2. Models
   await prisma.model.createMany({
     data: [
-      { name: 'Anillo Clásico Solitario', pieceType: 'Ring', basePrice: 12000, activeStatus: true },
-      { name: 'Argolla Diamantes', pieceType: 'Ring', basePrice: 18500, activeStatus: true },
-      { name: 'Cadena Fina Oro 18k', pieceType: 'Chain', basePrice: 8000, activeStatus: true },
-      { name: 'Aretes Perla', pieceType: 'Earrings', basePrice: 6500, activeStatus: true },
+      { name: 'Nova', pieceType: 'Ring', basePrice: 18000, activeStatus: true },
+      { name: 'Galaxy', pieceType: 'Ring', basePrice: 24000, activeStatus: true },
+      { name: 'Atom', pieceType: 'Ring', basePrice: 16000, activeStatus: true },
     ],
   })
 
   // 3. Stone Lots
   await prisma.stoneLot.createMany({
     data: [
-      { code: 'D-001', stoneName: 'Diamante Natural', cut: 'Brillante', color: 'G', pricePerCt: 85000, activeStatus: true },
-      { code: 'D-002', stoneName: 'Diamante Lab', cut: 'Princesa', color: 'F', pricePerCt: 25000, activeStatus: true },
-      { code: 'Z-001', stoneName: 'Zafiro Azul', cut: 'Oval', color: 'Azul', pricePerCt: 32000, activeStatus: true },
-      { code: 'E-001', stoneName: 'Esmeralda Colombiana', cut: 'Esmeralda', color: 'Verde', pricePerCt: 45000, activeStatus: true },
+      { code: 'TU-B070', stoneName: 'Turmalina', cut: 'Trillon', color: 'Multicolor', pricePerCt: 4500, activeStatus: true },
+      { code: 'AB018', stoneName: 'Amatista', cut: 'Octagón', color: 'Morado', pricePerCt: 2100, activeStatus: true },
+      { code: 'AC-B007', stoneName: 'Amatista clara', cut: 'Cushion', color: 'Lila', pricePerCt: 2100, activeStatus: true },
+      { code: 'TA-B008', stoneName: 'Tanzanita', cut: 'Marquise', color: 'Tanzanita', pricePerCt: 4500, activeStatus: true },
+      { code: 'E-005', stoneName: 'Esmeralda', cut: 'Oval', color: 'Verde', pricePerCt: 11000, activeStatus: true },
+      { code: 'AQ-009', stoneName: 'Aquamarina', cut: 'Gota', color: 'Celeste', pricePerCt: 4000, activeStatus: true },
+      { code: 'R-002', stoneName: 'Rubí', cut: 'Redondo', color: 'Fucsia', pricePerCt: 2200, activeStatus: true },
     ],
   })
 
