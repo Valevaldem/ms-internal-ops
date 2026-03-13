@@ -35,6 +35,16 @@ async function archiveQuotation(formData: FormData) {
   revalidatePath("/cotizaciones/historial");
 }
 
+async function unarchiveQuotation(formData: FormData) {
+  "use server";
+  const id = formData.get("id") as string;
+  await prisma.quotation.update({
+    where: { id },
+    data: { status: "Pendiente de respuesta" }
+  });
+  revalidatePath("/cotizaciones/historial");
+}
+
 export default async function HistorialCotizaciones(props: { searchParams: Promise<{ search?: string, tab?: string }> }) {
   const searchParams = await props.searchParams;
   const search = searchParams.search || '';
@@ -161,6 +171,14 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
                         <input type="hidden" name="id" value={q.id} />
                         <button type="submit" className="text-[10px] bg-white border border-red-200 text-red-500 hover:text-white hover:bg-red-500 px-2 py-1 rounded transition-colors uppercase tracking-wider">
                           Archivar
+                        </button>
+                      </form>
+                    )}
+                    {tab === 'archived' && (
+                      <form action={unarchiveQuotation} className="inline-block ml-4">
+                        <input type="hidden" name="id" value={q.id} />
+                        <button type="submit" className="text-[10px] bg-white border border-[#D8D3CC] text-[#8E8D8A] hover:text-[#333333] hover:border-[#333333] px-2 py-1 rounded transition-colors uppercase tracking-wider">
+                          Desarchivar
                         </button>
                       </form>
                     )}

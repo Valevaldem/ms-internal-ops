@@ -78,8 +78,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
       setValue(`stones.${index}.stoneName`, lot.stoneName, { shouldValidate: true })
       setValue(`stones.${index}.pricePerCt`, lot.pricePerCt)
       const weight = watch(`stones.${index}.weightCt`) || 0
-      const qty = watch(`stones.${index}.quantity`) || 1
-      setValue(`stones.${index}.stoneSubtotal`, weight * lot.pricePerCt * qty)
+      setValue(`stones.${index}.stoneSubtotal`, weight * lot.pricePerCt)
     } else {
       setValue(`stones.${index}.stoneName`, "", { shouldValidate: true })
       setValue(`stones.${index}.pricePerCt`, 0)
@@ -206,20 +205,14 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Cantidad</label>
-                  <input type="number" min="1" step="1" {...register(`stones.${index}.quantity`, { valueAsNumber: true, onChange: (e) => {
-                    const quantity = parseInt(e.target.value, 10) || 1;
-                    const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0;
-                    const weightCt = watch(`stones.${index}.weightCt`) || 0;
-                    setValue(`stones.${index}.stoneSubtotal`, weightCt * pricePerCt * quantity);
-                  }})} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white" />
+                  <input type="number" min="1" step="1" {...register(`stones.${index}.quantity`, { valueAsNumber: true })} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Peso (ct) c/u</label>
+                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Peso Total (ct)</label>
                   <input type="number" step="0.01" {...register(`stones.${index}.weightCt`, { valueAsNumber: true, onChange: (e) => {
                     const weight = parseFloat(e.target.value) || 0;
                     const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0;
-                    const qty = watch(`stones.${index}.quantity`) || 1;
-                    setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt * qty);
+                    setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt);
                   }})} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white" />
                 </div>
                 <div className="col-span-2">
