@@ -20,13 +20,18 @@ export async function createQuotation(formData: any) {
   const mmyy = `${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getFullYear()).slice(-2)}`
   const seq = String(count + 1).padStart(3, '0')
   const associate = await prisma.salesAssociate.findUnique({ where: { id: associateId } })
-  const associateInitials = associate?.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'XX'
-  const clientInitials = data.clientNameOrUsername.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'XX'
-  const folio = `${associateInitials}-${mmyy}-${seq}-${clientInitials}`
+
+  // Add fallback checks for names to prevent splitting undefined
+  const safeAssocName = associate?.name || 'XX';
+  const safeClientName = data.clientNameOrUsername || 'XX';
+
+  const associateInitials = safeAssocName.split(' ').map((n: string) => n[0] || '').join('').substring(0, 2).toUpperCase() || 'XX'
+  const clientInitials = safeClientName.split(' ').map((n: string) => n[0] || '').join('').substring(0, 2).toUpperCase() || 'XX'
+  const generatedFolio = `${associateInitials}-${mmyy}-${seq}-${clientInitials}`
 
   const quotation = await prisma.quotation.create({
     data: {
-      folio,
+      folio: generatedFolio,
       clientNameOrUsername: data.clientNameOrUsername,
       phoneNumber: data.phoneNumber || null,
       salesChannel: data.salesChannel,
