@@ -18,11 +18,12 @@ const schema = z.object({
   marginProtectionEnabled: z.boolean().default(false),
   stones: z.array(z.object({
     lotCode: z.string().min(1, "Requerido"),
-    stoneName: z.string(),
+    stoneName: z.string().min(1, "Lote inválido"),
+    quantity: z.number().min(1).default(1),
     weightCt: z.number().min(0.01),
     pricePerCt: z.number(),
     stoneSubtotal: z.number()
-  }))
+  })).min(1, "Agrega al menos una piedra")
 })
 
 export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
@@ -74,20 +75,15 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
   const handleLotCodeChange = (index: number, code: string) => {
     const lot = catalogs.stones.find((s: any) => s.code === code)
     if (lot) {
-      setValue(`stones.${index}.stoneName`, lot.stoneName)
+      setValue(`stones.${index}.stoneName`, lot.stoneName, { shouldValidate: true })
       setValue(`stones.${index}.pricePerCt`, lot.pricePerCt)
       const weight = watch(`stones.${index}.weightCt`) || 0
       setValue(`stones.${index}.stoneSubtotal`, weight * lot.pricePerCt)
     } else {
-      setValue(`stones.${index}.stoneName`, "")
+      setValue(`stones.${index}.stoneName`, "", { shouldValidate: true })
       setValue(`stones.${index}.pricePerCt`, 0)
       setValue(`stones.${index}.stoneSubtotal`, 0)
     }
-  }
-
-  const handleWeightChange = (index: number, weight: number) => {
-    const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
-    setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt)
   }
 
   const onSubmit = async (data: any) => {
@@ -189,8 +185,8 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
         {/* Piedras */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-[#F5F2EE] pb-2">
-            <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold">Piedras</h3>
-            <button type="button" onClick={() => append({ lotCode: "", stoneName: "", weightCt: 0, pricePerCt: 0, stoneSubtotal: 0 })} className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium">
+            <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold">Piedras {errors?.stones?.root && <span className="text-red-500 font-normal normal-case ml-2">- {errors.stones.root.message}</span>}</h3>
+            <button type="button" onClick={() => append({ lotCode: "", stoneName: "", quantity: 1, weightCt: 0, pricePerCt: 0, stoneSubtotal: 0 })} className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium">
               <Plus size={14} /> Agregar Piedra
             </button>
           </div>
@@ -198,19 +194,28 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
           <div className="space-y-3">
             {fields.map((field, index) => (
               <div key={field.id} className="grid grid-cols-12 gap-2 items-end bg-[#F5F2EE]/30 p-3 rounded-md border border-[#F5F2EE]">
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Lote</label>
-                  <input {...register(`stones.${index}.lotCode`)} onBlur={(e) => handleLotCodeChange(index, e.target.value)} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white uppercase" placeholder="Ej: D-001" />
+                  <input {...register(`stones.${index}.lotCode`)} onBlur={(e) => handleLotCodeChange(index, e.target.value)} className={`w-full border ${errors?.stones?.[index]?.stoneName ? 'border-red-500' : 'border-[#D8D3CC]'} rounded p-2 text-sm bg-white uppercase`} placeholder="Ej: AB018" />
+                  {errors?.stones?.[index]?.stoneName && <span className="text-red-500 text-[10px] absolute mt-0.5">{errors.stones[index].stoneName?.message as string}</span>}
                 </div>
                 <div className="col-span-3">
                   <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Nombre</label>
-                  <input disabled {...register(`stones.${index}.stoneName`)} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-[#8E8D8A]" />
+                  <input disabled {...register(`stones.${index}.stoneName`)} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-[#8E8D8A]" placeholder="Autollenado" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Peso (ct)</label>
-                  <input type="number" step="0.01" {...register(`stones.${index}.weightCt`, { valueAsNumber: true })} onChange={(e) => handleWeightChange(index, parseFloat(e.target.value) || 0)} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white" />
+                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Cantidad</label>
+                  <input type="number" min="1" step="1" {...register(`stones.${index}.quantity`, { valueAsNumber: true })} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white" />
                 </div>
-                <div className="col-span-3">
+                <div className="col-span-2">
+                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Peso Total (ct)</label>
+                  <input type="number" step="0.01" {...register(`stones.${index}.weightCt`, { valueAsNumber: true, onChange: (e) => {
+                    const weight = parseFloat(e.target.value) || 0;
+                    const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0;
+                    setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt);
+                  }})} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white" />
+                </div>
+                <div className="col-span-2">
                   <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Subtotal</label>
                   <input disabled value={`$${(watch(`stones.${index}.stoneSubtotal`) || 0).toLocaleString()}`} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-right" />
                 </div>

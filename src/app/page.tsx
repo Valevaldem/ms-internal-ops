@@ -88,7 +88,7 @@ export default async function Dashboard() {
               {expiringQuotations.map(q => (
                 <li key={q.id} className="text-sm">
                   <Link href={`/cotizaciones/historial`} className="text-amber-800 hover:underline font-medium">
-                    {q.id}
+                    {q.folio || q.id.substring(0,8)}
                   </Link>
                   <span className="text-amber-700 ml-2">({q.clientNameOrUsername})</span>
                   <div className="text-amber-600 text-xs mt-1">Vence: {q.validUntil.toLocaleDateString('es-MX')}</div>
@@ -111,7 +111,7 @@ export default async function Dashboard() {
               {overdueOrders.map(o => (
                 <li key={o.id} className="text-sm">
                   <Link href={`/ordenes/produccion`} className="text-red-800 hover:underline font-medium">
-                    {o.id}
+                    {o.quotation.folio || o.id.substring(0,8)}
                   </Link>
                   <span className="text-red-700 ml-2">({o.quotation.clientNameOrUsername})</span>
                   <div className="text-red-600 text-xs mt-1">
@@ -161,7 +161,7 @@ export default async function Dashboard() {
               {pendingFollowUps.map(o => (
                 <li key={o.id} className="text-sm">
                   <Link href={`/ordenes/historial`} className="text-blue-800 hover:underline font-medium">
-                    {o.id}
+                    {o.quotation.folio || o.id.substring(0,8)}
                   </Link>
                   <span className="text-blue-700 ml-2">({o.quotation.clientNameOrUsername})</span>
                   <div className="text-blue-600 text-xs mt-1">

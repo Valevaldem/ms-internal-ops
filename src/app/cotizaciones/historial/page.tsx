@@ -35,6 +35,16 @@ async function archiveQuotation(formData: FormData) {
   revalidatePath("/cotizaciones/historial");
 }
 
+async function unarchiveQuotation(formData: FormData) {
+  "use server";
+  const id = formData.get("id") as string;
+  await prisma.quotation.update({
+    where: { id },
+    data: { status: "Pendiente de respuesta" }
+  });
+  revalidatePath("/cotizaciones/historial");
+}
+
 export default async function HistorialCotizaciones(props: { searchParams: Promise<{ search?: string, tab?: string }> }) {
   const searchParams = await props.searchParams;
   const search = searchParams.search || '';
@@ -114,7 +124,7 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
               return (
                 <tr key={q.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-[#333333]">{q.id.split('-')[0]}..</div>
+                    <div className="font-semibold text-[#333333]">{q.folio || `${q.id.split('-')[0]}..`}</div>
                     <div className="text-xs text-[#8E8D8A] truncate max-w-[150px]">{q.clientNameOrUsername}</div>
                   </td>
                   <td className="px-6 py-4">
@@ -132,11 +142,11 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
-                      q.status === 'Draft' ? 'bg-gray-100 text-gray-600' :
+                      q.status === 'Pendiente de respuesta' ? 'bg-amber-50 text-amber-600' :
                       q.status === 'Sent' ? 'bg-blue-50 text-blue-600' :
                       q.status === 'Converted' ? 'bg-green-50 text-green-600' :
                       q.status === 'Expired' ? 'bg-red-50 text-red-600' :
-                      'bg-amber-50 text-amber-600'
+                      'bg-gray-100 text-gray-600'
                     }`}>
                       {q.status}
                     </span>
@@ -161,6 +171,14 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
                         <input type="hidden" name="id" value={q.id} />
                         <button type="submit" className="text-[10px] bg-white border border-red-200 text-red-500 hover:text-white hover:bg-red-500 px-2 py-1 rounded transition-colors uppercase tracking-wider">
                           Archivar
+                        </button>
+                      </form>
+                    )}
+                    {tab === 'archived' && (
+                      <form action={unarchiveQuotation} className="inline-block ml-4">
+                        <input type="hidden" name="id" value={q.id} />
+                        <button type="submit" className="text-[10px] bg-white border border-[#D8D3CC] text-[#8E8D8A] hover:text-[#333333] hover:border-[#333333] px-2 py-1 rounded transition-colors uppercase tracking-wider">
+                          Desarchivar
                         </button>
                       </form>
                     )}

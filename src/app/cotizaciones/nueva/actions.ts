@@ -15,8 +15,23 @@ export async function getCatalogs() {
 export async function createQuotation(formData: any) {
   const { associateId, marginProtectionEnabled, validUntilDate, totalStonesPrice, subtotalBeforeAdjustments, msInternalAdjustment, marginProtectionAmount, finalClientPrice, ...data } = formData;
 
+  const count = await prisma.quotation.count()
+  const d = new Date()
+  const mmyy = `${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getFullYear()).slice(-2)}`
+  const seq = String(count + 1).padStart(3, '0')
+  const associate = await prisma.salesAssociate.findUnique({ where: { id: associateId } })
+
+  // Add fallback checks for names to prevent splitting undefined
+  const safeAssocName = associate?.name || 'XX';
+  const safeClientName = data.clientNameOrUsername || 'XX';
+
+  const associateInitials = safeAssocName.split(' ').map((n: string) => n[0] || '').join('').substring(0, 2).toUpperCase() || 'XX'
+  const clientInitials = safeClientName.split(' ').map((n: string) => n[0] || '').join('').substring(0, 2).toUpperCase() || 'XX'
+  const generatedFolio = `${associateInitials}-${mmyy}-${seq}-${clientInitials}`
+
   const quotation = await prisma.quotation.create({
     data: {
+      folio: generatedFolio,
       clientNameOrUsername: data.clientNameOrUsername,
       phoneNumber: data.phoneNumber || null,
       salesChannel: data.salesChannel,
@@ -36,12 +51,13 @@ export async function createQuotation(formData: any) {
 
       validUntil: validUntilDate,
       daysRemaining: 15,
-      status: "Draft",
+      status: "Pendiente de respuesta",
 
       stones: {
         create: data.stones.map((s: any) => ({
           lotCode: s.lotCode,
           stoneName: s.stoneName,
+          quantity: Number(s.quantity),
           weightCt: Number(s.weightCt),
           pricePerCt: Number(s.pricePerCt),
           stoneSubtotal: Number(s.stoneSubtotal)

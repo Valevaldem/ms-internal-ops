@@ -60,7 +60,7 @@ export default async function NuevaOrdenPage({ searchParams }: { searchParams: {
       <h2 className="text-2xl font-serif text-[#333333] mb-6">Convertir Cotización a Orden</h2>
 
       <div className="bg-[#F5F2EE] p-6 rounded-lg mb-8 border border-[#D8D3CC]">
-        <h3 className="text-sm font-semibold text-[#8E8D8A] uppercase tracking-wider mb-4 border-b border-[#D8D3CC] pb-2">Resumen de Cotización</h3>
+        <h3 className="text-sm font-semibold text-[#8E8D8A] uppercase tracking-wider mb-4 border-b border-[#D8D3CC] pb-2">Resumen de Cotización - {quotation.folio || quotation.id}</h3>
         <div className="grid grid-cols-2 gap-y-3 text-sm">
           <div className="text-[#8E8D8A]">Cliente:</div>
           <div className="font-medium text-[#333333] text-right">{quotation.clientNameOrUsername}</div>
@@ -70,7 +70,7 @@ export default async function NuevaOrdenPage({ searchParams }: { searchParams: {
 
           <div className="text-[#8E8D8A]">Piedras:</div>
           <div className="font-medium text-[#333333] text-right">
-            {quotation.stones.map(s => `${s.lotCode} (${s.weightCt}ct)`).join(', ') || 'Ninguna'}
+            {quotation.stones.map(s => `${s.quantity}x ${s.lotCode} (${s.weightCt}ct)`).join(', ') || 'Ninguna'}
           </div>
 
           <div className="col-span-2 border-t border-[#D8D3CC] my-2"></div>
