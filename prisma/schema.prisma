@@ -48,6 +48,7 @@ model StoneLot {
 // Create Quotation Module
 model Quotation {
   id                        String   @id @default(cuid()) @map("quotation_id")
+  folio                     String   @unique
   quotationDate             DateTime @default(now()) @map("quotation_date")
   clientNameOrUsername      String   @map("client_name_or_username")
   phoneNumber               String?  @map("phone_number")

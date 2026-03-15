@@ -15,8 +15,20 @@ export async function getCatalogs() {
 export async function createQuotation(formData: any) {
   const { associateId, marginProtectionEnabled, validUntilDate, totalStonesPrice, subtotalBeforeAdjustments, msInternalAdjustment, marginProtectionAmount, finalClientPrice, ...data } = formData;
 
+  const associate = await prisma.salesAssociate.findUnique({ where: { id: associateId } });
+  const count = await prisma.quotation.count();
+  const globalNum = String(count + 1).padStart(3, '0');
+  const d = new Date();
+  const mmyy = `${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getFullYear()).slice(-2)}`;
+
+  const assocInitials = associate?.name ? associate.name.substring(0, 2).toUpperCase() : 'XX';
+  const clientInitials = data.clientNameOrUsername ? data.clientNameOrUsername.substring(0, 2).toUpperCase() : 'XX';
+
+  const folio = `${assocInitials}-${mmyy}-${globalNum}-${clientInitials}`;
+
   const quotation = await prisma.quotation.create({
     data: {
+      folio,
       clientNameOrUsername: data.clientNameOrUsername,
       phoneNumber: data.phoneNumber || null,
       salesChannel: data.salesChannel,
