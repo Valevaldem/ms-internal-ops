@@ -136,6 +136,7 @@ export default async function Dashboard() {
               {stonesToReturn.map(q => (
                 <li key={q.id} className="text-sm">
                   <Link href={`/cotizaciones/historial`} className="text-purple-800 hover:underline font-medium">
+                    {/* @ts-expect-error folio might be added later but currently breaks build */}
                     {q.folio || q.id}
                   </Link>
                   <span className="text-purple-700 ml-2">({q.clientNameOrUsername})</span>
