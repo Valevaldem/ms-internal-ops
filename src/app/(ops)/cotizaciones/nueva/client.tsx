@@ -218,7 +218,7 @@ export default function NuevaCotizacionClient({ catalogs, initialData }: { catal
           </div>
           <div>
             <label className="block text-sm text-[#333333] mb-1">Notas del diseño</label>
-            <textarea {...register("notes")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" rows={2}></textarea>
+            <textarea readOnly={!!initialData} {...register("notes")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} rows={2}></textarea>
           </div>
         </section>
 
