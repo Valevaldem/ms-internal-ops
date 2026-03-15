@@ -2,6 +2,22 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
+/*
+  ==============================================================
+  DATABASE SETUP & BOOTSTRAP INTENT (PLEASE READ)
+  ==============================================================
+  1. This seed file exists ONLY for reproducible local setup.
+  2. The schema, seed file, and .env.example are the setup baseline.
+  3. Seeded records are NOT the business workflow source of truth.
+  4. Implementation MUST follow the actual, verified app flow, NOT
+     invented hardcoded demo business records.
+  5. Do NOT depend on a manually modified local dev.db snapshot.
+
+  This file should only insert neutral catalogs (associates, models,
+  stones) to get the app running, avoiding fake quotations or orders.
+  ==============================================================
+*/
+
 async function main() {
   console.log('Seeding database with operational catalogs...')
 
