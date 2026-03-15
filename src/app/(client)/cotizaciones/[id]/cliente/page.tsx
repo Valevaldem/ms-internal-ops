@@ -25,7 +25,7 @@ export default async function ClientCotizacionPage({ params }: { params: Promise
         {/* Header - Brand Presentation */}
         <div className="text-center mb-12 border-b border-[#D8D3CC] pb-10">
           <h1 className="text-3xl font-serif text-[#333333] tracking-widest uppercase mb-2">Maria Salinas</h1>
-          <p className="text-xs text-[#8E8D8A] tracking-[0.2em] uppercase">Propuesta de Diseño</p>
+          <p className="text-xs text-[#8E8D8A] tracking-[0.2em] uppercase">Cotización de diseño personalizado</p>
         </div>
 
         {/* Info Grid */}
@@ -73,7 +73,7 @@ export default async function ClientCotizacionPage({ params }: { params: Promise
         {/* Pricing & Validity */}
         <div className="border-t border-[#D8D3CC] pt-8 flex flex-col md:flex-row justify-between items-end md:items-center">
           <div className="mb-6 md:mb-0">
-             <h3 className="text-[10px] uppercase tracking-widest text-[#8E8D8A] font-semibold mb-1">Inversión Estimada</h3>
+             <h3 className="text-[10px] uppercase tracking-widest text-[#8E8D8A] font-semibold mb-1">Precio final</h3>
              <p className="text-3xl font-serif text-[#C5B358]">${quotation.finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} <span className="text-sm text-[#8E8D8A]">MXN</span></p>
           </div>
 

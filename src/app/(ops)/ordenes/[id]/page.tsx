@@ -117,12 +117,10 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
               </div>
             </div>
 
-            {(order.referenceImageUrl || order.posTicketNumber || order.id) && (
+            {(order.referenceImageUrl || order.posTicketNumber) && (
                <div>
                   <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Información Adicional</h3>
                   <div className="grid grid-cols-2 gap-y-2 text-sm">
-                    <div className="text-[#8E8D8A]">ID Técnico (Sistema):</div>
-                    <div className="font-medium text-[#8E8D8A] text-[10px] break-all self-center">{order.id}</div>
                     {order.referenceImageUrl && (
                       <>
                         <div className="text-[#8E8D8A]">URL Referencia:</div>
