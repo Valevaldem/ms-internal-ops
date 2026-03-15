@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { translatePieceType } from "@/lib/translations";
+import StatusSelect from "./status-select";
 
 export const dynamic = "force-dynamic";
 
@@ -35,15 +37,25 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
             <div className="text-xl font-medium text-[#333333]">{quotation.folio || quotation.id}</div>
           </div>
           <div className="text-right">
-            <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
-              quotation.status === 'Pendiente de respuesta' ? 'bg-gray-100 text-gray-600' :
-              quotation.status === 'Sent' ? 'bg-blue-50 text-blue-600' :
-              quotation.status === 'Converted' ? 'bg-green-50 text-green-600' :
-              quotation.status === 'Expired' ? 'bg-red-50 text-red-600' :
-              'bg-amber-50 text-amber-600'
-            }`}>
-              {quotation.status}
-            </span>
+            <div className="flex flex-col items-end gap-2">
+              <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
+                quotation.status === 'Pendiente de respuesta' ? 'bg-gray-100 text-gray-600' :
+                quotation.status === 'En seguimiento' ? 'bg-blue-50 text-blue-600' :
+                quotation.status === 'Oportunidad de cierre' ? 'bg-indigo-50 text-indigo-600' :
+                quotation.status === 'Declinada' ? 'bg-red-50 text-red-600' :
+                quotation.status === 'Converted' ? 'bg-green-50 text-green-600' :
+                quotation.status === 'Expired' ? 'bg-red-50 text-red-600' :
+                'bg-amber-50 text-amber-600'
+              }`}>
+                {quotation.status}
+              </span>
+
+              {quotation.status !== 'Converted' && (
+                <div className="mt-1">
+                  <StatusSelect id={quotation.id} currentStatus={quotation.status} />
+                </div>
+              )}
+            </div>
             <div className="mt-2 text-xs text-[#8E8D8A]">
               Creada el: {new Date(quotation.quotationDate).toLocaleDateString('es-MX')}
             </div>
@@ -71,7 +83,7 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
               <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Detalle de la Pieza</h3>
               <div className="grid grid-cols-2 gap-y-2 text-sm">
                 <div className="text-[#8E8D8A]">Tipo de Pieza:</div>
-                <div className="font-medium text-[#333333]">{quotation.pieceType}</div>
+                <div className="font-medium text-[#333333]">{translatePieceType(quotation.pieceType)}</div>
                 <div className="text-[#8E8D8A]">Modelo:</div>
                 <div className="font-medium text-[#333333]">{quotation.modelName}</div>
               </div>
@@ -138,9 +150,23 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
                   </div>
                 )}
 
+                {quotation.discountPercent > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-[#8E8D8A]">Descuento Aplicado:</span>
+                    <span className="text-red-600 font-medium">-{quotation.discountPercent}%</span>
+                  </div>
+                )}
+
                 <div className="border-t border-[#D8D3CC] pt-3 mt-3 flex justify-between items-center">
                   <span className="font-semibold text-[#333333]">Precio Final Cliente:</span>
-                  <span className="font-serif text-lg text-[#C5B358] font-bold">${quotation.finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                  <div className="text-right">
+                    {quotation.discountPercent > 0 && (
+                      <div className="text-sm text-[#8E8D8A] line-through mb-1">
+                        ${(quotation.discountPercent === 100 ? (quotation.subtotalBeforeAdjustments + quotation.msInternalAdjustment + quotation.marginProtectionAmount) : (quotation.finalClientPrice / (1 - quotation.discountPercent / 100))).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </div>
+                    )}
+                    <span className="font-serif text-lg text-[#C5B358] font-bold">${quotation.finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                  </div>
                 </div>
                 <div className="text-right text-[10px] text-[#8E8D8A] uppercase mt-1">
                   Válido hasta: <span className={isExpired ? 'text-red-500 font-semibold' : ''}>{quotation.validUntil.toLocaleDateString('es-MX')}</span>
@@ -152,6 +178,9 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
 
         {/* Acciones */}
         <div className="bg-[#F5F2EE] p-4 border-t border-[#D8D3CC] flex justify-end gap-4">
+           <Link href={`/cotizaciones/${quotation.id}/cliente`} target="_blank" className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
+             Ver Vista Cliente
+           </Link>
            {quotation.status !== 'Converted' && (
              <Link href={`/ordenes/nueva?quotationId=${quotation.id}`} className="bg-[#333333] text-white px-6 py-2 rounded text-sm font-semibold hover:bg-black transition-colors uppercase tracking-wider">
                Convertir a Orden
