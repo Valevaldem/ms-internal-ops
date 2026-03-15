@@ -60,8 +60,10 @@ export default async function ProduccionPage() {
               return (
                 <tr key={o.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-[#333333]">{o.id.split('-')[0]}..</div>
-                    <div className="text-[10px] text-[#8E8D8A] uppercase tracking-wider mt-1">{o.quotationId.split('-')[0]}..</div>
+                    <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors">
+                      {o.quotation.folio || o.quotation.id.split('-')[0] + '..'}
+                    </Link>
+                    <div className="text-[10px] text-[#8E8D8A] uppercase tracking-wider mt-1">ID: {o.id.split('-')[0]}..</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-[#333333] font-medium">{o.quotation.clientNameOrUsername}</div>
