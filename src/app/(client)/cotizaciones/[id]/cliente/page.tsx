@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { translatePieceType } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function ClientCotizacionPage({ params }: { params: Promise
           <div className="space-y-6">
             <div>
               <h3 className="text-[10px] uppercase tracking-widest text-[#8E8D8A] font-semibold mb-2">Detalle de la Pieza</h3>
-              <p className="text-sm text-[#333333]"><span className="text-[#8E8D8A] mr-2">Tipo:</span>{quotation.pieceType}</p>
+              <p className="text-sm text-[#333333]"><span className="text-[#8E8D8A] mr-2">Tipo:</span>{translatePieceType(quotation.pieceType)}</p>
               <p className="text-sm text-[#333333] mt-1"><span className="text-[#8E8D8A] mr-2">Diseño:</span>{quotation.modelName}</p>
             </div>
 

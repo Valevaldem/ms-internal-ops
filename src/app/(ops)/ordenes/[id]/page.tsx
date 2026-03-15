@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { translateStage, translatePieceType } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,6 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
           <div>
             <div className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold mb-1">Folio (Orden)</div>
             <div className="text-xl font-medium text-[#333333]">{quotation.folio || quotation.id}</div>
-            <div className="text-xs text-[#8E8D8A] mt-1">ID Técnico: {order.id}</div>
           </div>
           <div className="text-right">
             <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
@@ -44,7 +44,7 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
               order.stage === 'In Production' ? 'bg-[#C5B358]/20 text-[#8E7E3D]' :
               'bg-blue-50 text-blue-600'
             }`}>
-              {order.stage}
+              {translateStage(order.stage)}
             </span>
             <div className="mt-2 text-xs text-[#8E8D8A]">
               Creada el: {new Date(order.createdAt).toLocaleDateString('es-MX')}
@@ -71,7 +71,7 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
               <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Detalle de la Pieza</h3>
               <div className="grid grid-cols-2 gap-y-2 text-sm">
                 <div className="text-[#8E8D8A]">Tipo de Pieza:</div>
-                <div className="font-medium text-[#333333]">{quotation.pieceType}</div>
+                <div className="font-medium text-[#333333]">{translatePieceType(quotation.pieceType)}</div>
                 <div className="text-[#8E8D8A]">Modelo:</div>
                 <div className="font-medium text-[#333333]">{quotation.modelName}</div>
                 <div className="text-[#8E8D8A]">Entrega:</div>
@@ -117,10 +117,12 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
               </div>
             </div>
 
-            {(order.referenceImageUrl || order.posTicketNumber) && (
+            {(order.referenceImageUrl || order.posTicketNumber || order.id) && (
                <div>
                   <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Información Adicional</h3>
                   <div className="grid grid-cols-2 gap-y-2 text-sm">
+                    <div className="text-[#8E8D8A]">ID Técnico (Sistema):</div>
+                    <div className="font-medium text-[#8E8D8A] text-[10px] break-all self-center">{order.id}</div>
                     {order.referenceImageUrl && (
                       <>
                         <div className="text-[#8E8D8A]">URL Referencia:</div>

@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Clock, CheckCircle } from "lucide-react";
 import { revalidatePath } from "next/cache";
+import { translateStage } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +97,7 @@ export default async function ProduccionPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="px-3 py-1 bg-[#F5F2EE] text-[#8E8D8A] rounded-full text-[10px] font-semibold tracking-wider uppercase inline-block">
-                      {o.stage}
+                      {translateStage(o.stage)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">

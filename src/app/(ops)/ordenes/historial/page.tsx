@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { translateStage } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ export default async function HistorialOrdenesPage(props: { searchParams: Promis
                   <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase inline-block ${
                     o.stage === 'Cycle Closed' ? 'bg-gray-100 text-gray-500' : 'bg-blue-50 text-blue-600'
                   }`}>
-                    {o.stage}
+                    {translateStage(o.stage)}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">

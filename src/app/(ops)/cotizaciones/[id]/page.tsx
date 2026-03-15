@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { translatePieceType } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,7 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
               <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Detalle de la Pieza</h3>
               <div className="grid grid-cols-2 gap-y-2 text-sm">
                 <div className="text-[#8E8D8A]">Tipo de Pieza:</div>
-                <div className="font-medium text-[#333333]">{quotation.pieceType}</div>
+                <div className="font-medium text-[#333333]">{translatePieceType(quotation.pieceType)}</div>
                 <div className="text-[#8E8D8A]">Modelo:</div>
                 <div className="font-medium text-[#333333]">{quotation.modelName}</div>
               </div>
@@ -152,6 +153,9 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
 
         {/* Acciones */}
         <div className="bg-[#F5F2EE] p-4 border-t border-[#D8D3CC] flex justify-end gap-4">
+           <Link href={`/cotizaciones/${quotation.id}/cliente`} target="_blank" className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
+             Ver Vista Cliente
+           </Link>
            {quotation.status !== 'Converted' && (
              <Link href={`/ordenes/nueva?quotationId=${quotation.id}`} className="bg-[#333333] text-white px-6 py-2 rounded text-sm font-semibold hover:bg-black transition-colors uppercase tracking-wider">
                Convertir a Orden
