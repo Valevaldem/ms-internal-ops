@@ -134,13 +134,12 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
                     <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
                       q.status === 'Pendiente de respuesta' ? 'bg-gray-100 text-gray-600' :
                       q.status === 'En seguimiento' ? 'bg-blue-50 text-blue-600' :
-                      q.status === 'Oportunidad de cierre' ? 'bg-indigo-50 text-indigo-600' :
+                      q.status === 'Oportunidad de cierre' ? 'bg-amber-50 text-amber-600' :
                       q.status === 'Declinada' ? 'bg-red-50 text-red-600' :
                       q.status === 'Converted' ? 'bg-green-50 text-green-600' :
-                      q.status === 'Expired' ? 'bg-red-50 text-red-600' :
-                      'bg-amber-50 text-amber-600'
+                      'bg-gray-50 text-gray-600'
                     }`}>
-                      {q.status}
+                      {q.status === 'Converted' ? 'Convertida' : q.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">

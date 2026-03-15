@@ -75,8 +75,7 @@ model Quotation {
   marginProtectionPercent   Float    @default(15) @map("margin_protection_percent")
   marginProtectionAmount    Float    @default(0) @map("margin_protection_amount")
 
-  discountPercent           Float    @default(0) @map("discount_percent")
-
+  discountPercent           Float?   @map("discount_percent") // Percentage 0-100 applied to subtotal
   finalClientPrice          Float    @map("final_client_price")
 
   // Validity
@@ -84,7 +83,7 @@ model Quotation {
   daysRemaining             Int      @map("days_remaining")
 
   // Status & Tracking
-  status                    String   @default("Draft") // Draft, Sent, Waiting for Response, In Follow-Up, Extended, Expired, Converted, Cancelled, Deleted
+  status                    String   @default("Pendiente de respuesta") // Pendiente de respuesta, En seguimiento, Oportunidad de cierre, Declinada, Converted
   followupCount             Int      @default(0) @map("followup_count")
   tags                      String?  // warnings/tags separated by comma
 

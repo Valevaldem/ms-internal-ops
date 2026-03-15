@@ -47,7 +47,7 @@ export async function createQuotation(formData: any) {
       marginProtectionEnabled: Boolean(marginProtectionEnabled),
       marginProtectionPercent: 15,
       marginProtectionAmount: Number(marginProtectionAmount),
-      discountPercent: Number(discountPercent) || 0,
+      discountPercent: Number(discountPercent || 0),
       finalClientPrice: Number(finalClientPrice),
 
       validUntil: validUntilDate,

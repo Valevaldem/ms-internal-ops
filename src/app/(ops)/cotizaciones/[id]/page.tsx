@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { translatePieceType } from "@/lib/translations";
 import StatusSelect from "./status-select";
+import DiscountEdit from "./discount-edit";
 
 export const dynamic = "force-dynamic";
 
@@ -36,27 +37,19 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
             <div className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold mb-1">Folio</div>
             <div className="text-xl font-medium text-[#333333]">{quotation.folio || quotation.id}</div>
           </div>
-          <div className="text-right">
-            <div className="flex flex-col items-end gap-2">
-              <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
-                quotation.status === 'Pendiente de respuesta' ? 'bg-gray-100 text-gray-600' :
-                quotation.status === 'En seguimiento' ? 'bg-blue-50 text-blue-600' :
-                quotation.status === 'Oportunidad de cierre' ? 'bg-indigo-50 text-indigo-600' :
-                quotation.status === 'Declinada' ? 'bg-red-50 text-red-600' :
-                quotation.status === 'Converted' ? 'bg-green-50 text-green-600' :
-                quotation.status === 'Expired' ? 'bg-red-50 text-red-600' :
-                'bg-amber-50 text-amber-600'
-              }`}>
-                {quotation.status}
-              </span>
-
-              {quotation.status !== 'Converted' && (
-                <div className="mt-1">
-                  <StatusSelect id={quotation.id} currentStatus={quotation.status} />
-                </div>
-              )}
-            </div>
-            <div className="mt-2 text-xs text-[#8E8D8A]">
+          <div className="text-right flex flex-col items-end gap-2">
+            <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
+              quotation.status === 'Pendiente de respuesta' ? 'bg-gray-100 text-gray-600' :
+              quotation.status === 'En seguimiento' ? 'bg-blue-50 text-blue-600' :
+              quotation.status === 'Oportunidad de cierre' ? 'bg-amber-50 text-amber-600' :
+              quotation.status === 'Declinada' ? 'bg-red-50 text-red-600' :
+              quotation.status === 'Converted' ? 'bg-green-50 text-green-600' :
+              'bg-gray-50 text-gray-600'
+            }`}>
+              {quotation.status === 'Converted' ? 'Convertida' : quotation.status}
+            </span>
+            <StatusSelect id={quotation.id} currentStatus={quotation.status} />
+            <div className="text-xs text-[#8E8D8A]">
               Creada el: {new Date(quotation.quotationDate).toLocaleDateString('es-MX')}
             </div>
           </div>
@@ -150,21 +143,32 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
                   </div>
                 )}
 
-                {quotation.discountPercent > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#8E8D8A]">Descuento Aplicado:</span>
-                    <span className="text-red-600 font-medium">-{quotation.discountPercent}%</span>
-                  </div>
-                )}
+                <DiscountEdit
+                  id={quotation.id}
+                  initialDiscount={quotation.discountPercent || 0}
+                  isConverted={quotation.status === 'Converted'}
+                />
 
                 <div className="border-t border-[#D8D3CC] pt-3 mt-3 flex justify-between items-center">
                   <span className="font-semibold text-[#333333]">Precio Final Cliente:</span>
-                  <div className="text-right">
-                    {quotation.discountPercent > 0 && (
-                      <div className="text-sm text-[#8E8D8A] line-through mb-1">
-                        ${(quotation.discountPercent === 100 ? (quotation.subtotalBeforeAdjustments + quotation.msInternalAdjustment + quotation.marginProtectionAmount) : (quotation.finalClientPrice / (1 - quotation.discountPercent / 100))).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                      </div>
-                    )}
+                  <div className="flex flex-col items-end">
+                    {quotation.discountPercent !== null && quotation.discountPercent > 0 ? (
+                      <span className="text-sm line-through text-[#8E8D8A] mb-1">
+                        ${(() => {
+                          const rawClientPrice = quotation.subtotalBeforeAdjustments + quotation.msInternalAdjustment + quotation.marginProtectionAmount;
+                          const getRoundedCommercialPrice = (price: number) => {
+                            if (price <= 0) return 0;
+                            const baseThousand = Math.floor(price / 1000) * 1000;
+                            const remainder = price % 1000;
+                            if (remainder === 0) return baseThousand;
+                            if (remainder <= 500) return baseThousand + 500;
+                            if (remainder <= 850) return baseThousand + 850;
+                            return baseThousand + 1000;
+                          };
+                          return getRoundedCommercialPrice(rawClientPrice).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+                        })()}
+                      </span>
+                    ) : null}
                     <span className="font-serif text-lg text-[#C5B358] font-bold">${quotation.finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
