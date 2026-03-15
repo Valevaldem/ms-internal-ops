@@ -290,8 +290,9 @@ export default function NuevaCotizacionClient({ catalogs, initialData }: { catal
           )}
 
           <div className="flex items-center justify-between text-sm pt-2 border-t border-[#D8D3CC] mt-2">
-            <label className="flex items-center gap-2 text-[#333333] cursor-pointer font-medium">
-              <input type="checkbox" {...register("marginProtectionEnabled")} className="rounded text-[#C5B358] focus:ring-[#C5B358] bg-white border-[#D8D3CC]" />
+            <label className={`flex items-center gap-2 text-[#333333] font-medium ${initialData ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
+              <input type="checkbox" disabled={!!initialData} {...register("marginProtectionEnabled")} className="rounded text-[#C5B358] focus:ring-[#C5B358] bg-white border-[#D8D3CC] disabled:opacity-50" />
+              {initialData && <input type="hidden" {...register("marginProtectionEnabled")} />}
               Ajuste interno
             </label>
             {marginProtectionEnabled && <span className="text-[#C5B358] font-medium">${marginProtectionAmount.toLocaleString()}</span>}
@@ -318,7 +319,7 @@ export default function NuevaCotizacionClient({ catalogs, initialData }: { catal
 
           <div className="pt-4 border-t border-[#D8D3CC] mt-4 flex justify-between items-center">
              <label className="text-sm text-[#333333]">Descuento (%)</label>
-             <input type="number" step="0.1" min="0" max="100" {...register("discountPercent", { valueAsNumber: true })} className="w-24 border border-[#D8D3CC] rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]" placeholder="0" />
+             <input readOnly={!!initialData} type="number" step="0.1" min="0" max="100" {...register("discountPercent", { valueAsNumber: true })} className={`w-24 border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]`} placeholder="0" />
           </div>
 
         </section>
