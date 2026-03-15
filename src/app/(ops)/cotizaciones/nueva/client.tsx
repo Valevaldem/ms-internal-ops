@@ -17,6 +17,7 @@ const schema = z.object({
   modelId: z.string().min(1, "Requerido"),
   notes: z.string().optional(),
   marginProtectionEnabled: z.boolean().default(false),
+  discountPercent: z.number().min(0).max(100).default(0),
   stones: z.array(z.object({
     lotCode: z.string().min(1, "Requerido"),
     stoneName: z.string(),
@@ -36,6 +37,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
       salesChannel: "Store",
       pieceType: "Ring",
       marginProtectionEnabled: false,
+      discountPercent: 0,
       stones: []
     }
   })
@@ -45,6 +47,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
   const modelId = watch("modelId")
   const associateId = watch("salesAssociateId")
   const marginProtectionEnabled = watch("marginProtectionEnabled")
+  const discountPercent = watch("discountPercent") || 0
   const stones = watch("stones")
 
   const selectedModel = catalogs.models.find((m: any) => m.id === modelId)
@@ -72,7 +75,9 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
     return baseThousand + 1000;
   };
 
-  const finalClientPrice = getRoundedCommercialPrice(rawClientPrice);
+  const roundedCommercialPrice = getRoundedCommercialPrice(rawClientPrice);
+  const discountAmount = roundedCommercialPrice * (discountPercent / 100);
+  const finalClientPrice = roundedCommercialPrice - discountAmount;
 
   const handleLotCodeChange = (index: number, code: string) => {
     if (!code) {
@@ -120,6 +125,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
       subtotalBeforeAdjustments,
       msInternalAdjustment,
       marginProtectionAmount,
+      discountPercent,
       finalClientPrice,
       validUntilDate: new Date(new Date().getTime() + 15 * 24 * 60 * 60 * 1000)
     }
@@ -275,9 +281,28 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
             {marginProtectionEnabled && <span className="text-[#C5B358] font-medium">${marginProtectionAmount.toLocaleString()}</span>}
           </div>
 
+          <div className="flex items-center justify-between text-sm pt-2 border-t border-[#D8D3CC] mt-2">
+            <label className="text-[#333333] font-medium">Descuento (%)</label>
+            <input
+              type="number"
+              step="1"
+              min="0"
+              max="100"
+              {...register("discountPercent", { valueAsNumber: true })}
+              className="w-20 border border-[#D8D3CC] rounded p-1 text-sm text-right focus:outline-none focus:border-[#C5B358]"
+            />
+          </div>
+
           <div className="flex justify-between text-lg font-serif pt-4 mt-4 border-t border-[#D8D3CC]">
             <span>Precio Final Cliente:</span>
-            <span className="text-[#C5B358] font-semibold">${finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+            <div className="text-right">
+              {discountPercent > 0 && (
+                <div className="text-sm text-[#8E8D8A] line-through mb-1">
+                  ${roundedCommercialPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </div>
+              )}
+              <span className="text-[#C5B358] font-semibold">${finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+            </div>
           </div>
         </section>
 

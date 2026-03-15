@@ -13,7 +13,7 @@ export async function getCatalogs() {
 }
 
 export async function createQuotation(formData: any) {
-  const { associateId, marginProtectionEnabled, validUntilDate, totalStonesPrice, subtotalBeforeAdjustments, msInternalAdjustment, marginProtectionAmount, finalClientPrice, ...data } = formData;
+  const { associateId, marginProtectionEnabled, validUntilDate, totalStonesPrice, subtotalBeforeAdjustments, msInternalAdjustment, marginProtectionAmount, discountPercent, finalClientPrice, ...data } = formData;
 
   // Generate logical folio: AA-MMYY-001-CC
   const count = await prisma.quotation.count();
@@ -47,6 +47,7 @@ export async function createQuotation(formData: any) {
       marginProtectionEnabled: Boolean(marginProtectionEnabled),
       marginProtectionPercent: 15,
       marginProtectionAmount: Number(marginProtectionAmount),
+      discountPercent: Number(discountPercent) || 0,
       finalClientPrice: Number(finalClientPrice),
 
       validUntil: validUntilDate,

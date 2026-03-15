@@ -75,6 +75,8 @@ model Quotation {
   marginProtectionPercent   Float    @default(15) @map("margin_protection_percent")
   marginProtectionAmount    Float    @default(0) @map("margin_protection_amount")
 
+  discountPercent           Float    @default(0) @map("discount_percent")
+
   finalClientPrice          Float    @map("final_client_price")
 
   // Validity
