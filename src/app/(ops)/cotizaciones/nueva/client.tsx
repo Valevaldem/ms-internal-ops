@@ -27,18 +27,29 @@ const schema = z.object({
   }))
 })
 
-export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
+export default function NuevaCotizacionClient({ catalogs, initialData }: { catalogs: any, initialData?: any }) {
   const router = useRouter()
   const [invalidLots, setInvalidLots] = useState<number[]>([])
 
   const { register, control, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      salesChannel: "Store",
-      pieceType: "Ring",
-      marginProtectionEnabled: false,
-      discountPercent: 0,
-      stones: []
+      clientNameOrUsername: initialData?.clientNameOrUsername || "",
+      phoneNumber: initialData?.phoneNumber || "",
+      salesChannel: initialData?.salesChannel || "Store",
+      salesAssociateId: initialData?.salesAssociateId || "",
+      pieceType: initialData?.pieceType || "Ring",
+      modelId: initialData?.modelId || "",
+      notes: initialData?.notes || "",
+      marginProtectionEnabled: initialData?.marginProtectionEnabled || false,
+      discountPercent: initialData?.discountPercent || 0,
+      stones: initialData?.stones?.map((s: any) => ({
+        lotCode: s.lotCode,
+        stoneName: s.stoneName,
+        weightCt: s.weightCt,
+        pricePerCt: s.pricePerCt,
+        stoneSubtotal: s.stoneSubtotal
+      })) || []
     }
   })
 
@@ -112,6 +123,9 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
   }
 
   const onSubmit = async (data: any) => {
+    if (initialData?.id) {
+      data.versionFromId = initialData.id;
+    }
     // Check invalid stones
     if (data.stones.some((s: any) => !s.stoneName) || invalidLots.length > 0) {
       alert("Por favor corrige los lotes inválidos antes de continuar.")
@@ -153,15 +167,15 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#333333] mb-1">Cliente / Usuario</label>
-              <input {...register("clientNameOrUsername")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" placeholder="Nombre o IG..." />
+              <input readOnly={!!initialData} {...register("clientNameOrUsername")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} placeholder="Ej. Maria Lopez / @marialopez" />
             </div>
             <div>
               <label className="block text-sm text-[#333333] mb-1">Teléfono</label>
-              <input {...register("phoneNumber")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
+              <input readOnly={!!initialData} {...register("phoneNumber")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} />
             </div>
             <div>
               <label className="block text-sm text-[#333333] mb-1">Canal de Venta</label>
-              <select {...register("salesChannel")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white">
+              <select {...register("salesChannel")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={initialData ? -1 : 0}>
                 <option value="Store">Tienda Física</option>
                 <option value="WhatsApp">WhatsApp</option>
                 <option value="Instagram">Instagram</option>
@@ -172,7 +186,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
             </div>
             <div>
               <label className="block text-sm text-[#333333] mb-1">Asesor(a)</label>
-              <select {...register("salesAssociateId")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white">
+              <select {...register("salesAssociateId")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={initialData ? -1 : 0}>
                 <option value="">Selecciona...</option>
                 {catalogs.associates.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -186,7 +200,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#333333] mb-1">Tipo de Pieza</label>
-              <select {...register("pieceType")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white">
+              <select {...register("pieceType")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={initialData ? -1 : 0}>
                 <option value="Ring">Anillo</option>
                 <option value="Chain">Cadena</option>
                 <option value="Earrings">Aretes</option>
@@ -196,7 +210,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
             </div>
             <div>
               <label className="block text-sm text-[#333333] mb-1">Modelo Base</label>
-              <select {...register("modelId")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white">
+              <select {...register("modelId")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={initialData ? -1 : 0}>
                 <option value="">Selecciona modelo...</option>
                 {catalogs.models.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
@@ -204,7 +218,7 @@ export default function NuevaCotizacionClient({ catalogs }: { catalogs: any }) {
           </div>
           <div>
             <label className="block text-sm text-[#333333] mb-1">Notas del diseño</label>
-            <textarea {...register("notes")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" rows={2}></textarea>
+            <textarea readOnly={!!initialData} {...register("notes")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} rows={2}></textarea>
           </div>
         </section>
 

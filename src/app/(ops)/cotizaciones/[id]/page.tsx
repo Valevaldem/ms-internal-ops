@@ -5,13 +5,36 @@ import { translatePieceType } from "@/lib/translations";
 import StatusSelect from "./status-select";
 import DiscountEdit from "./discount-edit";
 
+import { revalidatePath } from "next/cache";
+
 export const dynamic = "force-dynamic";
+
+async function reactivateQuotation(formData: FormData) {
+  "use server";
+  const id = formData.get("id") as string;
+  const validUntil = new Date();
+  validUntil.setDate(validUntil.getDate() + 15);
+
+  await prisma.quotation.update({
+    where: { id },
+    data: {
+      status: "Pendiente de respuesta",
+      validUntil
+    }
+  });
+  revalidatePath(`/cotizaciones/${id}`);
+}
 
 export default async function DetailCotizacionPage({ params }: { params: Promise<{ id: string }> }) {
   const p = await params;
   const quotation = await prisma.quotation.findUnique({
     where: { id: p.id },
-    include: { salesAssociate: true, stones: true }
+    include: {
+      salesAssociate: true,
+      stones: true,
+      parentQuotation: true,
+      versions: { orderBy: { quotationDate: 'asc' } }
+    }
   });
 
   if (!quotation) {
@@ -35,7 +58,35 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
         <div className="bg-[#F5F2EE] p-6 border-b border-[#D8D3CC] flex justify-between items-start">
           <div>
             <div className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold mb-1">Folio</div>
-            <div className="text-xl font-medium text-[#333333]">{quotation.folio || quotation.id}</div>
+            <div className="text-xl font-medium text-[#333333] flex items-center gap-3">
+              {quotation.folio || quotation.id}
+              {quotation.versionNumber > 1 && (
+                <span className="text-sm bg-white border border-[#D8D3CC] text-[#8E8D8A] px-2 py-0.5 rounded-full">
+                  Versión {quotation.versionNumber}
+                </span>
+              )}
+            </div>
+            {quotation.parentQuotationId && quotation.parentQuotation && (
+              <div className="mt-2 text-sm text-[#8E8D8A]">
+                Derivada de:{' '}
+                <Link href={`/cotizaciones/${quotation.parentQuotationId}`} className="text-[#333333] hover:text-[#C5B358] underline decoration-[#D8D3CC] hover:decoration-[#C5B358] transition-colors">
+                  {quotation.parentQuotation.folio || quotation.parentQuotation.id}
+                </Link>
+              </div>
+            )}
+            {quotation.versions.length > 0 && (
+              <div className="mt-2 text-sm text-[#8E8D8A]">
+                Versiones derivadas:{' '}
+                {quotation.versions.map((v, i) => (
+                  <span key={v.id}>
+                    <Link href={`/cotizaciones/${v.id}`} className="text-[#333333] hover:text-[#C5B358] underline decoration-[#D8D3CC] hover:decoration-[#C5B358] transition-colors">
+                      {v.folio || v.id} (v{v.versionNumber})
+                    </Link>
+                    {i < quotation.versions.length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="text-right flex flex-col items-end gap-2">
             <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
@@ -180,12 +231,36 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
           </div>
         </div>
 
+        {/* Acciones de Reactivación / Versiones (Si está archivada) */}
+        {quotation.status === 'Archived' && (
+          <div className="bg-white border-t border-[#D8D3CC] p-6 text-center">
+            <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold mb-3">Cotización Archivada</h3>
+            <p className="text-sm text-[#333333] mb-4">Esta cotización se encuentra archivada. Puede reactivarla con sus datos originales, o crear una nueva versión modificando piedras y precios si han cambiado.</p>
+            <div className="flex justify-center gap-4">
+              <form action={reactivateQuotation}>
+                <input type="hidden" name="id" value={quotation.id} />
+                <button type="submit" className="bg-white border border-[#333333] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
+                  Reactivar Original (+15 Días)
+                </button>
+              </form>
+              <Link href={`/cotizaciones/nueva?versionFromId=${quotation.id}`} className="bg-[#C5B358] text-white px-6 py-2 rounded text-sm font-semibold hover:bg-[#b0a04f] transition-colors uppercase tracking-wider shadow-sm">
+                Crear Nueva Versión
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Acciones */}
         <div className="bg-[#F5F2EE] p-4 border-t border-[#D8D3CC] flex justify-end gap-4">
+           {quotation.status !== 'Archived' && quotation.status !== 'Converted' && (
+             <Link href={`/cotizaciones/nueva?versionFromId=${quotation.id}`} className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
+               Crear Nueva Versión
+             </Link>
+           )}
            <Link href={`/cotizaciones/${quotation.id}/cliente`} target="_blank" className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
              Ver Vista Cliente
            </Link>
-           {quotation.status !== 'Converted' && (
+           {quotation.status !== 'Converted' && quotation.status !== 'Archived' && (
              <Link href={`/ordenes/nueva?quotationId=${quotation.id}`} className="bg-[#333333] text-white px-6 py-2 rounded text-sm font-semibold hover:bg-black transition-colors uppercase tracking-wider">
                Convertir a Orden
              </Link>

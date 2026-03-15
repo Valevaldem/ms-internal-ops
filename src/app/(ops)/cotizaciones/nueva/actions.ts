@@ -13,25 +13,57 @@ export async function getCatalogs() {
 }
 
 export async function createQuotation(formData: any) {
-  const { associateId, marginProtectionEnabled, validUntilDate, totalStonesPrice, subtotalBeforeAdjustments, msInternalAdjustment, marginProtectionAmount, discountPercent, finalClientPrice, ...data } = formData;
+  const { associateId, marginProtectionEnabled, validUntilDate, totalStonesPrice, subtotalBeforeAdjustments, msInternalAdjustment, marginProtectionAmount, discountPercent, finalClientPrice, versionFromId, ...data } = formData;
 
-  // Generate logical folio: AA-MMYY-001-CC
-  const count = await prisma.quotation.count();
-  const seq = (count + 1).toString().padStart(3, '0');
-  const d = new Date();
-  const mmyy = `${(d.getMonth() + 1).toString().padStart(2, '0')}${d.getFullYear().toString().slice(-2)}`;
+  let folio = "";
+  let versionNumber = 1;
+  let parentQuotationId = null;
 
-  const assoc = await prisma.salesAssociate.findUnique({ where: { id: associateId } });
-  const assocInitials = assoc?.name.slice(0, 2).toUpperCase() || 'XX';
+  if (versionFromId) {
+    const parent = await prisma.quotation.findUnique({
+      where: { id: versionFromId },
+      include: { versions: true }
+    });
 
-  const clientName = data.clientNameOrUsername || 'XX';
-  const clientInitials = clientName.slice(0, 2).toUpperCase().padEnd(2, 'X');
+    if (parent) {
+      // Find the ultimate parent if we are versioning a version
+      const ultimateParentId = parent.parentQuotationId || parent.id;
+      parentQuotationId = ultimateParentId;
 
-  const folio = `${assocInitials}-${mmyy}-${seq}-${clientInitials}`;
+      const ultimateParent = await prisma.quotation.findUnique({
+        where: { id: ultimateParentId },
+        include: { versions: true }
+      });
+
+      versionNumber = (ultimateParent?.versions.length || 0) + 2; // +1 for original, +1 for next
+
+      // Extract base folio
+      const baseFolio = ultimateParent?.folio?.split('-V')[0] || parent.folio?.split('-V')[0] || "FOLIO";
+      folio = `${baseFolio}-V${versionNumber}`;
+    }
+  }
+
+  if (!folio) {
+    // Generate logical folio: AA-MMYY-001-CC
+    const count = await prisma.quotation.count({ where: { parentQuotationId: null } });
+    const seq = (count + 1).toString().padStart(3, '0');
+    const d = new Date();
+    const mmyy = `${(d.getMonth() + 1).toString().padStart(2, '0')}${d.getFullYear().toString().slice(-2)}`;
+
+    const assoc = await prisma.salesAssociate.findUnique({ where: { id: associateId } });
+    const assocInitials = assoc?.name.slice(0, 2).toUpperCase() || 'XX';
+
+    const clientName = data.clientNameOrUsername || 'XX';
+    const clientInitials = clientName.slice(0, 2).toUpperCase().padEnd(2, 'X');
+
+    folio = `${assocInitials}-${mmyy}-${seq}-${clientInitials}`;
+  }
 
   const quotation = await prisma.quotation.create({
     data: {
       folio,
+      versionNumber,
+      parentQuotationId,
       clientNameOrUsername: data.clientNameOrUsername,
       phoneNumber: data.phoneNumber || null,
       salesChannel: data.salesChannel,

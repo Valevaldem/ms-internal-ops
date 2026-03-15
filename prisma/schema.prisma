@@ -90,6 +90,12 @@ model Quotation {
   // Conversion
   order                     Order?
 
+  // Versioning
+  parentQuotationId         String?   @map("parent_quotation_id")
+  parentQuotation           Quotation? @relation("QuotationVersions", fields: [parentQuotationId], references: [id])
+  versions                  Quotation[] @relation("QuotationVersions")
+  versionNumber             Int       @default(1) @map("version_number")
+
   @@map("quotations")
 }
 
