@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { translateStage } from "@/lib/translations";
+import { ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -95,9 +96,9 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
   }));
 
   if (filterBlocked === 'blocked') {
-    processedOrders = processedOrders.filter(o => o.requiredAction.startsWith('Falta') || o.requiredAction.startsWith('Esperando'));
+    processedOrders = processedOrders.filter(o => o.requiredAction.startsWith('Falta') || o.requiredAction.startsWith('Esperando') || o.requiredAction.startsWith('Lista para preparar') || o.requiredAction.startsWith('Rastrear'));
   } else if (filterBlocked === 'unblocked') {
-    processedOrders = processedOrders.filter(o => !(o.requiredAction.startsWith('Falta') || o.requiredAction.startsWith('Esperando')));
+    processedOrders = processedOrders.filter(o => !(o.requiredAction.startsWith('Falta') || o.requiredAction.startsWith('Esperando') || o.requiredAction.startsWith('Lista para preparar') || o.requiredAction.startsWith('Rastrear')));
   }
 
   return (
@@ -183,11 +184,16 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
               <th className="px-6 py-4 font-medium text-center">Días en etapa</th>
               <th className="px-6 py-4 font-medium text-center">Entrega</th>
               <th className="px-6 py-4 font-medium text-center">Pago</th>
+              <th className="px-6 py-4 font-medium text-right"><span className="sr-only">Acciones</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#F5F2EE]">
-            {processedOrders.map(o => (
-              <tr key={o.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
+            {processedOrders.map(o => {
+              const isBlocked = o.requiredAction.startsWith('Falta') || o.requiredAction.startsWith('Esperando') || o.requiredAction.startsWith('Lista para preparar') || o.requiredAction.startsWith('Rastrear');
+              const rowClass = isBlocked ? "bg-red-50/30 hover:bg-red-50/60 transition-colors" : "hover:bg-[#F5F2EE]/50 transition-colors";
+
+              return (
+              <tr key={o.id} className={rowClass}>
                 <td className="px-6 py-4">
                   <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors">
                     {o.quotation.folio || o.quotation.id.split('-')[0] + '..'}
@@ -220,12 +226,20 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
                     {o.paymentStatus}
                   </span>
                 </td>
+                <td className="px-6 py-4 text-right">
+                  <Link
+                    href={`/ordenes/${o.id}`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#8E8D8A] bg-white border border-[#D8D3CC] rounded hover:bg-[#F5F2EE] hover:text-[#333333] transition-colors shadow-sm"
+                  >
+                    Ver orden <ChevronRight className="w-3 h-3" />
+                  </Link>
+                </td>
               </tr>
-            ))}
+            )})}
 
             {processedOrders.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-[#8E8D8A]">
+                <td colSpan={8} className="px-6 py-12 text-center text-[#8E8D8A]">
                   No hay órdenes activas con los filtros seleccionados.
                 </td>
               </tr>
