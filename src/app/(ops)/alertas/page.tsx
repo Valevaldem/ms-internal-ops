@@ -19,7 +19,7 @@ export default async function AlertasPage() {
   // Overdue orders
   const overdueOrders = await prisma.order.findMany({
     where: {
-      stage: { in: ["In Production"] },
+      stage: { in: ["Producción"] },
       estimatedProductionEnd: { lt: now }
     },
     include: { quotation: true }

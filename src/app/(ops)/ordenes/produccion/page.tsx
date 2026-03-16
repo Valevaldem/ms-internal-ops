@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ProduccionPage() {
   const orders = await prisma.order.findMany({
-    where: { stage: { notIn: ["Delivered", "Post-Sale Follow-Up Pending (5 days)", "Post-Sale Follow-Up Pending (1 month)", "Cycle Closed"] } },
+    where: { stage: { notIn: ["Entregado", "Post-Sale Follow-Up Pending (5 days)", "Post-Sale Follow-Up Pending (1 month)", "Cycle Closed"] } },
     include: { quotation: { include: { salesAssociate: true } } },
     orderBy: { createdAt: 'asc' }
   });
@@ -21,17 +21,35 @@ export default async function ProduccionPage() {
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order) throw new Error("Order not found");
 
-    if (order.isCertificatePending) {
+    if (stage === "Certificación" && order.isCertificatePending) {
       throw new Error("No se puede avanzar la etapa porque el certificado está pendiente de confirmación.");
     }
 
-    const nextStage = stage === "In Production" ? "Finished" :
-                      stage === "Finished" ? "Ready for Store Pickup" : // Assuming pickup for simplicity
-                      "Delivered";
+    let nextStage = stage;
+    if (stage === "Por confirmar diseño final") nextStage = "Producción";
+    else if (stage === "Producción") nextStage = "Certificación";
+    else if (stage === "Certificación") nextStage = "Listo para entrega";
+    else if (stage === "Listo para entrega") {
+      nextStage = order.deliveryMethod === 'Store Pickup' ? "Entregado" : "En tránsito";
+    }
+    else if (stage === "En tránsito") nextStage = "Entregado";
+
+    if (nextStage === stage) return; // No change
+
+    const isMovingToProduction = nextStage === "Producción";
 
     await prisma.order.update({
       where: { id },
-      data: { stage: nextStage }
+      data: {
+        stage: nextStage,
+        ...(isMovingToProduction ? {
+          productionStartDate: new Date(),
+          estimatedProductionEnd: new Date(new Date().getTime() + 20 * 24 * 60 * 60 * 1000)
+        } : {}),
+        stageHistory: {
+          create: { stage: nextStage }
+        }
+      }
     });
     revalidatePath("/ordenes/produccion");
   }
@@ -64,7 +82,11 @@ export default async function ProduccionPage() {
               const daysElapsed = Math.max(0, Math.floor((now - start) / (1000 * 60 * 60 * 24)));
               const totalDays = 20; // Simplified 20 business days
 
-              const isOverdue = daysElapsed > totalDays && o.stage === "In Production";
+              const isOverdue = daysElapsed > totalDays && o.stage === "Producción";
+              const showProductionTimer = ["Producción", "Certificación", "Listo para entrega", "En tránsito", "Entregado"].includes(o.stage);
+
+              // Only start counter when order enters 'Producción'
+              const productionTimerActive = showProductionTimer && o.productionStartDate;
 
               return (
                 <tr key={o.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
@@ -85,7 +107,7 @@ export default async function ProduccionPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {o.stage === "In Production" ? (
+                    {productionTimerActive ? (
                       <div className="flex flex-col items-center justify-center">
                         <div className="w-full bg-[#F5F2EE] rounded-full h-1.5 mb-1 relative overflow-hidden">
                           <div
@@ -94,8 +116,12 @@ export default async function ProduccionPage() {
                           ></div>
                         </div>
                         <span className={`text-[10px] font-semibold tracking-wider ${isOverdue ? 'text-red-500' : 'text-[#8E8D8A]'}`}>
-                          {daysElapsed}/{totalDays} Días
+                          {daysElapsed}/{totalDays} días hábiles
                         </span>
+                      </div>
+                    ) : o.stage === "Por confirmar diseño final" ? (
+                      <div className="flex justify-center text-[#8E8D8A] text-[10px] tracking-wider uppercase">
+                         Esperando confirmación
                       </div>
                     ) : (
                       <div className="flex justify-center text-green-500">
@@ -109,7 +135,7 @@ export default async function ProduccionPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {o.isCertificatePending ? (
+                    {o.stage === "Certificación" && o.isCertificatePending ? (
                       <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
                         Bloqueado: Certificado Pendiente
                       </span>

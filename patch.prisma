@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+  // Stages & Production Tracking
+  stage                  String    @default("Converted") // Converted, In Production, Finished, Shipped, Ready for Store Pickup, Delivered, Post-Sale Follow-Up Pending (5 days), Post-Sale Follow-Up Pending (1 month), Cycle Closed
+  productionStartDate    DateTime? @map("production_start_date")
+  estimatedProductionEnd DateTime? @map("estimated_production_end")
+  productionDaysElapsed  Int       @default(0) @map("production_days_elapsed")
+=======
+  // Stages & Production Tracking
+  stage                  String    @default("Por confirmar diseño final") // Por confirmar diseño final, Producción, Certificación, Listo para entrega, En tránsito, Entregado, Post-Sale Follow-Up Pending (5 days), Post-Sale Follow-Up Pending (1 month), Cycle Closed
+  productionStartDate    DateTime? @map("production_start_date")
+  estimatedProductionEnd DateTime? @map("estimated_production_end")
+  productionDaysElapsed  Int       @default(0) @map("production_days_elapsed")
+
+  stageHistory           OrderStageHistory[]
+>>>>>>> REPLACE
