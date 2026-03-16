@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { translateStage, translatePieceType } from "@/lib/translations";
+import CertificateEditForm from "./CertificateEditForm";
 
 export const dynamic = "force-dynamic";
 
@@ -94,40 +95,13 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
               </div>
             )}
 
-            <div className="mt-8 bg-[#F5F2EE]/50 p-4 rounded-lg border border-[#D8D3CC]">
-              <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#D8D3CC] pb-2 mb-3 flex justify-between items-center">
-                <span>Certificado de Autenticidad</span>
-                {order.isCertificatePending && (
-                  <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Pendiente de Confirmación
-                  </span>
-                )}
-              </h3>
-
-              <div className="grid grid-cols-2 gap-y-2 text-sm mb-4">
-                <div className="text-[#8E8D8A]">Título:</div>
-                <div className="font-medium text-[#333333]">{order.certificateTitle || 'No especificado'}</div>
-              </div>
-
-              {order.certificateMembers.length > 0 && (
-                <div className="space-y-3">
-                  <div className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider">Asignación de Piedras:</div>
-                  {order.certificateMembers.map((member, idx) => (
-                    <div key={idx} className="bg-white p-2.5 rounded border border-[#D8D3CC] text-sm flex flex-col gap-1">
-                      <div className="flex justify-between">
-                        <span className="font-medium text-[#333333]">{member.memberName}</span>
-                        <span className="text-xs text-[#8E8D8A]">{member.representativeStone}</span>
-                      </div>
-                      {member.helperDescription && (
-                        <div className="text-xs text-[#8E8D8A] italic bg-[#F5F2EE] p-1.5 rounded mt-1">
-                          Nota identificadora: {member.helperDescription}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <CertificateEditForm
+              orderId={order.id}
+              isCertificatePending={order.isCertificatePending}
+              certificateTitle={order.certificateTitle}
+              certificateMembers={order.certificateMembers}
+              quotationStones={quotation.stones}
+            />
           </div>
 
           {/* Columna Derecha: Piedras y Total */}

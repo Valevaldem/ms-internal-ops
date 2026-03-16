@@ -17,6 +17,14 @@ export default async function ProduccionPage() {
     "use server";
     const id = formData.get("id") as string;
     const stage = formData.get("stage") as string;
+
+    const order = await prisma.order.findUnique({ where: { id } });
+    if (!order) throw new Error("Order not found");
+
+    if (order.isCertificatePending) {
+      throw new Error("No se puede avanzar la etapa porque el certificado está pendiente de confirmación.");
+    }
+
     const nextStage = stage === "In Production" ? "Finished" :
                       stage === "Finished" ? "Ready for Store Pickup" : // Assuming pickup for simplicity
                       "Delivered";
@@ -101,13 +109,19 @@ export default async function ProduccionPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <form action={advanceStage} className="inline-block">
-                      <input type="hidden" name="id" value={o.id} />
-                      <input type="hidden" name="stage" value={o.stage} />
-                      <button type="submit" className="text-xs text-[#C5B358] hover:text-[#333333] font-medium transition-colors">
-                        Avanzar Etapa
-                      </button>
-                    </form>
+                    {o.isCertificatePending ? (
+                      <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
+                        Bloqueado: Certificado Pendiente
+                      </span>
+                    ) : (
+                      <form action={advanceStage} className="inline-block">
+                        <input type="hidden" name="id" value={o.id} />
+                        <input type="hidden" name="stage" value={o.stage} />
+                        <button type="submit" className="text-xs text-[#C5B358] hover:text-[#333333] font-medium transition-colors">
+                          Avanzar Etapa
+                        </button>
+                      </form>
+                    )}
                   </td>
                 </tr>
               );
