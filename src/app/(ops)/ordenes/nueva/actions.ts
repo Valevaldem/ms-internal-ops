@@ -13,7 +13,7 @@ export async function convertToOrderAction(formData: FormData) {
   const isCertificatePending = formData.get("isCertificatePending") === "on";
   const certificateTitle = formData.get("certificateTitle") as string;
 
-  if (!qid || !deliveryMethod || !posTicket) {
+  if (!qid || !deliveryMethod) {
     return { error: "Faltan datos obligatorios." };
   }
 

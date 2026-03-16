@@ -37,13 +37,6 @@ export default function OrderForm({ quotationId, quotationStones }: { quotationI
       }
     }
 
-    const posTicket = formData.get("posTicketNumber");
-    if (!posTicket || (posTicket as string).trim() === "") {
-      setError("El Número de Ticket POS es obligatorio.");
-      setIsPending(false);
-      return;
-    }
-
     try {
       const result = await convertToOrderAction(formData);
       if (result?.error) {
@@ -75,8 +68,8 @@ export default function OrderForm({ quotationId, quotationStones }: { quotationI
       </div>
 
       <div>
-        <label className="block text-sm text-[#333333] mb-1">Número de Ticket POS <span className="text-red-500">*</span></label>
-        <input type="text" name="posTicketNumber" required className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
+        <label className="block text-sm text-[#333333] mb-1">Número de Ticket POS (opcional)</label>
+        <input type="text" name="posTicketNumber" className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
       </div>
 
       <div>
@@ -102,7 +95,7 @@ export default function OrderForm({ quotationId, quotationStones }: { quotationI
 
           {quotationStones.length > 0 && (
             <div>
-              <label className="block text-sm text-[#333333] mb-2 font-medium">Asignación de Piedras (Orden de Izquierda a Derecha)</label>
+              <label className="block text-sm text-[#333333] mb-2 font-medium">Asignación de Piedras</label>
               <div className="space-y-3">
                 {quotationStones.map((stone, i) => (
                   <div key={stone.id} className="bg-[#F5F2EE] p-3 rounded border border-[#D8D3CC] flex flex-col gap-2">
