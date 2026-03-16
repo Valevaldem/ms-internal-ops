@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Bell, Settings, Calculator } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List } from 'lucide-react';
 
 export default function OpsLayout({
   children,
@@ -31,6 +31,7 @@ export default function OpsLayout({
             <div className="pt-4 pb-2">
               <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Órdenes</p>
             </div>
+            <SidebarLink href="/ordenes/activas" icon={<List size={18} />} label="Órdenes Activas" />
             <SidebarLink href="/ordenes/produccion" icon={<Settings size={18} />} label="En Producción" />
             <SidebarLink href="/ordenes/historial" icon={<ShoppingBag size={18} />} label="Historial de Órdenes" />
 
