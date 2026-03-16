@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import OrderForm from "./components/OrderForm";
 
 export const dynamic = "force-dynamic";
 
@@ -24,37 +25,6 @@ export default async function NuevaOrdenPage({ searchParams }: { searchParams: P
   });
 
   if (!quotation) return <div>Cotización no encontrada.</div>;
-
-  async function convertToOrder(formData: FormData) {
-    "use server";
-
-    const deliveryMethod = formData.get("deliveryMethod") as string;
-    const refUrl = formData.get("referenceImageUrl") as string;
-    const posTicket = formData.get("posTicketNumber") as string;
-
-    // Create order and update quotation status
-    await prisma.$transaction([
-      prisma.order.create({
-        data: {
-          quotationId: qid!,
-          deliveryMethod,
-          referenceImageUrl: refUrl || null,
-          posTicketNumber: posTicket || null,
-          stage: "In Production",
-          productionStartDate: new Date(),
-          estimatedProductionEnd: new Date(new Date().getTime() + 20 * 24 * 60 * 60 * 1000) // Simplistic +20 days
-        }
-      }),
-      prisma.quotation.update({
-        where: { id: qid },
-        data: { status: "Converted" }
-      })
-    ]);
-
-    revalidatePath("/cotizaciones/historial");
-    revalidatePath("/ordenes/produccion");
-    redirect("/ordenes/produccion");
-  }
 
   return (
     <div className="max-w-2xl mx-auto py-10">
@@ -81,36 +51,7 @@ export default async function NuevaOrdenPage({ searchParams }: { searchParams: P
         </div>
       </div>
 
-      <form action={convertToOrder} className="bg-white p-6 rounded-lg shadow-sm border border-[#D8D3CC] space-y-5">
-        <h3 className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider mb-4 border-b border-[#F5F2EE] pb-2">Datos de la Orden</h3>
-
-        <div>
-          <label className="block text-sm text-[#333333] mb-1">Método de Entrega</label>
-          <select name="deliveryMethod" required className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white">
-            <option value="Store Pickup">Recolección en Tienda</option>
-            <option value="Shipping">Envío por Paquetería</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm text-[#333333] mb-1">URL Imagen de Referencia (opcional)</label>
-          <input type="url" name="referenceImageUrl" className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" placeholder="https://..." />
-        </div>
-
-        <div>
-          <label className="block text-sm text-[#333333] mb-1">Número de Ticket POS (opcional)</label>
-          <input type="text" name="posTicketNumber" className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
-        </div>
-
-        <div className="flex justify-end pt-4 border-t border-[#F5F2EE]">
-          <Link href="/cotizaciones/historial" className="px-4 py-2 text-sm text-[#8E8D8A] hover:text-[#333333] transition-colors mr-4">
-            Cancelar
-          </Link>
-          <button type="submit" className="bg-[#333333] hover:bg-black text-white px-8 py-2 rounded text-sm uppercase tracking-wider font-semibold transition-colors">
-            Generar Orden
-          </button>
-        </div>
-      </form>
+      <OrderForm quotationId={qid} quotationStones={quotation.stones} />
     </div>
   );
 }
