@@ -14,7 +14,10 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
       quotation: {
         include: { salesAssociate: true, stones: true }
       },
-      certificateMembers: true
+      certificateMembers: true,
+      stageHistory: {
+        orderBy: { createdAt: 'asc' }
+      }
     }
   });
 
@@ -43,7 +46,7 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
           <div className="text-right">
             <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
               order.stage === 'Cycle Closed' ? 'bg-gray-100 text-gray-500' :
-              order.stage === 'In Production' ? 'bg-[#C5B358]/20 text-[#8E7E3D]' :
+              order.stage === 'Producción' ? 'bg-[#C5B358]/20 text-[#8E7E3D]' :
               'bg-blue-50 text-blue-600'
             }`}>
               {translateStage(order.stage)}
@@ -155,6 +158,26 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
                   </div>
                </div>
             )}
+
+            <div>
+              <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Historial de Etapas</h3>
+              <div className="space-y-3">
+                {order.stageHistory.map((history, idx) => (
+                  <div key={history.id} className="flex justify-between items-center text-sm border-l-2 border-[#C5B358] pl-3">
+                    <span className="font-medium text-[#333333]">{history.stage}</span>
+                    <span className="text-xs text-[#8E8D8A]">
+                      {new Date(history.createdAt).toLocaleDateString('es-MX', {
+                        day: '2-digit', month: 'short', year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                ))}
+                {order.stageHistory.length === 0 && (
+                  <div className="text-sm text-[#8E8D8A] italic">No hay historial de etapas.</div>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

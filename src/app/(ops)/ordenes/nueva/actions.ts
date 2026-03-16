@@ -55,11 +55,15 @@ export async function convertToOrderAction(formData: FormData) {
           orderNotes: orderNotes || null,
           isCertificatePending,
           certificateTitle: certificateTitle || null,
-          stage: "In Production",
-          productionStartDate: new Date(),
-          estimatedProductionEnd: new Date(new Date().getTime() + 20 * 24 * 60 * 60 * 1000), // Simplistic +20 days
+          stage: "Por confirmar diseño final",
           certificateMembers: {
               create: members
+          },
+          stageHistory: {
+              create: [
+                { stage: "Convertida a orden" },
+                { stage: "Por confirmar diseño final" }
+              ]
           }
         }
       }),

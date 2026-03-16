@@ -11,7 +11,7 @@ export default async function HistorialOrdenesPage(props: { searchParams: Promis
 
   const whereClause: any = tab === 'archived'
     ? { stage: 'Cycle Closed' }
-    : { stage: { in: ["Delivered", "Post-Sale Follow-Up Pending (5 days)", "Post-Sale Follow-Up Pending (1 month)"] } };
+    : { stage: { in: ["Entregado", "Post-Sale Follow-Up Pending (5 days)", "Post-Sale Follow-Up Pending (1 month)"] } };
 
   const orders = await prisma.order.findMany({
     where: whereClause,

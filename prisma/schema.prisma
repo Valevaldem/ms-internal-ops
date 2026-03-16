@@ -133,10 +133,12 @@ model Order {
   isCertificatePending Boolean @default(false) @map("is_certificate_pending")
 
   // Stages & Production Tracking
-  stage                  String    @default("Converted") // Converted, In Production, Finished, Shipped, Ready for Store Pickup, Delivered, Post-Sale Follow-Up Pending (5 days), Post-Sale Follow-Up Pending (1 month), Cycle Closed
+  stage                  String    @default("Por confirmar diseño final") // Por confirmar diseño final, Producción, Certificación, Listo para entrega, En tránsito, Entregado, Post-Sale Follow-Up Pending (5 days), Post-Sale Follow-Up Pending (1 month), Cycle Closed
   productionStartDate    DateTime? @map("production_start_date")
   estimatedProductionEnd DateTime? @map("estimated_production_end")
   productionDaysElapsed  Int       @default(0) @map("production_days_elapsed")
+
+  stageHistory OrderStageHistory[]
 
   // Delivery/Shipping Info (If Shipping)
   shippingCarrier       String?   @map("shipping_carrier")
@@ -169,4 +171,15 @@ model CertificateMember {
   helperDescription   String? @map("helper_description")
 
   @@map("certificate_members")
+}
+
+model OrderStageHistory {
+  id      String @id @default(cuid())
+  orderId String @map("order_id")
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  stage     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("order_stage_history")
 }
