@@ -80,3 +80,21 @@ export async function updatePaymentStatus(formData: FormData) {
 
   revalidatePath(`/ordenes/${id}`);
 }
+
+export async function updatePosTicket(formData: FormData) {
+  const id = formData.get("id");
+  const posTicketNumber = formData.get("posTicketNumber");
+
+  if (typeof id !== "string" || typeof posTicketNumber !== "string") {
+    console.error("Invalid form data:", { id, posTicketNumber });
+    return;
+  }
+
+  await prisma.order.update({
+    where: { id },
+    data: { posTicketNumber }
+  });
+
+  revalidatePath(`/ordenes/${id}`);
+  revalidatePath(`/ordenes/produccion`);
+}

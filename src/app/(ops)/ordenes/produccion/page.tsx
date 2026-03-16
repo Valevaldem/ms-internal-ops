@@ -26,7 +26,12 @@ export default async function ProduccionPage() {
     }
 
     let nextStage = stage;
-    if (stage === "Por confirmar diseño final") nextStage = "Producción";
+    if (stage === "Por confirmar diseño final") {
+      if (!order.posTicketNumber || order.posTicketNumber.trim() === "") {
+        throw new Error("No se puede avanzar a Producción sin un Número de Ticket POS.");
+      }
+      nextStage = "Producción";
+    }
     else if (stage === "Producción") nextStage = "Certificación";
     else if (stage === "Certificación") {
       nextStage = order.deliveryMethod === 'Shipping' ? "Revisión final de asesora" : "Listo para entrega";
@@ -62,6 +67,47 @@ export default async function ProduccionPage() {
         }
       }
     });
+    revalidatePath("/ordenes/produccion");
+  }
+
+  async function undoLastAdvance(formData: FormData) {
+    "use server";
+    const id = formData.get("id") as string;
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { stageHistory: { orderBy: { createdAt: 'desc' }, take: 2 } }
+    });
+
+    if (!order) throw new Error("Order not found");
+
+    const history = order.stageHistory;
+    // Need at least 2 history records to undo: the current stage and the one to revert to.
+    if (history.length < 2) {
+       return; // Cannot undo initial creation stage
+    }
+
+    const currentHistoryRecord = history[0];
+    const previousHistoryRecord = history[1];
+
+    const isRevertingProduction = currentHistoryRecord.stage === "Producción";
+
+    await prisma.$transaction([
+       prisma.orderStageHistory.delete({
+         where: { id: currentHistoryRecord.id }
+       }),
+       prisma.order.update({
+         where: { id },
+         data: {
+            stage: previousHistoryRecord.stage,
+            ...(isRevertingProduction ? {
+               productionStartDate: null,
+               estimatedProductionEnd: null,
+            } : {})
+         }
+       })
+    ]);
+
     revalidatePath("/ordenes/produccion");
   }
 
@@ -150,18 +196,32 @@ export default async function ProduccionPage() {
                       <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
                         Bloqueado: Certificado Pendiente
                       </span>
+                    ) : o.stage === "Por confirmar diseño final" && (!o.posTicketNumber || o.posTicketNumber.trim() === "") ? (
+                      <span className="text-[10px] text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
+                        Bloqueado: Falta Ticket POS
+                      </span>
                     ) : o.stage === "Revisión final de asesora" && o.paymentStatus !== "Liquidado" ? (
                       <span className="text-[10px] text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
                         Bloqueado: Pago Parcial
                       </span>
                     ) : (
-                      <form action={advanceStage} className="inline-block">
-                        <input type="hidden" name="id" value={o.id} />
-                        <input type="hidden" name="stage" value={o.stage} />
-                        <button type="submit" className="text-xs text-[#C5B358] hover:text-[#333333] font-medium transition-colors">
-                          Avanzar Etapa
-                        </button>
-                      </form>
+                      <div className="flex flex-col items-end gap-2">
+                        <form action={advanceStage} className="inline-block">
+                          <input type="hidden" name="id" value={o.id} />
+                          <input type="hidden" name="stage" value={o.stage} />
+                          <button type="submit" className="text-xs bg-[#F5F2EE] text-[#333333] hover:bg-[#EAE5DF] px-3 py-1.5 rounded font-medium transition-colors">
+                            Avanzar Etapa
+                          </button>
+                        </form>
+                        {o.stage !== "Por confirmar diseño final" && (
+                          <form action={undoLastAdvance} className="inline-block">
+                            <input type="hidden" name="id" value={o.id} />
+                            <button type="submit" className="text-[10px] text-[#8E8D8A] hover:text-red-500 font-medium transition-colors border-b border-transparent hover:border-red-500">
+                              Deshacer último avance
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>

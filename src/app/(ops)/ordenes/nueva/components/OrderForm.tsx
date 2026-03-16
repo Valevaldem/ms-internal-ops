@@ -68,7 +68,15 @@ export default function OrderForm({ quotationId, quotationStones }: { quotationI
       </div>
 
       <div>
-        <label className="block text-sm text-[#333333] mb-1">Número de Ticket POS (opcional)</label>
+        <label className="block text-sm text-[#333333] mb-1">Estado de Pago Inicial</label>
+        <select name="paymentStatus" required className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white">
+          <option value="Parcial">Parcial</option>
+          <option value="Liquidado">Liquidado</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm text-[#333333] mb-1">Número de Ticket POS (requerido para Producción)</label>
         <input type="text" name="posTicketNumber" className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
       </div>
 

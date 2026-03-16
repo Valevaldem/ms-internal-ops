@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { translateStage, translatePieceType } from "@/lib/translations";
 import CertificateEditForm from "./CertificateEditForm";
 import PaymentStatusForm from "./PaymentStatusForm";
-import { updatePaymentStatus } from "./actions";
+import PosTicketForm from "./PosTicketForm";
+import { updatePaymentStatus, updatePosTicket } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -144,27 +145,23 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
               </div>
             </div>
 
-            {(order.referenceImageUrl || order.posTicketNumber) && (
-               <div>
-                  <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Información Adicional</h3>
-                  <div className="grid grid-cols-2 gap-y-2 text-sm">
-                    {order.referenceImageUrl && (
-                      <>
-                        <div className="text-[#8E8D8A]">URL Referencia:</div>
-                        <div className="font-medium text-[#333333]">
-                           <a href={order.referenceImageUrl} target="_blank" rel="noopener noreferrer" className="text-[#C5B358] hover:underline truncate block">Ver Imagen</a>
-                        </div>
-                      </>
-                    )}
-                    {order.posTicketNumber && (
-                      <>
-                        <div className="text-[#8E8D8A]">Ticket POS:</div>
-                        <div className="font-medium text-[#333333]">{order.posTicketNumber}</div>
-                      </>
-                    )}
-                  </div>
+            <div>
+               <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Información Adicional</h3>
+               <div className="grid grid-cols-2 gap-y-2 text-sm">
+                 {order.referenceImageUrl && (
+                   <>
+                     <div className="text-[#8E8D8A]">URL Referencia:</div>
+                     <div className="font-medium text-[#333333]">
+                        <a href={order.referenceImageUrl} target="_blank" rel="noopener noreferrer" className="text-[#C5B358] hover:underline truncate block">Ver Imagen</a>
+                     </div>
+                   </>
+                 )}
+                 <div className="text-[#8E8D8A] flex items-center">Ticket POS:</div>
+                 <div>
+                     <PosTicketForm orderId={order.id} currentTicket={order.posTicketNumber} updateAction={updatePosTicket} />
+                 </div>
                </div>
-            )}
+            </div>
 
             <div>
               <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Historial de Etapas</h3>

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 export async function convertToOrderAction(formData: FormData) {
   const qid = formData.get("quotationId") as string;
   const deliveryMethod = formData.get("deliveryMethod") as string;
+  const paymentStatus = formData.get("paymentStatus") as string;
   const posTicket = formData.get("posTicketNumber") as string;
   const orderNotes = formData.get("orderNotes") as string;
 
@@ -51,6 +52,7 @@ export async function convertToOrderAction(formData: FormData) {
         data: {
           quotationId: qid,
           deliveryMethod,
+          paymentStatus,
           posTicketNumber: posTicket,
           orderNotes: orderNotes || null,
           isCertificatePending,
