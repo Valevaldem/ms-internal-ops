@@ -1,8 +1,11 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { translateStage, translatePieceType } from "@/lib/translations";
 import CertificateEditForm from "./CertificateEditForm";
+import PaymentStatusForm from "./PaymentStatusForm";
+import { updatePaymentStatus } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -133,6 +136,10 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
                 <div className="border-[#D8D3CC] pt-3 flex justify-between items-center">
                   <span className="font-semibold text-[#333333]">Precio Final Cobrado:</span>
                   <span className="font-serif text-lg text-[#C5B358] font-bold">${quotation.finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="font-semibold text-[#333333]">Estado de Pago:</span>
+                  <PaymentStatusForm orderId={order.id} currentStatus={order.paymentStatus} updateAction={updatePaymentStatus} />
                 </div>
               </div>
             </div>

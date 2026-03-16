@@ -28,9 +28,20 @@ export default async function ProduccionPage() {
     let nextStage = stage;
     if (stage === "Por confirmar diseño final") nextStage = "Producción";
     else if (stage === "Producción") nextStage = "Certificación";
-    else if (stage === "Certificación") nextStage = "Listo para entrega";
-    else if (stage === "Listo para entrega") {
-      nextStage = order.deliveryMethod === 'Store Pickup' ? "Entregado" : "En tránsito";
+    else if (stage === "Certificación") {
+      nextStage = order.deliveryMethod === 'Shipping' ? "Revisión final de asesora" : "Listo para entrega";
+    }
+    else if (stage === "Revisión final de asesora" && order.deliveryMethod === 'Shipping') {
+      if (order.paymentStatus !== "Liquidado") {
+        throw new Error("No se puede preparar el envío porque el pago no ha sido liquidado.");
+      }
+      nextStage = "Preparando envío";
+    }
+    else if (stage === "Preparando envío" && order.deliveryMethod === 'Shipping') {
+      nextStage = "En tránsito";
+    }
+    else if (stage === "Listo para entrega" && order.deliveryMethod === 'Store Pickup') {
+      nextStage = "Entregado";
     }
     else if (stage === "En tránsito") nextStage = "Entregado";
 
@@ -83,7 +94,7 @@ export default async function ProduccionPage() {
               const totalDays = 20; // Simplified 20 business days
 
               const isOverdue = daysElapsed > totalDays && o.stage === "Producción";
-              const showProductionTimer = ["Producción", "Certificación", "Listo para entrega", "En tránsito", "Entregado"].includes(o.stage);
+              const showProductionTimer = ["Producción", "Certificación", "Revisión final de asesora", "Preparando envío", "Listo para entrega", "En tránsito", "Entregado"].includes(o.stage);
 
               // Only start counter when order enters 'Producción'
               const productionTimerActive = showProductionTimer && o.productionStartDate;
@@ -138,6 +149,10 @@ export default async function ProduccionPage() {
                     {o.stage === "Certificación" && o.isCertificatePending ? (
                       <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
                         Bloqueado: Certificado Pendiente
+                      </span>
+                    ) : o.stage === "Revisión final de asesora" && o.paymentStatus !== "Liquidado" ? (
+                      <span className="text-[10px] text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
+                        Bloqueado: Pago Parcial
                       </span>
                     ) : (
                       <form action={advanceStage} className="inline-block">

@@ -63,3 +63,20 @@ export async function updateCertificateAction(orderId: string, formData: FormDat
 
   return { success: true };
 }
+
+export async function updatePaymentStatus(formData: FormData) {
+  const id = formData.get("id");
+  const paymentStatus = formData.get("paymentStatus");
+
+  if (typeof id !== "string" || typeof paymentStatus !== "string") {
+    console.error("Invalid form data:", { id, paymentStatus });
+    return;
+  }
+
+  await prisma.order.update({
+    where: { id },
+    data: { paymentStatus }
+  });
+
+  revalidatePath(`/ordenes/${id}`);
+}
