@@ -15,3 +15,7 @@
 ✓ Compiled in 1200ms
  GET / 200 in 1155ms (compile: 139ms, render: 1016ms)
  GET /ordenes/activas 200 in 1147ms (compile: 266ms, render: 881ms)
+✓ Compiled in 547ms
+✓ Compiled in 199ms
+ GET / 200 in 543ms (compile: 49ms, render: 494ms)
+ GET /ordenes/activas 200 in 647ms (compile: 131ms, render: 516ms)

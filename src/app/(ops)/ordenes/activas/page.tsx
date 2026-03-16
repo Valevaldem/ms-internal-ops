@@ -47,15 +47,23 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
     orderBy: { updatedAt: 'desc' }
   });
 
-  function getBlockedStatus(order: any) {
-    if (order.stage === "Por confirmar diseño final" && (!order.posTicketNumber || order.posTicketNumber.trim() === "")) {
-      return "Falta ticket POS";
+  function getRequiredAction(order: any) {
+    if (order.stage === "Por confirmar diseño final") {
+      if (!order.posTicketNumber || order.posTicketNumber.trim() === "") {
+        return "Falta ticket POS";
+      }
+      return "Confirmar diseño final";
     }
-    if (order.stage === "Certificación" && order.isCertificatePending) {
-      return "Esperando certificado";
+    if (order.stage === "Producción") {
+      return "Producción en curso";
     }
-    if (order.stage === "Revisión final de asesora" && order.paymentStatus !== "Liquidado") {
-      return "Falta liquidar";
+    if (order.stage === "Certificación") {
+      if (order.isCertificatePending) return "Esperando certificado";
+      return "Completar certificación";
+    }
+    if (order.stage === "Revisión final de asesora") {
+      if (order.paymentStatus !== "Liquidado") return "Falta liquidar";
+      return "Revisión final";
     }
     if (order.stage === "Listo para entrega") {
       return "Lista para entregar en tienda";
@@ -82,14 +90,14 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
 
   let processedOrders = orders.map(order => ({
     ...order,
-    blockedStatus: getBlockedStatus(order),
+    requiredAction: getRequiredAction(order),
     daysInStage: getDaysInStage(order)
   }));
 
   if (filterBlocked === 'blocked') {
-    processedOrders = processedOrders.filter(o => o.blockedStatus.startsWith('Falta') || o.blockedStatus.startsWith('Esperando'));
+    processedOrders = processedOrders.filter(o => o.requiredAction.startsWith('Falta') || o.requiredAction.startsWith('Esperando'));
   } else if (filterBlocked === 'unblocked') {
-    processedOrders = processedOrders.filter(o => !(o.blockedStatus.startsWith('Falta') || o.blockedStatus.startsWith('Esperando')));
+    processedOrders = processedOrders.filter(o => !(o.requiredAction.startsWith('Falta') || o.requiredAction.startsWith('Esperando')));
   }
 
   return (
@@ -171,7 +179,7 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
               <th className="px-6 py-4 font-medium">Folio</th>
               <th className="px-6 py-4 font-medium">Cliente / Asesora</th>
               <th className="px-6 py-4 font-medium">Etapa actual</th>
-              <th className="px-6 py-4 font-medium text-[#333333]">Bloqueo / Siguiente acción</th>
+              <th className="px-6 py-4 font-medium text-[#333333]">Acción requerida</th>
               <th className="px-6 py-4 font-medium text-center">Días en etapa</th>
               <th className="px-6 py-4 font-medium text-center">Entrega</th>
               <th className="px-6 py-4 font-medium text-center">Pago</th>
@@ -195,8 +203,8 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`text-xs font-medium px-2 py-1 rounded border ${o.blockedStatus.startsWith('Falta') || o.blockedStatus.startsWith('Esperando') ? 'text-red-600 bg-red-50 border-red-200' : o.blockedStatus === 'En proceso' ? 'text-gray-500 bg-gray-50 border-gray-200' : 'text-blue-600 bg-blue-50 border-blue-200'}`}>
-                    {o.blockedStatus}
+                  <span className={`text-xs font-medium px-2 py-1 rounded border ${o.requiredAction.startsWith('Falta') || o.requiredAction.startsWith('Esperando') ? 'text-red-600 bg-red-50 border-red-200' : 'text-blue-600 bg-blue-50 border-blue-200'}`}>
+                    {o.requiredAction}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-center">
