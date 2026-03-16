@@ -143,10 +143,10 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
           </select>
         </div>
         <div className="w-40">
-          <label htmlFor="blocked" className="block text-xs font-medium text-[#8E8D8A] mb-1">Estado</label>
+          <label htmlFor="blocked" className="block text-xs font-medium text-[#8E8D8A] mb-1">Acción requerida</label>
           <select id="blocked" name="blocked" defaultValue={filterBlocked} className="w-full text-sm border border-[#D8D3CC] rounded px-3 py-2 bg-[#F5F2EE] focus:outline-none focus:border-[#C5B358]">
-            <option value="">Todos</option>
-            <option value="blocked">Bloqueado</option>
+            <option value="">Todas</option>
+            <option value="blocked">Con bloqueo / Faltante</option>
             <option value="unblocked">En proceso</option>
           </select>
         </div>
@@ -171,10 +171,10 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
               <th className="px-6 py-4 font-medium">Folio</th>
               <th className="px-6 py-4 font-medium">Cliente / Asesora</th>
               <th className="px-6 py-4 font-medium">Etapa actual</th>
-              <th className="px-6 py-4 font-medium">Días en etapa</th>
-              <th className="px-6 py-4 font-medium">Entrega</th>
-              <th className="px-6 py-4 font-medium">Pago</th>
-              <th className="px-6 py-4 font-medium">Bloqueo / Siguiente acción</th>
+              <th className="px-6 py-4 font-medium text-[#333333]">Bloqueo / Siguiente acción</th>
+              <th className="px-6 py-4 font-medium text-center">Días en etapa</th>
+              <th className="px-6 py-4 font-medium text-center">Entrega</th>
+              <th className="px-6 py-4 font-medium text-center">Pago</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#F5F2EE]">
@@ -194,22 +194,22 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
                     {translateStage(o.stage)}
                   </span>
                 </td>
+                <td className="px-6 py-4">
+                  <span className={`text-xs font-medium px-2 py-1 rounded border ${o.blockedStatus.startsWith('Falta') || o.blockedStatus.startsWith('Esperando') ? 'text-red-600 bg-red-50 border-red-200' : o.blockedStatus === 'En proceso' ? 'text-gray-500 bg-gray-50 border-gray-200' : 'text-blue-600 bg-blue-50 border-blue-200'}`}>
+                    {o.blockedStatus}
+                  </span>
+                </td>
                 <td className="px-6 py-4 text-center">
                   <span className={`text-sm font-medium ${o.daysInStage > 5 ? 'text-red-500' : 'text-[#333333]'}`}>
                     {o.daysInStage}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-[#333333]">
+                <td className="px-6 py-4 text-center text-[#333333]">
                   {o.deliveryMethod === 'Store Pickup' ? 'Tienda' : 'Envío'}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 text-center">
                   <span className={`text-[10px] px-2 py-1 rounded border ${o.paymentStatus === 'Liquidado' ? 'text-green-600 bg-green-50 border-green-200' : 'text-yellow-600 bg-yellow-50 border-yellow-200'}`}>
                     {o.paymentStatus}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`text-xs font-medium ${o.blockedStatus.startsWith('Falta') || o.blockedStatus.startsWith('Esperando') ? 'text-red-600' : 'text-[#C5B358]'}`}>
-                    {o.blockedStatus}
                   </span>
                 </td>
               </tr>
