@@ -4,6 +4,15 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function updateCertificateAction(orderId: string, formData: FormData) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { stage: true }
+  });
+
+  if (!order || order.stage !== "Producción") {
+      return { error: "No se puede editar el certificado en esta etapa." };
+  }
+
   const isCertificatePending = formData.get("isCertificatePending") === "on";
   const certificateTitle = formData.get("certificateTitle") as string;
 
@@ -47,6 +56,7 @@ export async function updateCertificateAction(orderId: string, formData: FormDat
         data: {
           isCertificatePending,
           certificateTitle: certificateTitle || null,
+          certificateNeedsReview: true,
           certificateMembers: {
               create: members
           }

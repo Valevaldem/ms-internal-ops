@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award } from 'lucide-react';
 
 export default function OpsLayout({
   children,
@@ -33,6 +33,7 @@ export default function OpsLayout({
             </div>
             <SidebarLink href="/ordenes/activas" icon={<List size={18} />} label="Órdenes Activas" />
             <SidebarLink href="/ordenes/produccion" icon={<Settings size={18} />} label="En Producción" />
+            <SidebarLink href="/certificados" icon={<Award size={18} />} label="Certificados" />
             <SidebarLink href="/ordenes/historial" icon={<ShoppingBag size={18} />} label="Historial de Órdenes" />
 
             <div className="pt-4 pb-2">
