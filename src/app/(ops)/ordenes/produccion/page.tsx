@@ -32,7 +32,12 @@ export default async function ProduccionPage() {
       }
       nextStage = "Producción";
     }
-    else if (stage === "Producción") nextStage = "Certificación";
+    else if (stage === "Producción") {
+      if (order.isCertificatePending) {
+        throw new Error("No se puede avanzar a Certificación porque el certificado sigue pendiente de confirmación.");
+      }
+      nextStage = "Certificación";
+    }
     else if (stage === "Certificación") {
       nextStage = order.deliveryMethod === 'Shipping' ? "Revisión final de asesora" : "Listo para entrega";
     }
@@ -192,7 +197,11 @@ export default async function ProduccionPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {o.stage === "Certificación" && o.isCertificatePending ? (
+                    {o.stage === "Producción" && o.isCertificatePending ? (
+                      <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
+                        Bloqueado: Confirmar Certificado para Avanzar
+                      </span>
+                    ) : o.stage === "Certificación" && o.isCertificatePending ? (
                       <span className="text-[10px] text-yellow-600 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
                         Bloqueado: Certificado Pendiente
                       </span>
