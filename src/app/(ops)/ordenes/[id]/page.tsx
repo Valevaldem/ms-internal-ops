@@ -108,6 +108,7 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
               certificateTitle={order.certificateTitle}
               certificateMembers={order.certificateMembers}
               quotationStones={quotation.stones}
+              orderStage={order.stage}
             />
           </div>
 

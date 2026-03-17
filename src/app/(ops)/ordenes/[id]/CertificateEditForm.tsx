@@ -25,13 +25,15 @@ export default function CertificateEditForm({
     isCertificatePending,
     certificateTitle,
     certificateMembers,
-    quotationStones
+    quotationStones,
+    orderStage
 }: {
     orderId: string,
     isCertificatePending: boolean,
     certificateTitle: string | null,
     certificateMembers: Member[],
-    quotationStones: Stone[]
+    quotationStones: Stone[],
+    orderStage: string
 }) {
     const [isEditing, setIsEditing] = useState(false);
     const [isPending, setIsPending] = useState(false);
@@ -58,6 +60,8 @@ export default function CertificateEditForm({
         }
     };
 
+    const canEdit = orderStage === "Producción";
+
     if (!isEditing) {
         return (
             <div className="mt-8 bg-[#F5F2EE]/50 p-4 rounded-lg border border-[#D8D3CC]">
@@ -70,12 +74,18 @@ export default function CertificateEditForm({
                             </span>
                         )}
                     </h3>
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="text-xs flex items-center gap-1 text-[#C5B358] hover:text-[#333333] transition-colors"
-                    >
-                        <Edit2 size={12} /> Editar
-                    </button>
+                    {canEdit ? (
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="text-xs flex items-center gap-1 text-[#C5B358] hover:text-[#333333] transition-colors"
+                        >
+                            <Edit2 size={12} /> Editar
+                        </button>
+                    ) : (
+                        <span className="text-xs text-[#8E8D8A] italic flex items-center gap-1">
+                            {orderStage !== "Por confirmar diseño final" ? "Bloqueado por etapa" : ""}
+                        </span>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-y-2 text-sm mb-4">
