@@ -1,10 +1,16 @@
 import prisma from "@/lib/prisma";
 import { AlertCircle, Clock, FileWarning, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import DashboardDateFilter from "./_components/DashboardDateFilter";
 
 export const dynamic = "force-dynamic";
 
-export default async function Dashboard() {
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
   const now = new Date();
 
   // Fetch expiring quotations (less than 3 days remaining)
@@ -45,32 +51,94 @@ export default async function Dashboard() {
     orderBy: { validUntil: 'asc' }
   });
 
-  // Calculate monthly metrics
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Calculate filtered quotation metrics
+  const defaultStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startDateStr = typeof params.startDate === 'string' ? params.startDate : null;
+  const endDateStr = typeof params.endDate === 'string' ? params.endDate : null;
 
-  const quotationsCreatedThisMonth = await prisma.quotation.count({
-    where: { quotationDate: { gte: startOfMonth } }
+  const startDate = startDateStr ? new Date(startDateStr + 'T00:00:00') : defaultStartDate;
+  let endDate = endDateStr ? new Date(endDateStr + 'T23:59:59.999') : now;
+
+  const filteredQuotations = await prisma.quotation.findMany({
+    where: {
+      quotationDate: {
+        gte: startDate,
+        lte: endDate,
+      }
+    },
+    include: { order: true }
   });
 
-  const quotationsConvertedThisMonth = await prisma.order.count({
-    where: { createdAt: { gte: startOfMonth } }
-  });
+  const totalQuotations = filteredQuotations.length;
+
+  let convertida = 0;
+  let pendiente = 0;
+  let enSeguimiento = 0;
+  let oportunidad = 0;
+  let declinada = 0;
+
+  for (const q of filteredQuotations) {
+    if (q.order) {
+      convertida++;
+    } else if (q.status === "Pendiente de respuesta") {
+      pendiente++;
+    } else if (q.status === "En seguimiento") {
+      enSeguimiento++;
+    } else if (q.status === "Oportunidad de cierre") {
+      oportunidad++;
+    } else if (q.status === "Declinada") {
+      declinada++;
+    }
+  }
+
+  const formatPercent = (count: number, total: number) => {
+    if (total === 0) return "0%";
+    return `${((count / total) * 100).toFixed(1)}%`;
+  };
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-serif text-[#333333]">Resumen Operativo</h2>
-        <p className="text-[#8E8D8A] mt-1">Alertas internas y estado actual</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-2xl font-serif text-[#333333]">Resumen Operativo</h2>
+          <p className="text-[#8E8D8A] mt-1">Métricas de cotización y alertas internas</p>
+        </div>
+        <DashboardDateFilter />
       </div>
 
-      <div className="grid grid-cols-2 gap-6 mb-8">
-        <div className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm flex flex-col items-center justify-center">
-          <p className="text-sm text-[#8E8D8A] uppercase tracking-wider mb-2">Cotizaciones Creadas (Mes)</p>
-          <p className="text-4xl font-serif text-[#333333]">{quotationsCreatedThisMonth}</p>
+      <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm overflow-hidden">
+        <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC]">
+          <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">
+            Resumen de Cotizaciones ({startDate.toLocaleDateString('es-MX')} - {endDate.toLocaleDateString('es-MX')})
+          </h3>
+          <p className="text-xs text-[#8E8D8A] mt-1">Basado en fecha de creación. Total en periodo: {totalQuotations}</p>
         </div>
-        <div className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm flex flex-col items-center justify-center">
-          <p className="text-sm text-[#8E8D8A] uppercase tracking-wider mb-2">Órdenes Convertidas (Mes)</p>
-          <p className="text-4xl font-serif text-[#C5B358]">{quotationsConvertedThisMonth}</p>
+        <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-[#D8D3CC]">
+          <div className="p-4 flex flex-col items-center justify-center text-center">
+            <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Convertidas</p>
+            <p className="text-3xl font-serif text-[#C5B358]">{convertida}</p>
+            <p className="text-xs text-[#C5B358] font-medium mt-1">{formatPercent(convertida, totalQuotations)}</p>
+          </div>
+          <div className="p-4 flex flex-col items-center justify-center text-center">
+            <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Pendiente</p>
+            <p className="text-3xl font-serif text-[#333333]">{pendiente}</p>
+            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(pendiente, totalQuotations)}</p>
+          </div>
+          <div className="p-4 flex flex-col items-center justify-center text-center">
+            <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Seguimiento</p>
+            <p className="text-3xl font-serif text-[#333333]">{enSeguimiento}</p>
+            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(enSeguimiento, totalQuotations)}</p>
+          </div>
+          <div className="p-4 flex flex-col items-center justify-center text-center">
+            <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Oportunidad</p>
+            <p className="text-3xl font-serif text-[#333333]">{oportunidad}</p>
+            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(oportunidad, totalQuotations)}</p>
+          </div>
+          <div className="p-4 flex flex-col items-center justify-center text-center">
+            <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Declinada</p>
+            <p className="text-3xl font-serif text-[#333333]">{declinada}</p>
+            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(declinada, totalQuotations)}</p>
+          </div>
         </div>
       </div>
 
