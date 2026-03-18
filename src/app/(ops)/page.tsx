@@ -135,6 +135,15 @@ export default async function Dashboard({
 
   const sortedAdvisors = Array.from(advisorBreakdown.values()).sort((a, b) => b.total - a.total);
 
+  const formatDrillDownUrl = (statusFilter?: string, advisorName?: string) => {
+    const query = new URLSearchParams();
+    if (startDateStr) query.set('startDate', startDateStr);
+    if (endDateStr) query.set('endDate', endDateStr);
+    if (statusFilter) query.set('statusFilter', statusFilter);
+    if (advisorName) query.set('advisorName', advisorName);
+    return `/cotizaciones/historial?${query.toString()}`;
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-end">
@@ -146,38 +155,45 @@ export default async function Dashboard({
       </div>
 
       <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm overflow-hidden">
-        <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC]">
-          <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">
-            Resumen de Cotizaciones ({startDate.toLocaleDateString('es-MX')} - {endDate.toLocaleDateString('es-MX')})
-          </h3>
-          <p className="text-xs text-[#8E8D8A] mt-1">Basado en fecha de creación. Total en periodo: {totalQuotations}</p>
+        <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC] flex justify-between items-center">
+          <div>
+            <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">
+              Resumen de Cotizaciones ({startDate.toLocaleDateString('es-MX')} - {endDate.toLocaleDateString('es-MX')})
+            </h3>
+            <p className="text-xs text-[#8E8D8A] mt-1">
+              Basado en fecha de creación.{' '}
+              <Link href={formatDrillDownUrl()} className="text-[#333333] hover:text-[#C5B358] underline">
+                Total en periodo: {totalQuotations}
+              </Link>
+            </p>
+          </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-[#D8D3CC]">
-          <div className="p-4 flex flex-col items-center justify-center text-center">
+          <Link href={formatDrillDownUrl('Convertida')} className="p-4 flex flex-col items-center justify-center text-center hover:bg-gray-50/50 transition-colors">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Convertidas</p>
             <p className="text-3xl font-serif text-[#C5B358]">{convertida}</p>
             <p className="text-xs text-[#C5B358] font-medium mt-1">{formatPercent(convertida, totalQuotations)}</p>
-          </div>
-          <div className="p-4 flex flex-col items-center justify-center text-center">
+          </Link>
+          <Link href={formatDrillDownUrl('Pendiente de respuesta')} className="p-4 flex flex-col items-center justify-center text-center hover:bg-gray-50/50 transition-colors">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Pendiente</p>
             <p className="text-3xl font-serif text-[#333333]">{pendiente}</p>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(pendiente, totalQuotations)}</p>
-          </div>
-          <div className="p-4 flex flex-col items-center justify-center text-center">
+          </Link>
+          <Link href={formatDrillDownUrl('En seguimiento')} className="p-4 flex flex-col items-center justify-center text-center hover:bg-gray-50/50 transition-colors">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Seguimiento</p>
             <p className="text-3xl font-serif text-[#333333]">{enSeguimiento}</p>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(enSeguimiento, totalQuotations)}</p>
-          </div>
-          <div className="p-4 flex flex-col items-center justify-center text-center">
+          </Link>
+          <Link href={formatDrillDownUrl('Oportunidad de cierre')} className="p-4 flex flex-col items-center justify-center text-center hover:bg-gray-50/50 transition-colors">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Oportunidad</p>
             <p className="text-3xl font-serif text-[#333333]">{oportunidad}</p>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(oportunidad, totalQuotations)}</p>
-          </div>
-          <div className="p-4 flex flex-col items-center justify-center text-center">
+          </Link>
+          <Link href={formatDrillDownUrl('Declinada')} className="p-4 flex flex-col items-center justify-center text-center hover:bg-gray-50/50 transition-colors">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Declinada</p>
             <p className="text-3xl font-serif text-[#333333]">{declinada}</p>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(declinada, totalQuotations)}</p>
-          </div>
+          </Link>
         </div>
       </div>
 
@@ -211,22 +227,34 @@ export default async function Dashboard({
                       {advisor.name}
                     </td>
                     <td className="px-6 py-4 text-center font-semibold text-[#333333]">
-                      {advisor.total}
+                      <Link href={formatDrillDownUrl(undefined, advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.total}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#C5B358] font-medium">
-                      {advisor.convertida}
+                      <Link href={formatDrillDownUrl('Convertida', advisor.name)} className="hover:text-[#b0a04f] hover:underline">
+                        {advisor.convertida}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#333333]">
-                      {advisor.pendiente}
+                      <Link href={formatDrillDownUrl('Pendiente de respuesta', advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.pendiente}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#333333]">
-                      {advisor.enSeguimiento}
+                      <Link href={formatDrillDownUrl('En seguimiento', advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.enSeguimiento}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#333333]">
-                      {advisor.oportunidad}
+                      <Link href={formatDrillDownUrl('Oportunidad de cierre', advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.oportunidad}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#333333]">
-                      {advisor.declinada}
+                      <Link href={formatDrillDownUrl('Declinada', advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.declinada}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-right text-[#C5B358] font-medium">
                       {formatPercent(advisor.convertida, advisor.total)}
