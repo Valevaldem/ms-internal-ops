@@ -3,7 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function toggleCertificateStatusAction(orderId: string, field: "certificateVinylReady" | "certificatePrintedReady" | "certificatePhotoReady") {
+export async function toggleCertificateStatusAction(orderId: string, field: "certificateVinylReady" | "certificatePrintedReady" | "certificatePhotoReady" | "certificateDeliveredToAdvisor") {
     const order = await prisma.order.findUnique({
         where: { id: orderId },
         select: { [field]: true }

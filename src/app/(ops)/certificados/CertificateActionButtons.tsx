@@ -7,19 +7,21 @@ import { Check } from "lucide-react";
 export default function CertificateActionButtons({
     orderId,
     vinylReady,
-    printedReady,
     photoReady,
+    printedReady,
+    deliveredReady,
     needsReview
 }: {
     orderId: string,
     vinylReady: boolean,
-    printedReady: boolean,
     photoReady: boolean,
+    printedReady: boolean,
+    deliveredReady: boolean,
     needsReview: boolean
 }) {
     const [isPending, startTransition] = useTransition();
 
-    const handleToggle = (field: "certificateVinylReady" | "certificatePrintedReady" | "certificatePhotoReady") => {
+    const handleToggle = (field: "certificateVinylReady" | "certificatePhotoReady" | "certificatePrintedReady" | "certificateDeliveredToAdvisor") => {
         startTransition(async () => {
              await toggleCertificateStatusAction(orderId, field);
         });
@@ -41,17 +43,7 @@ export default function CertificateActionButtons({
                     disabled={isPending}
                     className="accent-[#C5B358]"
                 />
-                <span className={vinylReady ? "text-green-700 line-through" : "text-[#333333]"}>Vinil / Título Preparado</span>
-            </label>
-            <label className="flex items-center text-sm cursor-pointer gap-2 opacity-80 hover:opacity-100 transition-opacity w-max">
-                <input
-                    type="checkbox"
-                    checked={printedReady}
-                    onChange={() => handleToggle("certificatePrintedReady")}
-                    disabled={isPending}
-                    className="accent-[#C5B358]"
-                />
-                <span className={printedReady ? "text-green-700 line-through" : "text-[#333333]"}>Información Impresa Preparada</span>
+                <span className={vinylReady ? "text-green-700 line-through" : "text-[#333333]"}>Título preparado</span>
             </label>
             <label className="flex items-center text-sm cursor-pointer gap-2 opacity-80 hover:opacity-100 transition-opacity w-max">
                 <input
@@ -61,7 +53,27 @@ export default function CertificateActionButtons({
                     disabled={isPending}
                     className="accent-[#C5B358]"
                 />
-                <span className={photoReady ? "text-green-700 line-through" : "text-[#333333]"}>Foto de Pieza Agregada</span>
+                <span className={photoReady ? "text-green-700 line-through" : "text-[#333333]"}>Foto tomada</span>
+            </label>
+            <label className="flex items-center text-sm cursor-pointer gap-2 opacity-80 hover:opacity-100 transition-opacity w-max">
+                <input
+                    type="checkbox"
+                    checked={printedReady}
+                    onChange={() => handleToggle("certificatePrintedReady")}
+                    disabled={isPending}
+                    className="accent-[#C5B358]"
+                />
+                <span className={printedReady ? "text-green-700 line-through" : "text-[#333333]"}>Certificado impreso</span>
+            </label>
+            <label className="flex items-center text-sm cursor-pointer gap-2 opacity-80 hover:opacity-100 transition-opacity w-max">
+                <input
+                    type="checkbox"
+                    checked={deliveredReady}
+                    onChange={() => handleToggle("certificateDeliveredToAdvisor")}
+                    disabled={isPending}
+                    className="accent-[#C5B358]"
+                />
+                <span className={deliveredReady ? "text-green-700 line-through" : "text-[#333333]"}>Entregado a asesora</span>
             </label>
 
             {needsReview && (

@@ -13,6 +13,7 @@ export async function convertToOrderAction(formData: FormData) {
 
   const isCertificatePending = formData.get("isCertificatePending") === "on";
   const certificateTitle = formData.get("certificateTitle") as string;
+  const certificateNotes = formData.get("certificateNotes") as string;
 
   if (!qid || !deliveryMethod) {
     return { error: "Faltan datos obligatorios." };
@@ -55,6 +56,7 @@ export async function convertToOrderAction(formData: FormData) {
           paymentStatus,
           posTicketNumber: posTicket,
           orderNotes: orderNotes || null,
+          certificateNotes: certificateNotes || null,
           isCertificatePending,
           certificateTitle: certificateTitle || null,
           stage: "Por confirmar diseño final",

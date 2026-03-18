@@ -3,6 +3,19 @@ import Link from "next/link";
 import { translateStage } from "@/lib/translations";
 import CertificateActionButtons from "./CertificateActionButtons";
 
+function getGroupedStonesText(stones: any[]) {
+  if (!stones || stones.length === 0) return null;
+  const groups: Record<string, number> = {};
+  stones.forEach(s => {
+    if (!groups[s.stoneName]) groups[s.stoneName] = 0;
+    groups[s.stoneName] += s.weightCt;
+  });
+  return Object.entries(groups)
+    .map(([name, total]) => `${name}: ${total.toFixed(2)}ct`)
+    .join(" | ");
+}
+
+
 export const dynamic = "force-dynamic";
 
 import CertificadosFilter from "./CertificadosFilter";
@@ -24,40 +37,59 @@ export default async function CertificadosPage({
   ];
 
     // Determine exact where clause based on filter
-  let whereClause: any = {
+  let activeWhereClause: any = {
     stage: { in: activeStages },
+    certificateDeliveredToAdvisor: false,
   };
 
+
   if (filter === "review") {
-    whereClause.certificateNeedsReview = true;
+    activeWhereClause.certificateNeedsReview = true;
   } else if (filter === "missing_vinyl") {
-    whereClause.certificateVinylReady = false;
-    whereClause.isCertificatePending = false;
+    activeWhereClause.certificateVinylReady = false;
+    activeWhereClause.isCertificatePending = false;
   } else if (filter === "missing_printed") {
-    whereClause.certificatePrintedReady = false;
-    whereClause.isCertificatePending = false;
+    activeWhereClause.certificatePrintedReady = false;
+    activeWhereClause.isCertificatePending = false;
   } else if (filter === "missing_photo") {
-    whereClause.certificatePhotoReady = false;
-    whereClause.isCertificatePending = false;
+    activeWhereClause.certificatePhotoReady = false;
+    activeWhereClause.isCertificatePending = false;
   } else if (filter === "ready") {
-    whereClause.certificateVinylReady = true;
-    whereClause.certificatePrintedReady = true;
-    whereClause.certificatePhotoReady = true;
-    whereClause.certificateNeedsReview = false;
-    whereClause.isCertificatePending = false;
+    activeWhereClause.certificateVinylReady = true;
+    activeWhereClause.certificatePrintedReady = true;
+    activeWhereClause.certificatePhotoReady = true;
+    activeWhereClause.certificateNeedsReview = false;
+    activeWhereClause.isCertificatePending = false;
   }
 
-  const orders = await prisma.order.findMany({
-    where: whereClause,
+  const activeOrders = await prisma.order.findMany({
+    where: activeWhereClause,
 
     include: {
       quotation: {
         include: {
-          salesAssociate: true
+          salesAssociate: true,
+          stones: true
         }
       }
     },
     orderBy: [{ certificateNeedsReview: 'desc' }, { updatedAt: 'desc' }]
+  });
+
+  const completedOrders = await prisma.order.findMany({
+    where: {
+      stage: { in: activeStages },
+      certificateDeliveredToAdvisor: true,
+    },
+    include: {
+      quotation: {
+        include: {
+          salesAssociate: true,
+          stones: true
+        }
+      }
+    },
+    orderBy: { updatedAt: 'desc' }
   });
 
   return (
@@ -83,7 +115,7 @@ export default async function CertificadosPage({
             </tr>
           </thead>
           <tbody className="divide-y divide-[#F5F2EE]">
-            {orders.map(o => (
+            {activeOrders.map(o => (
               <tr key={o.id} className={`hover:bg-[#F5F2EE]/50 transition-colors ${o.certificateNeedsReview ? 'bg-yellow-50/50' : ''}`}>
                 <td className="px-6 py-4">
                   <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors flex flex-col">
@@ -117,25 +149,39 @@ export default async function CertificadosPage({
                       )}
                     </div>
 
-                    {!o.isCertificatePending && (
+                                        {!o.isCertificatePending && (
                         <div className="text-[#333333] font-medium text-sm">
                             {o.certificateTitle || <span className="text-red-500 italic">Sin Título</span>}
                         </div>
                     )}
+
+                    {getGroupedStonesText(o.quotation.stones) && (
+                        <div className="text-xs text-[#8E8D8A] mt-2 bg-[#F5F2EE] inline-block px-2 py-1 rounded">
+                            {getGroupedStonesText(o.quotation.stones)}
+                        </div>
+                    )}
+
+                    {o.certificateNotes && (
+                        <div className="text-xs text-[#8E8D8A] mt-2 italic border-l-2 border-[#D8D3CC] pl-2 whitespace-normal min-w-[200px] max-w-sm">
+                            Nota: {o.certificateNotes}
+                        </div>
+                    )}
+
                 </td>
                 <td className="px-6 py-4">
                     <CertificateActionButtons
                         orderId={o.id}
                         vinylReady={o.certificateVinylReady}
-                        printedReady={o.certificatePrintedReady}
                         photoReady={o.certificatePhotoReady}
+                        printedReady={o.certificatePrintedReady}
+                        deliveredReady={o.certificateDeliveredToAdvisor}
                         needsReview={o.certificateNeedsReview}
                     />
                 </td>
               </tr>
             ))}
 
-            {orders.length === 0 && (
+            {activeOrders.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-6 py-12 text-center text-[#8E8D8A]">
                   No hay certificados pendientes en este momento.
@@ -144,6 +190,79 @@ export default async function CertificadosPage({
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-12">
+        <h3 className="text-xl font-serif text-[#333333] mb-4">Certificados Completados</h3>
+        <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm overflow-x-auto opacity-75">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-[#F5F2EE] text-[#8E8D8A] text-xs uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-4 font-medium">Folio / Asesora</th>
+                <th className="px-6 py-4 font-medium">Etapa de la Orden</th>
+                <th className="px-6 py-4 font-medium">Estado del Certificado</th>
+                <th className="px-6 py-4 font-medium">Progreso Operativo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F5F2EE]">
+              {completedOrders.map(o => (
+                <tr key={o.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors flex flex-col">
+                      <span>{o.quotation.folio || o.quotation.id.split('-')[0] + '..'}</span>
+                    </Link>
+                    <div className="text-xs text-[#8E8D8A] mt-1">{o.quotation.salesAssociate.name}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="px-3 py-1 bg-[#F5F2EE] text-[#8E8D8A] rounded-full text-[10px] font-semibold tracking-wider uppercase inline-block">
+                      {translateStage(o.stage)}
+                    </span>
+                  </td>
+                                    <td className="px-6 py-4">
+                      <div className="mb-2">
+                          <span className="text-xs font-medium px-2 py-1 rounded border text-green-700 bg-green-50 border-green-200 w-max inline-block">
+                            ✓ Entregado a asesora
+                          </span>
+                      </div>
+                      <div className="text-[#333333] font-medium text-sm">
+                          {o.certificateTitle || <span className="text-red-500 italic">Sin Título</span>}
+                      </div>
+
+                      {getGroupedStonesText(o.quotation.stones) && (
+                          <div className="text-xs text-[#8E8D8A] mt-2 bg-[#F5F2EE] inline-block px-2 py-1 rounded">
+                              {getGroupedStonesText(o.quotation.stones)}
+                          </div>
+                      )}
+
+                      {o.certificateNotes && (
+                          <div className="text-xs text-[#8E8D8A] mt-2 italic border-l-2 border-[#D8D3CC] pl-2 whitespace-normal min-w-[200px] max-w-sm">
+                              Nota: {o.certificateNotes}
+                          </div>
+                      )}
+                  </td>
+                  <td className="px-6 py-4">
+                      <CertificateActionButtons
+                          orderId={o.id}
+                          vinylReady={o.certificateVinylReady}
+                          photoReady={o.certificatePhotoReady}
+                          printedReady={o.certificatePrintedReady}
+                          deliveredReady={o.certificateDeliveredToAdvisor}
+                          needsReview={false}
+                      />
+                  </td>
+                </tr>
+              ))}
+
+              {completedOrders.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-[#8E8D8A]">
+                    No hay certificados completados todavía.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
