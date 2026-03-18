@@ -43,8 +43,11 @@ export default async function ProduccionPage() {
     }
     else if (stage === "Revisión final de asesora" && order.deliveryMethod === 'Shipping') {
       if (order.paymentStatus !== "Liquidado") {
-        throw new Error("No se puede preparar el envío porque el pago no ha sido liquidado.");
+        throw new Error("No se puede crear la guía porque el pago no ha sido liquidado.");
       }
+      nextStage = "Guía realizada";
+    }
+    else if (stage === "Guía realizada" && order.deliveryMethod === 'Shipping') {
       nextStage = "Preparando envío";
     }
     else if (stage === "Preparando envío" && order.deliveryMethod === 'Shipping') {
@@ -145,7 +148,7 @@ export default async function ProduccionPage() {
               const totalDays = 20; // Simplified 20 business days
 
               const isOverdue = daysElapsed > totalDays && o.stage === "Producción";
-              const showProductionTimer = ["Producción", "Certificación", "Revisión final de asesora", "Preparando envío", "Listo para entrega", "En tránsito", "Entregado"].includes(o.stage);
+              const showProductionTimer = ["Producción", "Certificación", "Revisión final de asesora", "Guía realizada", "Preparando envío", "Listo para entrega", "En tránsito", "Entregado"].includes(o.stage);
 
               // Only start counter when order enters 'Producción'
               const productionTimerActive = showProductionTimer && o.productionStartDate;
