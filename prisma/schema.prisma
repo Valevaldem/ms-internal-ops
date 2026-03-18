@@ -124,12 +124,18 @@ model Order {
   deliveryMethod    String  @map("delivery_method") // Shipping, Store Pickup
 
   // Certificate Data
-  certificateTitle      String?             @map("certificate_title")
-  familyLastNameOrTitle String?             @map("family_last_name_or_title")
-  certificateStatus     String              @default("Not Started") @map("certificate_status") // Not Started, Incomplete, Ready, Generated, Delivered
-  certificateMembers    CertificateMember[]
+  certificateTitle              String?             @map("certificate_title")
+  familyLastNameOrTitle         String?             @map("family_last_name_or_title")
+  certificateStatus             String              @default("Not Started") @map("certificate_status") // Not Started, Incomplete, Ready, Generated, Delivered
+  certificateMembers            CertificateMember[]
+  certificateVinylReady         Boolean             @default(false) @map("certificate_vinyl_ready") // Mapped to: Título preparado
+  certificatePhotoReady         Boolean             @default(false) @map("certificate_photo_ready")   // Mapped to: Foto tomada
+  certificatePrintedReady       Boolean             @default(false) @map("certificate_printed_ready") // Mapped to: Certificado impreso
+  certificateDeliveredToAdvisor Boolean             @default(false) @map("certificate_delivered_to_advisor") // Mapped to: Entregado a asesora
+  certificateNeedsReview        Boolean             @default(false) @map("certificate_needs_review")
 
   orderNotes           String? @map("order_notes")
+  certificateNotes     String? @map("certificate_notes")
   isCertificatePending Boolean @default(false) @map("is_certificate_pending")
 
   // Stages & Production Tracking

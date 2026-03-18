@@ -101,6 +101,11 @@ export default function OrderForm({ quotationId, quotationStones }: { quotationI
             <input type="text" name="certificateTitle" className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
           </div>
 
+          <div>
+            <label className="block text-sm text-[#333333] mb-1">Notas de Certificado (opcional)</label>
+            <textarea name="certificateNotes" rows={2} placeholder="Mensajes personalizados, instrucciones especiales..." className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]"></textarea>
+          </div>
+
           {quotationStones.length > 0 && (
             <div>
               <label className="block text-sm text-[#333333] mb-2 font-medium">Asignación de Piedras</label>
