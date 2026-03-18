@@ -35,10 +35,14 @@ async function archiveQuotation(formData: FormData) {
   revalidatePath("/cotizaciones/historial");
 }
 
-export default async function HistorialCotizaciones(props: { searchParams: Promise<{ search?: string, tab?: string }> }) {
+export default async function HistorialCotizaciones(props: { searchParams: Promise<{ search?: string, tab?: string, startDate?: string, endDate?: string, statusFilter?: string, advisorName?: string }> }) {
   const searchParams = await props.searchParams;
   const search = searchParams.search || '';
   const tab = searchParams.tab || 'active';
+  const startDateStr = searchParams.startDate;
+  const endDateStr = searchParams.endDate;
+  const statusFilter = searchParams.statusFilter;
+  const advisorName = searchParams.advisorName;
 
   const whereClause: any = search ? {
     OR: [
@@ -51,8 +55,34 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
 
   if (tab === 'archived') {
     whereClause.status = 'Archived';
-  } else {
+  } else if (!statusFilter) {
     whereClause.status = { not: 'Archived' };
+  }
+
+  if (startDateStr || endDateStr) {
+    whereClause.quotationDate = {};
+    if (startDateStr) {
+      whereClause.quotationDate.gte = new Date(startDateStr + 'T00:00:00');
+    }
+    if (endDateStr) {
+      whereClause.quotationDate.lte = new Date(endDateStr + 'T23:59:59.999');
+    }
+  }
+
+  if (advisorName) {
+    whereClause.salesAssociate = {
+      ...whereClause.salesAssociate,
+      name: advisorName
+    };
+  }
+
+  if (statusFilter) {
+    if (statusFilter === 'Convertida') {
+      whereClause.order = { isNot: null };
+    } else {
+      whereClause.status = statusFilter;
+      whereClause.order = { is: null };
+    }
   }
 
   const quotations = await prisma.quotation.findMany({
