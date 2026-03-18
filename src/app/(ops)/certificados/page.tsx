@@ -118,7 +118,7 @@ export default async function CertificadosPage({
             {activeOrders.map(o => (
               <tr key={o.id} className={`hover:bg-[#F5F2EE]/50 transition-colors ${o.certificateNeedsReview ? 'bg-yellow-50/50' : ''}`}>
                 <td className="px-6 py-4">
-                  <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors flex flex-col">
+                    <Link href={`/certificados/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors flex flex-col">
                     <span>{o.quotation.folio || o.quotation.id.split('-')[0] + '..'}</span>
                   </Link>
                   <div className="text-xs text-[#8E8D8A] mt-1">{o.quotation.salesAssociate.name}</div>
@@ -208,7 +208,7 @@ export default async function CertificadosPage({
               {completedOrders.map(o => (
                 <tr key={o.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
                   <td className="px-6 py-4">
-                    <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors flex flex-col">
+                    <Link href={`/certificados/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors flex flex-col">
                       <span>{o.quotation.folio || o.quotation.id.split('-')[0] + '..'}</span>
                     </Link>
                     <div className="text-xs text-[#8E8D8A] mt-1">{o.quotation.salesAssociate.name}</div>
