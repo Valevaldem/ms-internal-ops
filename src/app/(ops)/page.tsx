@@ -66,7 +66,7 @@ export default async function Dashboard({
         lte: endDate,
       }
     },
-    include: { order: true }
+    include: { order: true, salesAssociate: true }
   });
 
   const totalQuotations = filteredQuotations.length;
@@ -77,24 +77,63 @@ export default async function Dashboard({
   let oportunidad = 0;
   let declinada = 0;
 
+  type AdvisorMetrics = {
+    name: string;
+    total: number;
+    convertida: number;
+    pendiente: number;
+    enSeguimiento: number;
+    oportunidad: number;
+    declinada: number;
+  };
+
+  const advisorBreakdown = new Map<string, AdvisorMetrics>();
+
   for (const q of filteredQuotations) {
+    // Overall metrics
+    let categorizedStatus: keyof Omit<AdvisorMetrics, 'name' | 'total'> = 'pendiente';
     if (q.order) {
       convertida++;
-    } else if (q.status === "Pendiente de respuesta") {
-      pendiente++;
+      categorizedStatus = 'convertida';
     } else if (q.status === "En seguimiento") {
       enSeguimiento++;
+      categorizedStatus = 'enSeguimiento';
     } else if (q.status === "Oportunidad de cierre") {
       oportunidad++;
+      categorizedStatus = 'oportunidad';
     } else if (q.status === "Declinada") {
       declinada++;
+      categorizedStatus = 'declinada';
+    } else {
+      pendiente++;
+      categorizedStatus = 'pendiente';
     }
+
+    // Advisor metrics
+    const advisorName = q.salesAssociate?.name || "Desconocido";
+    if (!advisorBreakdown.has(advisorName)) {
+      advisorBreakdown.set(advisorName, {
+        name: advisorName,
+        total: 0,
+        convertida: 0,
+        pendiente: 0,
+        enSeguimiento: 0,
+        oportunidad: 0,
+        declinada: 0,
+      });
+    }
+
+    const advisor = advisorBreakdown.get(advisorName)!;
+    advisor.total++;
+    advisor[categorizedStatus]++;
   }
 
   const formatPercent = (count: number, total: number) => {
     if (total === 0) return "0%";
     return `${((count / total) * 100).toFixed(1)}%`;
   };
+
+  const sortedAdvisors = Array.from(advisorBreakdown.values()).sort((a, b) => b.total - a.total);
 
   return (
     <div className="space-y-8">
@@ -141,6 +180,64 @@ export default async function Dashboard({
           </div>
         </div>
       </div>
+
+      {/* Advisor Breakdown */}
+      {sortedAdvisors.length > 0 && (
+        <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm overflow-hidden">
+          <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC]">
+            <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">
+              Desglose por Asesora
+            </h3>
+            <p className="text-xs text-[#8E8D8A] mt-1">Cotizaciones creadas en el periodo seleccionado</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-[#8E8D8A] uppercase bg-white border-b border-[#D8D3CC]">
+                <tr>
+                  <th className="px-6 py-3 font-medium">Asesora</th>
+                  <th className="px-6 py-3 font-medium text-center">Total</th>
+                  <th className="px-6 py-3 font-medium text-center">Convertidas</th>
+                  <th className="px-6 py-3 font-medium text-center">Pendiente</th>
+                  <th className="px-6 py-3 font-medium text-center">Seguimiento</th>
+                  <th className="px-6 py-3 font-medium text-center">Oportunidad</th>
+                  <th className="px-6 py-3 font-medium text-center">Declinada</th>
+                  <th className="px-6 py-3 font-medium text-right">% Conversión</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#D8D3CC]">
+                {sortedAdvisors.map((advisor) => (
+                  <tr key={advisor.name} className="hover:bg-gray-50/50">
+                    <td className="px-6 py-4 font-medium text-[#333333] whitespace-nowrap">
+                      {advisor.name}
+                    </td>
+                    <td className="px-6 py-4 text-center font-semibold text-[#333333]">
+                      {advisor.total}
+                    </td>
+                    <td className="px-6 py-4 text-center text-[#C5B358] font-medium">
+                      {advisor.convertida}
+                    </td>
+                    <td className="px-6 py-4 text-center text-[#333333]">
+                      {advisor.pendiente}
+                    </td>
+                    <td className="px-6 py-4 text-center text-[#333333]">
+                      {advisor.enSeguimiento}
+                    </td>
+                    <td className="px-6 py-4 text-center text-[#333333]">
+                      {advisor.oportunidad}
+                    </td>
+                    <td className="px-6 py-4 text-center text-[#333333]">
+                      {advisor.declinada}
+                    </td>
+                    <td className="px-6 py-4 text-right text-[#C5B358] font-medium">
+                      {formatPercent(advisor.convertida, advisor.total)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* Expiring Quotations Alert */}

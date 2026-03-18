@@ -18,3 +18,9 @@ https://nextjs.org/telemetry
  GET / 200 in 5.3s (compile: 3.9s, render: 1366ms)
  GET /?startDate=2024-04-01 200 in 135ms (compile: 10ms, render: 125ms)
  GET /?endDate=2024-05-31 200 in 74ms (compile: 7ms, render: 67ms)
+✓ Compiled in 687ms
+✓ Compiled in 191ms
+✓ Compiled in 292ms
+ GET / 200 in 1755ms (compile: 483ms, render: 1272ms)
+✓ Compiled in 334ms
+ GET / 200 in 773ms (compile: 215ms, render: 558ms)
