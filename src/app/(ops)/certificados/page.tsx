@@ -78,7 +78,6 @@ export default async function CertificadosPage({
 
   const completedOrders = await prisma.order.findMany({
     where: {
-      stage: { in: activeStages },
       certificateDeliveredToAdvisor: true,
     },
     include: {
