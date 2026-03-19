@@ -24,3 +24,15 @@ https://nextjs.org/telemetry
  GET / 200 in 1755ms (compile: 483ms, render: 1272ms)
 ✓ Compiled in 334ms
  GET / 200 in 773ms (compile: 215ms, render: 558ms)
+✓ Compiled in 367ms
+ GET / 200 in 2.6s (compile: 674ms, render: 1896ms)
+○ Compiling /cotizaciones/historial ...
+ GET / 200 in 272ms (compile: 5ms, render: 267ms)
+ GET /cotizaciones/historial?status=convertida 200 in 43ms (compile: 6ms, render: 37ms)
+✓ Compiled in 369ms
+✓ Compiled in 224ms
+ GET / 200 in 886ms (compile: 201ms, render: 685ms)
+ GET /cotizaciones/historial?startDate=2026-03-01&endDate=2026-03-19&status=convertida 200 in 148ms (compile: 98ms, render: 50ms)
+ GET / 200 in 262ms (compile: 4ms, render: 258ms)
+ GET /cotizaciones/historial?startDate=2026-03-01&endDate=2026-03-19&status=convertida 200 in 33ms (compile: 4ms, render: 30ms)
+✓ Compiled in 140ms

@@ -135,6 +135,17 @@ export default async function Dashboard({
 
   const sortedAdvisors = Array.from(advisorBreakdown.values()).sort((a, b) => b.total - a.total);
 
+  const drillDownUrl = (status?: string, advisorName?: string) => {
+    const p = new URLSearchParams();
+    // Use the actual date bounds applied to the query, formatted properly
+    p.set('startDate', startDate.toLocaleDateString('en-CA'));
+    p.set('endDate', endDate.toLocaleDateString('en-CA'));
+
+    if (status) p.set('status', status);
+    if (advisorName) p.set('advisorName', advisorName);
+    return `/cotizaciones/historial?${p.toString()}`;
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-end">
@@ -150,32 +161,47 @@ export default async function Dashboard({
           <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">
             Resumen de Cotizaciones ({startDate.toLocaleDateString('es-MX')} - {endDate.toLocaleDateString('es-MX')})
           </h3>
-          <p className="text-xs text-[#8E8D8A] mt-1">Basado en fecha de creación. Total en periodo: {totalQuotations}</p>
+          <p className="text-xs text-[#8E8D8A] mt-1">
+            Basado en fecha de creación. Total en periodo:{' '}
+            <Link href={drillDownUrl()} className="font-semibold text-[#333333] hover:text-[#C5B358] hover:underline">
+              {totalQuotations}
+            </Link>
+          </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-[#D8D3CC]">
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Convertidas</p>
-            <p className="text-3xl font-serif text-[#C5B358]">{convertida}</p>
+            <Link href={drillDownUrl('convertida')} className="text-3xl font-serif text-[#C5B358] hover:underline">
+              {convertida}
+            </Link>
             <p className="text-xs text-[#C5B358] font-medium mt-1">{formatPercent(convertida, totalQuotations)}</p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Pendiente</p>
-            <p className="text-3xl font-serif text-[#333333]">{pendiente}</p>
+            <Link href={drillDownUrl('pendiente')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
+              {pendiente}
+            </Link>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(pendiente, totalQuotations)}</p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Seguimiento</p>
-            <p className="text-3xl font-serif text-[#333333]">{enSeguimiento}</p>
+            <Link href={drillDownUrl('enSeguimiento')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
+              {enSeguimiento}
+            </Link>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(enSeguimiento, totalQuotations)}</p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Oportunidad</p>
-            <p className="text-3xl font-serif text-[#333333]">{oportunidad}</p>
+            <Link href={drillDownUrl('oportunidad')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
+              {oportunidad}
+            </Link>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(oportunidad, totalQuotations)}</p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Declinada</p>
-            <p className="text-3xl font-serif text-[#333333]">{declinada}</p>
+            <Link href={drillDownUrl('declinada')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
+              {declinada}
+            </Link>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(declinada, totalQuotations)}</p>
           </div>
         </div>
@@ -211,22 +237,34 @@ export default async function Dashboard({
                       {advisor.name}
                     </td>
                     <td className="px-6 py-4 text-center font-semibold text-[#333333]">
-                      {advisor.total}
+                      <Link href={drillDownUrl(undefined, advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.total}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#C5B358] font-medium">
-                      {advisor.convertida}
+                      <Link href={drillDownUrl('convertida', advisor.name)} className="hover:underline">
+                        {advisor.convertida}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#333333]">
-                      {advisor.pendiente}
+                      <Link href={drillDownUrl('pendiente', advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.pendiente}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#333333]">
-                      {advisor.enSeguimiento}
+                      <Link href={drillDownUrl('enSeguimiento', advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.enSeguimiento}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#333333]">
-                      {advisor.oportunidad}
+                      <Link href={drillDownUrl('oportunidad', advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.oportunidad}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-center text-[#333333]">
-                      {advisor.declinada}
+                      <Link href={drillDownUrl('declinada', advisor.name)} className="hover:text-[#C5B358] hover:underline">
+                        {advisor.declinada}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-right text-[#C5B358] font-medium">
                       {formatPercent(advisor.convertida, advisor.total)}

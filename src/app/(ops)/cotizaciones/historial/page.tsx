@@ -35,10 +35,25 @@ async function archiveQuotation(formData: FormData) {
   revalidatePath("/cotizaciones/historial");
 }
 
-export default async function HistorialCotizaciones(props: { searchParams: Promise<{ search?: string, tab?: string }> }) {
+export default async function HistorialCotizaciones(props: {
+  searchParams: Promise<{
+    search?: string,
+    tab?: string,
+    startDate?: string,
+    endDate?: string,
+    status?: string,
+    advisorName?: string
+  }>
+}) {
   const searchParams = await props.searchParams;
   const search = searchParams.search || '';
   const tab = searchParams.tab || 'active';
+
+  // Drill-down parameters from dashboard
+  const startDateStr = searchParams.startDate;
+  const endDateStr = searchParams.endDate;
+  const drillStatus = searchParams.status;
+  const advisorName = searchParams.advisorName;
 
   const whereClause: any = search ? {
     OR: [
@@ -52,13 +67,44 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
   if (tab === 'archived') {
     whereClause.status = 'Archived';
   } else {
+    // Basic unarchived condition (overridden below if drillStatus is used)
     whereClause.status = { not: 'Archived' };
+  }
+
+  // Apply dashboard drill-down filters
+  if (startDateStr || endDateStr) {
+    whereClause.quotationDate = {};
+    if (startDateStr) whereClause.quotationDate.gte = new Date(startDateStr + 'T00:00:00');
+    if (endDateStr) whereClause.quotationDate.lte = new Date(endDateStr + 'T23:59:59.999');
+  }
+
+  if (advisorName) {
+    whereClause.salesAssociate = { name: advisorName };
+  }
+
+  if (drillStatus) {
+    if (drillStatus === 'convertida') {
+      whereClause.order = { isNot: null };
+      delete whereClause.status; // order presence implies converted
+    } else {
+      whereClause.order = null; // Ensure mutually exclusive buckets
+      if (drillStatus === 'enSeguimiento') {
+        whereClause.status = 'En seguimiento';
+      } else if (drillStatus === 'oportunidad') {
+        whereClause.status = 'Oportunidad de cierre';
+      } else if (drillStatus === 'declinada') {
+        whereClause.status = 'Declinada';
+      } else if (drillStatus === 'pendiente') {
+        // Catch-all for pendiente, matching the dashboard logic which simply uses `else { pendiente++ }`
+        whereClause.status = { notIn: ['En seguimiento', 'Oportunidad de cierre', 'Declinada'] };
+      }
+    }
   }
 
   const quotations = await prisma.quotation.findMany({
     where: whereClause,
     orderBy: { quotationDate: 'desc' },
-    include: { salesAssociate: true }
+    include: { salesAssociate: true, order: true }
   });
 
   return (
@@ -132,23 +178,23 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
+                      q.order ? 'bg-green-50 text-green-600' :
                       q.status === 'Pendiente de respuesta' ? 'bg-gray-100 text-gray-600' :
                       q.status === 'En seguimiento' ? 'bg-blue-50 text-blue-600' :
                       q.status === 'Oportunidad de cierre' ? 'bg-amber-50 text-amber-600' :
                       q.status === 'Declinada' ? 'bg-red-50 text-red-600' :
-                      q.status === 'Converted' ? 'bg-green-50 text-green-600' :
                       'bg-gray-50 text-gray-600'
                     }`}>
-                      {q.status === 'Converted' ? 'Convertida' : q.status}
+                      {q.order ? 'Convertida' : q.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
-                    {q.status !== 'Converted' && tab !== 'archived' && (
+                    {!q.order && tab !== 'archived' && (
                       <Link href={`/ordenes/nueva?quotationId=${q.id}`} className="text-xs text-[#333333] hover:text-[#C5B358] font-medium transition-colors border-b border-transparent hover:border-[#C5B358] pb-0.5">
                         Convertir a Orden
                       </Link>
                     )}
-                    {(isExpired || daysRemaining <= 3) && q.status !== 'Converted' && tab !== 'archived' && (
+                    {(isExpired || daysRemaining <= 3) && !q.order && tab !== 'archived' && (
                       <form action={extendValidity} className="inline-block ml-4">
                         <input type="hidden" name="id" value={q.id} />
                         <input type="hidden" name="days" value="7" />
@@ -157,7 +203,7 @@ export default async function HistorialCotizaciones(props: { searchParams: Promi
                         </button>
                       </form>
                     )}
-                    {tab !== 'archived' && q.status !== 'Converted' && (
+                    {tab !== 'archived' && !q.order && (
                       <form action={archiveQuotation} className="inline-block ml-4">
                         <input type="hidden" name="id" value={q.id} />
                         <button type="submit" className="text-[10px] bg-white border border-red-200 text-red-500 hover:text-white hover:bg-red-500 px-2 py-1 rounded transition-colors uppercase tracking-wider">
