@@ -1,11 +1,14 @@
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award, User } from 'lucide-react';
+import { getCurrentUser } from '@/lib/auth';
 
-export default function OpsLayout({
+export default async function OpsLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getCurrentUser();
+
   return (
     <div className="flex h-screen bg-[#F5F2EE] text-[#333333] font-sans antialiased selection:bg-[#D8D3CC] selection:text-[#333333]">
         {/* Sidebar */}
@@ -42,10 +45,16 @@ export default function OpsLayout({
             <SidebarLink href="/alertas" icon={<Bell size={18} />} label="Alertas" />
           </nav>
 
-          <div className="mt-auto w-full border-t border-[#D8D3CC] pt-4 flex flex-col gap-2">
-             <div className="text-sm text-[#8E8D8A] flex items-center gap-2 pl-4">
-               <div className="w-2 h-2 rounded-full bg-green-500"></div>
-               Staff activo
+          <div className="mt-auto w-full border-t border-[#D8D3CC] pt-4 flex flex-col gap-2 px-4">
+             <div className="text-xs text-[#8E8D8A] uppercase tracking-wider font-semibold mb-1">
+               Sesión Activa
+             </div>
+             <div className="flex items-center gap-2 text-sm text-[#333333] bg-[#F5F2EE] p-2 rounded border border-[#D8D3CC]">
+               <User size={16} className="text-[#C5B358]" />
+               <div>
+                 <div className="font-medium">{user.name}</div>
+                 <div className="text-[10px] text-[#8E8D8A] uppercase">{user.role === 'manager' ? 'Manager' : 'Asesora'}</div>
+               </div>
              </div>
           </div>
         </aside>

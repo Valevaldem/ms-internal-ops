@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function getCatalogs() {
   const associates = await prisma.salesAssociate.findMany({ where: { activeStatus: true } })
@@ -14,6 +15,9 @@ export async function getCatalogs() {
 
 export async function createQuotation(formData: any) {
   const { associateId, marginProtectionEnabled, validUntilDate, totalStonesPrice, subtotalBeforeAdjustments, msInternalAdjustment, marginProtectionAmount, discountPercent, finalClientPrice, versionFromId, ...data } = formData;
+
+  const user = await getCurrentUser();
+  const finalAssociateId = user.role === 'advisor' && user.salesAssociateId ? user.salesAssociateId : associateId;
 
   let folio = "";
   let versionNumber = 1;
@@ -50,7 +54,7 @@ export async function createQuotation(formData: any) {
     const d = new Date();
     const mmyy = `${(d.getMonth() + 1).toString().padStart(2, '0')}${d.getFullYear().toString().slice(-2)}`;
 
-    const assoc = await prisma.salesAssociate.findUnique({ where: { id: associateId } });
+    const assoc = await prisma.salesAssociate.findUnique({ where: { id: finalAssociateId } });
     const assocInitials = assoc?.name.slice(0, 2).toUpperCase() || 'XX';
 
     const clientName = data.clientNameOrUsername || 'XX';
@@ -67,7 +71,7 @@ export async function createQuotation(formData: any) {
       clientNameOrUsername: data.clientNameOrUsername,
       phoneNumber: data.phoneNumber || null,
       salesChannel: data.salesChannel,
-      salesAssociateId: associateId,
+      salesAssociateId: finalAssociateId,
       pieceType: data.pieceType,
       modelName: data.modelName,
       modelBasePrice: Number(data.modelBasePrice),

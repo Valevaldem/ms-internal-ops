@@ -6,14 +6,21 @@ import StatusSelect from "./status-select";
 import DiscountEdit from "./discount-edit";
 
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 async function reactivateQuotation(formData: FormData) {
   "use server";
   const id = formData.get("id") as string;
+  const user = await getCurrentUser();
   const validUntil = new Date();
   validUntil.setDate(validUntil.getDate() + 15);
+
+  const quotation = await prisma.quotation.findUnique({ where: { id } });
+  if (quotation && user.role === 'advisor' && quotation.salesAssociateId !== user.salesAssociateId) {
+    throw new Error("Unauthorized");
+  }
 
   await prisma.quotation.update({
     where: { id },
@@ -27,6 +34,8 @@ async function reactivateQuotation(formData: FormData) {
 
 export default async function DetailCotizacionPage({ params }: { params: Promise<{ id: string }> }) {
   const p = await params;
+  const user = await getCurrentUser();
+
   const quotation = await prisma.quotation.findUnique({
     where: { id: p.id },
     include: {
@@ -39,6 +48,18 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
 
   if (!quotation) {
     notFound();
+  }
+
+  if (user.role === 'advisor' && quotation.salesAssociateId !== user.salesAssociateId) {
+    return (
+      <div className="p-8 text-center bg-white rounded-lg shadow-sm border border-[#D8D3CC] max-w-2xl mx-auto mt-12">
+        <h2 className="text-xl font-serif text-red-600 mb-2">Acceso Denegado</h2>
+        <p className="text-sm text-[#8E8D8A] mb-6">No tienes permiso para ver o editar esta cotización. Solo puedes acceder a las cotizaciones que has creado tú.</p>
+        <Link href="/cotizaciones/historial" className="bg-[#333333] text-white px-6 py-2 rounded text-sm font-semibold hover:bg-black transition-colors uppercase tracking-wider inline-block">
+          Volver al Historial
+        </Link>
+      </div>
+    );
   }
 
   const daysRemaining = Math.ceil((new Date(quotation.validUntil).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));

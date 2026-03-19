@@ -2,10 +2,12 @@ import { getCatalogs } from "./actions"
 import NuevaCotizacionClient from "./client"
 
 import prisma from "@/lib/prisma"
+import { getCurrentUser } from "@/lib/auth"
 
 export default async function NuevaCotizacionPage({ searchParams }: { searchParams: Promise<{ versionFromId?: string }> }) {
   const catalogs = await getCatalogs()
   const params = await searchParams
+  const user = await getCurrentUser()
 
   let initialData = null;
   if (params.versionFromId) {
@@ -27,5 +29,5 @@ export default async function NuevaCotizacionPage({ searchParams }: { searchPara
     }
   }
 
-  return <NuevaCotizacionClient catalogs={catalogs} initialData={initialData} />
+  return <NuevaCotizacionClient catalogs={catalogs} initialData={initialData} activeUser={user} />
 }

@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { AlertCircle, Clock, FileWarning, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import DashboardDateFilter from "./_components/DashboardDateFilter";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +13,15 @@ export default async function Dashboard({
 }) {
   const params = await searchParams;
   const now = new Date();
+  const user = await getCurrentUser();
+
+  const advisorQuotationFilter = user.role === 'advisor' && user.salesAssociateId ? { salesAssociateId: user.salesAssociateId } : {};
+  const advisorOrderFilter = user.role === 'advisor' && user.salesAssociateId ? { quotation: { salesAssociateId: user.salesAssociateId } } : {};
 
   // Fetch expiring quotations (less than 3 days remaining)
   const expiringQuotations = await prisma.quotation.findMany({
     where: {
+      ...advisorQuotationFilter,
       status: { in: ["Sent", "Waiting for Response", "In Follow-Up", "Extended"] },
       validUntil: { lte: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000) }
     },
@@ -25,6 +31,7 @@ export default async function Dashboard({
   // Fetch overdue production orders
   const overdueOrders = await prisma.order.findMany({
     where: {
+      ...advisorOrderFilter,
       stage: { in: ["Producción"] },
       estimatedProductionEnd: { lt: now }
     },
@@ -34,6 +41,7 @@ export default async function Dashboard({
   // Fetch pending follow-ups (5 days or 1 month)
   const pendingFollowUps = await prisma.order.findMany({
     where: {
+      ...advisorOrderFilter,
       OR: [
         { stage: "Post-Sale Follow-Up Pending (5 days)", postSale5DaysDate: { lte: now } },
         { stage: "Post-Sale Follow-Up Pending (1 month)", postSale1MonthDate: { lte: now } }
@@ -45,6 +53,7 @@ export default async function Dashboard({
   // Fetch expired quotations holding stones (day 15/16 alert)
   const stonesToReturn = await prisma.quotation.findMany({
     where: {
+      ...advisorQuotationFilter,
       validUntil: { lt: now },
       status: { notIn: ["Converted", "Archived", "Deleted", "Cancelled"] }
     },
@@ -74,6 +83,7 @@ export default async function Dashboard({
   const [filteredQuotations, prevFilteredQuotations] = await Promise.all([
     prisma.quotation.findMany({
       where: {
+        ...advisorQuotationFilter,
         quotationDate: {
           gte: startDate,
           lte: endDate,
@@ -84,6 +94,7 @@ export default async function Dashboard({
     isComparing && prevStartDate && prevEndDate
       ? prisma.quotation.findMany({
           where: {
+            ...advisorQuotationFilter,
             quotationDate: {
               gte: prevStartDate,
               lte: prevEndDate,
@@ -302,7 +313,7 @@ export default async function Dashboard({
       </div>
 
       {/* Advisor Breakdown */}
-      {sortedAdvisors.length > 0 && (
+      {sortedAdvisors.length > 0 && user.role === 'manager' && (
         <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm overflow-hidden">
           <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC]">
             <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">

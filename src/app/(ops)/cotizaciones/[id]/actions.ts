@@ -2,8 +2,16 @@
 
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function updateQuotationStatus(id: string, newStatus: string) {
+  const user = await getCurrentUser();
+  const quotation = await prisma.quotation.findUnique({ where: { id } });
+
+  if (!quotation || (user.role === 'advisor' && quotation.salesAssociateId !== user.salesAssociateId)) {
+    throw new Error("Unauthorized");
+  }
+
   await prisma.quotation.update({
     where: { id },
     data: { status: newStatus }
@@ -13,8 +21,12 @@ export async function updateQuotationStatus(id: string, newStatus: string) {
 }
 
 export async function updateQuotationDiscount(id: string, newDiscountPercent: number) {
+  const user = await getCurrentUser();
   const quotation = await prisma.quotation.findUnique({ where: { id } });
-  if (!quotation) throw new Error("Not found");
+
+  if (!quotation || (user.role === 'advisor' && quotation.salesAssociateId !== user.salesAssociateId)) {
+    throw new Error("Unauthorized");
+  }
 
   const rawClientPrice = quotation.subtotalBeforeAdjustments + quotation.msInternalAdjustment + quotation.marginProtectionAmount;
 

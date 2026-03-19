@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,9 +9,14 @@ async function extendValidity(formData: FormData) {
   "use server";
   const id = formData.get("id") as string;
   const days = Number(formData.get("days") || 1);
+  const user = await getCurrentUser();
 
   const quotation = await prisma.quotation.findUnique({ where: { id } });
   if (quotation) {
+    if (user.role === 'advisor' && quotation.salesAssociateId !== user.salesAssociateId) {
+      throw new Error("Unauthorized");
+    }
+
     const newDate = new Date(quotation.validUntil);
     newDate.setDate(newDate.getDate() + days);
 
@@ -28,6 +34,13 @@ async function extendValidity(formData: FormData) {
 async function archiveQuotation(formData: FormData) {
   "use server";
   const id = formData.get("id") as string;
+  const user = await getCurrentUser();
+
+  const quotation = await prisma.quotation.findUnique({ where: { id } });
+  if (quotation && user.role === 'advisor' && quotation.salesAssociateId !== user.salesAssociateId) {
+    throw new Error("Unauthorized");
+  }
+
   await prisma.quotation.update({
     where: { id },
     data: { status: "Archived" }
@@ -46,6 +59,7 @@ export default async function HistorialCotizaciones(props: {
   }>
 }) {
   const searchParams = await props.searchParams;
+  const user = await getCurrentUser();
   const search = searchParams.search || '';
   const tab = searchParams.tab || 'active';
 
@@ -63,6 +77,11 @@ export default async function HistorialCotizaciones(props: {
       { salesAssociate: { name: { contains: search } } }
     ]
   } : {};
+
+  // Enforce ownership visibility
+  if (user.role === 'advisor' && user.salesAssociateId) {
+    whereClause.salesAssociateId = user.salesAssociateId;
+  }
 
   if (tab === 'archived') {
     whereClause.status = 'Archived';
