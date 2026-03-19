@@ -59,15 +59,17 @@ export default async function Dashboard({
   const startDate = startDateStr ? new Date(startDateStr + 'T00:00:00') : defaultStartDate;
   let endDate = endDateStr ? new Date(endDateStr + 'T23:59:59.999') : now;
 
-  // Calculate previous equivalent period bounds
-  // duration in ms:
-  const periodDuration = endDate.getTime() - startDate.getTime();
+  const compareStartDateStr = typeof params.compareStartDate === 'string' ? params.compareStartDate : null;
+  const compareEndDateStr = typeof params.compareEndDate === 'string' ? params.compareEndDate : null;
+  const isComparing = !!(compareStartDateStr && compareEndDateStr);
 
-  // previous period ends 1 millisecond before the selected start date
-  const prevEndDate = new Date(startDate.getTime() - 1);
+  let prevStartDate: Date | null = null;
+  let prevEndDate: Date | null = null;
 
-  // previous period starts exactly periodDuration before prevEndDate
-  const prevStartDate = new Date(prevEndDate.getTime() - periodDuration);
+  if (isComparing) {
+    prevStartDate = new Date(compareStartDateStr + 'T00:00:00');
+    prevEndDate = new Date(compareEndDateStr + 'T23:59:59.999');
+  }
 
   const [filteredQuotations, prevFilteredQuotations] = await Promise.all([
     prisma.quotation.findMany({
@@ -79,15 +81,17 @@ export default async function Dashboard({
       },
       include: { order: true, salesAssociate: true }
     }),
-    prisma.quotation.findMany({
-      where: {
-        quotationDate: {
-          gte: prevStartDate,
-          lte: prevEndDate,
-        }
-      },
-      include: { order: true } // Associate not needed for overall metrics if we only show total comparables
-    })
+    isComparing && prevStartDate && prevEndDate
+      ? prisma.quotation.findMany({
+          where: {
+            quotationDate: {
+              gte: prevStartDate,
+              lte: prevEndDate,
+            }
+          },
+          include: { order: true }
+        })
+      : Promise.resolve([]) // Return empty array if not comparing to keep default view clean
   ]);
 
   type QuotationWithOrder = {
@@ -226,13 +230,15 @@ export default async function Dashboard({
               <Link href={drillDownUrl()} className="font-semibold text-[#333333] hover:text-[#C5B358] hover:underline">
                 {currentMetrics.total}
               </Link>
-              {getChangeIndicator(currentMetrics.total, prevMetrics.total)}
+              {isComparing && getChangeIndicator(currentMetrics.total, prevMetrics.total)}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] text-[#8E8D8A] uppercase tracking-wider">Comparado con periodo anterior</p>
-            <p className="text-xs text-[#8E8D8A]">({prevStartDate.toLocaleDateString('es-MX')} - {prevEndDate.toLocaleDateString('es-MX')})</p>
-          </div>
+          {isComparing && prevStartDate && prevEndDate && (
+            <div className="text-right">
+              <p className="text-[10px] text-[#8E8D8A] uppercase tracking-wider">Comparado con</p>
+              <p className="text-xs text-[#8E8D8A]">({prevStartDate.toLocaleDateString('es-MX')} - {prevEndDate.toLocaleDateString('es-MX')})</p>
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-[#D8D3CC]">
           <div className="p-4 flex flex-col items-center justify-center text-center">
@@ -241,13 +247,15 @@ export default async function Dashboard({
               <Link href={drillDownUrl('convertida')} className="text-3xl font-serif text-[#C5B358] hover:underline">
                 {currentMetrics.convertida}
               </Link>
-              {getChangeIndicator(currentMetrics.convertida, prevMetrics.convertida)}
+              {isComparing && getChangeIndicator(currentMetrics.convertida, prevMetrics.convertida)}
             </div>
             <p className="text-xs text-[#C5B358] font-medium mt-1">
               {formatPercent(currentMetrics.convertida, currentMetrics.total)}
-              <span className="text-[#8E8D8A] font-normal ml-1">
-                (vs {formatPercent(prevMetrics.convertida, prevMetrics.total)})
-              </span>
+              {isComparing && (
+                <span className="text-[#8E8D8A] font-normal ml-1">
+                  (vs {formatPercent(prevMetrics.convertida, prevMetrics.total)})
+                </span>
+              )}
             </p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
@@ -256,7 +264,7 @@ export default async function Dashboard({
               <Link href={drillDownUrl('pendiente')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
                 {currentMetrics.pendiente}
               </Link>
-              {getChangeIndicator(currentMetrics.pendiente, prevMetrics.pendiente)}
+              {isComparing && getChangeIndicator(currentMetrics.pendiente, prevMetrics.pendiente)}
             </div>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(currentMetrics.pendiente, currentMetrics.total)}</p>
           </div>
@@ -266,7 +274,7 @@ export default async function Dashboard({
               <Link href={drillDownUrl('enSeguimiento')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
                 {currentMetrics.enSeguimiento}
               </Link>
-              {getChangeIndicator(currentMetrics.enSeguimiento, prevMetrics.enSeguimiento)}
+              {isComparing && getChangeIndicator(currentMetrics.enSeguimiento, prevMetrics.enSeguimiento)}
             </div>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(currentMetrics.enSeguimiento, currentMetrics.total)}</p>
           </div>
@@ -276,7 +284,7 @@ export default async function Dashboard({
               <Link href={drillDownUrl('oportunidad')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
                 {currentMetrics.oportunidad}
               </Link>
-              {getChangeIndicator(currentMetrics.oportunidad, prevMetrics.oportunidad)}
+              {isComparing && getChangeIndicator(currentMetrics.oportunidad, prevMetrics.oportunidad)}
             </div>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(currentMetrics.oportunidad, currentMetrics.total)}</p>
           </div>
@@ -286,7 +294,7 @@ export default async function Dashboard({
               <Link href={drillDownUrl('declinada')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
                 {currentMetrics.declinada}
               </Link>
-              {getChangeIndicator(currentMetrics.declinada, prevMetrics.declinada)}
+              {isComparing && getChangeIndicator(currentMetrics.declinada, prevMetrics.declinada)}
             </div>
             <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(currentMetrics.declinada, currentMetrics.total)}</p>
           </div>
