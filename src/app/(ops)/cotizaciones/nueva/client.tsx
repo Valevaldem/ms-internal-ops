@@ -7,6 +7,7 @@ import { useState } from "react"
 import { createQuotation } from "./actions"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2 } from "lucide-react"
+import type { ActiveUser } from "@/lib/auth"
 
 const schema = z.object({
   clientNameOrUsername: z.string().min(1, "Requerido"),
@@ -27,9 +28,10 @@ const schema = z.object({
   }))
 })
 
-export default function NuevaCotizacionClient({ catalogs, initialData }: { catalogs: any, initialData?: any }) {
+export default function NuevaCotizacionClient({ catalogs, initialData, activeUser }: { catalogs: any, initialData?: any, activeUser: ActiveUser }) {
   const router = useRouter()
   const [invalidLots, setInvalidLots] = useState<number[]>([])
+  const isAdvisor = activeUser.role === "advisor";
 
   const { register, control, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
@@ -37,7 +39,7 @@ export default function NuevaCotizacionClient({ catalogs, initialData }: { catal
       clientNameOrUsername: initialData?.clientNameOrUsername || "",
       phoneNumber: initialData?.phoneNumber || "",
       salesChannel: initialData?.salesChannel || "Store",
-      salesAssociateId: initialData?.salesAssociateId || "",
+      salesAssociateId: isAdvisor ? activeUser.salesAssociateId : (initialData?.salesAssociateId || ""),
       pieceType: initialData?.pieceType || "Ring",
       modelId: initialData?.modelId || "",
       notes: initialData?.notes || "",
@@ -186,7 +188,7 @@ export default function NuevaCotizacionClient({ catalogs, initialData }: { catal
             </div>
             <div>
               <label className="block text-sm text-[#333333] mb-1">Asesor(a)</label>
-              <select {...register("salesAssociateId")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={initialData ? -1 : 0}>
+              <select {...register("salesAssociateId")} className={`w-full border ${(initialData || isAdvisor) ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={(initialData || isAdvisor) ? -1 : 0}>
                 <option value="">Selecciona...</option>
                 {catalogs.associates.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>

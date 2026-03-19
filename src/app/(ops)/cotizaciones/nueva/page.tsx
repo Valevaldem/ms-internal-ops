@@ -2,8 +2,12 @@ import { getCatalogs } from "./actions"
 import NuevaCotizacionClient from "./client"
 
 import prisma from "@/lib/prisma"
+import { getCurrentUser, verifyAccess } from "@/lib/auth"
 
 export default async function NuevaCotizacionPage({ searchParams }: { searchParams: Promise<{ versionFromId?: string }> }) {
+  const user = await getCurrentUser()
+  verifyAccess(user, ['manager', 'advisor']);
+
   const catalogs = await getCatalogs()
   const params = await searchParams
 
@@ -27,5 +31,5 @@ export default async function NuevaCotizacionPage({ searchParams }: { searchPara
     }
   }
 
-  return <NuevaCotizacionClient catalogs={catalogs} initialData={initialData} />
+  return <NuevaCotizacionClient catalogs={catalogs} initialData={initialData} activeUser={user} />
 }

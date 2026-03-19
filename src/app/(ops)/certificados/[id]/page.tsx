@@ -2,12 +2,16 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export default async function CertificatePreviewPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor', 'certificate_operator'], "/");
+
   const { id } = await params;
 
   const order = await prisma.order.findUnique({

@@ -2,13 +2,32 @@
 > ms-app@0.1.0 dev
 > next dev
 
-⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
 ▲ Next.js 16.1.6 (Turbopack)
-- Local:         http://localhost:3001
-- Network:       http://192.168.0.2:3001
-- Environments: .env
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
 
 ✓ Starting...
-⨯ Unable to acquire lock at /app/.next/dev/lock, is another instance of next dev running?
-  Suggestion: If you intended to restart next dev, terminate the other process, and then try again.
+✓ Ready in 1013ms
+ GET /cotizaciones/historial 200 in 4.6s (compile: 3.4s, render: 1221ms)
+ GET /cotizaciones/cmmsqjlrf0008bee5l3qybsgx 200 in 2.4s (compile: 2.3s, render: 58ms)
+ GET /cotizaciones/nueva 200 in 1544ms (compile: 1236ms, render: 308ms)
+ POST /cotizaciones/nueva 200 in 130ms (compile: 15ms, render: 115ms)
+ GET /cotizaciones/historial 200 in 167ms (compile: 4ms, render: 163ms)
+ GET /cotizaciones/historial 200 in 110ms (compile: 6ms, render: 104ms)
+ GET /cotizaciones/cmmwxplcl000114293lpen3zo 200 in 127ms (compile: 43ms, render: 84ms)
+ POST /cotizaciones/cmmwxplcl000114293lpen3zo 200 in 92ms (compile: 4ms, render: 88ms)
+ GET /cotizaciones/cmmwxplcl000114293lpen3zo 200 in 72ms (compile: 5ms, render: 67ms)
+ GET /cotizaciones/nueva 200 in 163ms (compile: 4ms, render: 159ms)
+ POST /cotizaciones/nueva 200 in 100ms (compile: 3ms, render: 97ms)
+ GET /cotizaciones/historial 200 in 120ms (compile: 3ms, render: 117ms)
+ GET /cotizaciones/historial 200 in 90ms (compile: 3ms, render: 87ms)
+ GET /cotizaciones/cmmwxpzjv00041429c3hl1ii0 200 in 98ms (compile: 29ms, render: 69ms)
+ POST /cotizaciones/cmmwxpzjv00041429c3hl1ii0 200 in 84ms (compile: 5ms, render: 78ms)
+ GET /cotizaciones/cmmwxpzjv00041429c3hl1ii0 200 in 83ms (compile: 3ms, render: 80ms)
+ GET /cotizaciones/nueva 200 in 158ms (compile: 3ms, render: 155ms)
+ POST /cotizaciones/nueva 200 in 67ms (compile: 3ms, render: 64ms)
+ GET /cotizaciones/historial 200 in 55ms (compile: 3ms, render: 52ms)
+ GET / 200 in 972ms (compile: 595ms, render: 377ms)
+ GET /ordenes/activas 200 in 683ms (compile: 395ms, render: 288ms)
+✓ Compiled in 161ms
 [?25h

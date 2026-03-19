@@ -1,14 +1,18 @@
 import prisma from "@/lib/prisma";
 import { AlertCircle, Clock, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AlertasPage() {
+  const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor', 'certificate_operator'], "/");
+
   const now = new Date();
 
   // Expiring quotations
-  const expiringQuotations = await prisma.quotation.findMany({
+  const expiringQuotations = user.role === 'certificate_operator' ? [] : await prisma.quotation.findMany({
     where: {
       status: { in: ["Sent", "Waiting for Response", "In Follow-Up", "Extended"] },
       validUntil: { lte: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000) }
@@ -17,7 +21,7 @@ export default async function AlertasPage() {
   });
 
   // Overdue orders
-  const overdueOrders = await prisma.order.findMany({
+  const overdueOrders = user.role === 'certificate_operator' ? [] : await prisma.order.findMany({
     where: {
       stage: { in: ["Producción"] },
       estimatedProductionEnd: { lt: now }
@@ -26,7 +30,7 @@ export default async function AlertasPage() {
   });
 
   // Pending Follow-ups
-  const pendingFollowUps = await prisma.order.findMany({
+  const pendingFollowUps = user.role === 'certificate_operator' ? [] : await prisma.order.findMany({
     where: {
       OR: [
         { stage: "Post-Sale Follow-Up Pending (5 days)", postSale5DaysDate: { lte: now } },
