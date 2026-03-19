@@ -59,23 +59,71 @@ export default async function Dashboard({
   const startDate = startDateStr ? new Date(startDateStr + 'T00:00:00') : defaultStartDate;
   let endDate = endDateStr ? new Date(endDateStr + 'T23:59:59.999') : now;
 
-  const filteredQuotations = await prisma.quotation.findMany({
-    where: {
-      quotationDate: {
-        gte: startDate,
-        lte: endDate,
+  // Calculate previous equivalent period bounds
+  // duration in ms:
+  const periodDuration = endDate.getTime() - startDate.getTime();
+
+  // previous period ends 1 millisecond before the selected start date
+  const prevEndDate = new Date(startDate.getTime() - 1);
+
+  // previous period starts exactly periodDuration before prevEndDate
+  const prevStartDate = new Date(prevEndDate.getTime() - periodDuration);
+
+  const [filteredQuotations, prevFilteredQuotations] = await Promise.all([
+    prisma.quotation.findMany({
+      where: {
+        quotationDate: {
+          gte: startDate,
+          lte: endDate,
+        }
+      },
+      include: { order: true, salesAssociate: true }
+    }),
+    prisma.quotation.findMany({
+      where: {
+        quotationDate: {
+          gte: prevStartDate,
+          lte: prevEndDate,
+        }
+      },
+      include: { order: true } // Associate not needed for overall metrics if we only show total comparables
+    })
+  ]);
+
+  type QuotationWithOrder = {
+    status: string;
+    order: any | null;
+  };
+
+  const getMetrics = (qs: QuotationWithOrder[]) => {
+    let convertida = 0, pendiente = 0, enSeguimiento = 0, oportunidad = 0, declinada = 0;
+
+    for (const q of qs) {
+      if (q.order) {
+        convertida++;
+      } else if (q.status === "En seguimiento") {
+        enSeguimiento++;
+      } else if (q.status === "Oportunidad de cierre") {
+        oportunidad++;
+      } else if (q.status === "Declinada") {
+        declinada++;
+      } else {
+        pendiente++;
       }
-    },
-    include: { order: true, salesAssociate: true }
-  });
+    }
 
-  const totalQuotations = filteredQuotations.length;
+    return {
+      total: qs.length,
+      convertida,
+      pendiente,
+      enSeguimiento,
+      oportunidad,
+      declinada
+    };
+  };
 
-  let convertida = 0;
-  let pendiente = 0;
-  let enSeguimiento = 0;
-  let oportunidad = 0;
-  let declinada = 0;
+  const currentMetrics = getMetrics(filteredQuotations);
+  const prevMetrics = getMetrics(prevFilteredQuotations);
 
   type AdvisorMetrics = {
     name: string;
@@ -90,23 +138,15 @@ export default async function Dashboard({
   const advisorBreakdown = new Map<string, AdvisorMetrics>();
 
   for (const q of filteredQuotations) {
-    // Overall metrics
     let categorizedStatus: keyof Omit<AdvisorMetrics, 'name' | 'total'> = 'pendiente';
     if (q.order) {
-      convertida++;
       categorizedStatus = 'convertida';
     } else if (q.status === "En seguimiento") {
-      enSeguimiento++;
       categorizedStatus = 'enSeguimiento';
     } else if (q.status === "Oportunidad de cierre") {
-      oportunidad++;
       categorizedStatus = 'oportunidad';
     } else if (q.status === "Declinada") {
-      declinada++;
       categorizedStatus = 'declinada';
-    } else {
-      pendiente++;
-      categorizedStatus = 'pendiente';
     }
 
     // Advisor metrics
@@ -133,6 +173,25 @@ export default async function Dashboard({
     return `${((count / total) * 100).toFixed(1)}%`;
   };
 
+  const getChangeIndicator = (current: number, previous: number) => {
+    const diff = current - previous;
+    if (previous === 0) {
+      if (current === 0) return null;
+      return <span className="text-gray-500 ml-2">(+{current})</span>;
+    }
+
+    const percentChange = ((diff / previous) * 100).toFixed(1);
+    const isPositive = diff > 0;
+    const isNegative = diff < 0;
+
+    // Using neutral gray shades to keep simple and readable, instead of bright red/green
+    return (
+      <span className={`ml-2 text-[10px] font-medium ${isPositive ? 'text-gray-600' : isNegative ? 'text-gray-500' : 'text-gray-400'}`}>
+        (vs {previous}) {isPositive ? '↑' : isNegative ? '↓' : ''} {Math.abs(diff)} ({isPositive ? '+' : ''}{percentChange}%)
+      </span>
+    );
+  };
+
   const sortedAdvisors = Array.from(advisorBreakdown.values()).sort((a, b) => b.total - a.total);
 
   const drillDownUrl = (status?: string, advisorName?: string) => {
@@ -157,52 +216,79 @@ export default async function Dashboard({
       </div>
 
       <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm overflow-hidden">
-        <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC]">
-          <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">
-            Resumen de Cotizaciones ({startDate.toLocaleDateString('es-MX')} - {endDate.toLocaleDateString('es-MX')})
-          </h3>
-          <p className="text-xs text-[#8E8D8A] mt-1">
-            Basado en fecha de creación. Total en periodo:{' '}
-            <Link href={drillDownUrl()} className="font-semibold text-[#333333] hover:text-[#C5B358] hover:underline">
-              {totalQuotations}
-            </Link>
-          </p>
+        <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC] flex justify-between items-start">
+          <div>
+            <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">
+              Resumen de Cotizaciones ({startDate.toLocaleDateString('es-MX')} - {endDate.toLocaleDateString('es-MX')})
+            </h3>
+            <p className="text-xs text-[#8E8D8A] mt-1">
+              Basado en fecha de creación. Total en periodo:{' '}
+              <Link href={drillDownUrl()} className="font-semibold text-[#333333] hover:text-[#C5B358] hover:underline">
+                {currentMetrics.total}
+              </Link>
+              {getChangeIndicator(currentMetrics.total, prevMetrics.total)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-[#8E8D8A] uppercase tracking-wider">Comparado con periodo anterior</p>
+            <p className="text-xs text-[#8E8D8A]">({prevStartDate.toLocaleDateString('es-MX')} - {prevEndDate.toLocaleDateString('es-MX')})</p>
+          </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-[#D8D3CC]">
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Convertidas</p>
-            <Link href={drillDownUrl('convertida')} className="text-3xl font-serif text-[#C5B358] hover:underline">
-              {convertida}
-            </Link>
-            <p className="text-xs text-[#C5B358] font-medium mt-1">{formatPercent(convertida, totalQuotations)}</p>
+            <div className="flex items-baseline justify-center">
+              <Link href={drillDownUrl('convertida')} className="text-3xl font-serif text-[#C5B358] hover:underline">
+                {currentMetrics.convertida}
+              </Link>
+              {getChangeIndicator(currentMetrics.convertida, prevMetrics.convertida)}
+            </div>
+            <p className="text-xs text-[#C5B358] font-medium mt-1">
+              {formatPercent(currentMetrics.convertida, currentMetrics.total)}
+              <span className="text-[#8E8D8A] font-normal ml-1">
+                (vs {formatPercent(prevMetrics.convertida, prevMetrics.total)})
+              </span>
+            </p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Pendiente</p>
-            <Link href={drillDownUrl('pendiente')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
-              {pendiente}
-            </Link>
-            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(pendiente, totalQuotations)}</p>
+            <div className="flex items-baseline justify-center">
+              <Link href={drillDownUrl('pendiente')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
+                {currentMetrics.pendiente}
+              </Link>
+              {getChangeIndicator(currentMetrics.pendiente, prevMetrics.pendiente)}
+            </div>
+            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(currentMetrics.pendiente, currentMetrics.total)}</p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Seguimiento</p>
-            <Link href={drillDownUrl('enSeguimiento')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
-              {enSeguimiento}
-            </Link>
-            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(enSeguimiento, totalQuotations)}</p>
+            <div className="flex items-baseline justify-center">
+              <Link href={drillDownUrl('enSeguimiento')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
+                {currentMetrics.enSeguimiento}
+              </Link>
+              {getChangeIndicator(currentMetrics.enSeguimiento, prevMetrics.enSeguimiento)}
+            </div>
+            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(currentMetrics.enSeguimiento, currentMetrics.total)}</p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Oportunidad</p>
-            <Link href={drillDownUrl('oportunidad')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
-              {oportunidad}
-            </Link>
-            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(oportunidad, totalQuotations)}</p>
+            <div className="flex items-baseline justify-center">
+              <Link href={drillDownUrl('oportunidad')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
+                {currentMetrics.oportunidad}
+              </Link>
+              {getChangeIndicator(currentMetrics.oportunidad, prevMetrics.oportunidad)}
+            </div>
+            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(currentMetrics.oportunidad, currentMetrics.total)}</p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Declinada</p>
-            <Link href={drillDownUrl('declinada')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
-              {declinada}
-            </Link>
-            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(declinada, totalQuotations)}</p>
+            <div className="flex items-baseline justify-center">
+              <Link href={drillDownUrl('declinada')} className="text-3xl font-serif text-[#333333] hover:text-[#C5B358] hover:underline">
+                {currentMetrics.declinada}
+              </Link>
+              {getChangeIndicator(currentMetrics.declinada, prevMetrics.declinada)}
+            </div>
+            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(currentMetrics.declinada, currentMetrics.total)}</p>
           </div>
         </div>
       </div>
