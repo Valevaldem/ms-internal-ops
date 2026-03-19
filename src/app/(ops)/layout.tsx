@@ -49,12 +49,21 @@ export default async function OpsLayout({
              <div className="text-xs text-[#8E8D8A] uppercase tracking-wider font-semibold mb-1">
                Sesión Activa
              </div>
-             <div className="flex items-center gap-2 text-sm text-[#333333] bg-[#F5F2EE] p-2 rounded border border-[#D8D3CC]">
-               <User size={16} className="text-[#C5B358]" />
-               <div>
-                 <div className="font-medium">{user.name}</div>
-                 <div className="text-[10px] text-[#8E8D8A] uppercase">{user.role === 'manager' ? 'Manager' : 'Asesora'}</div>
+             <div className="flex flex-col gap-1 text-xs text-[#333333] bg-[#F5F2EE] p-3 rounded border border-[#D8D3CC]">
+               <div className="flex items-center gap-2 border-b border-[#D8D3CC] pb-2 mb-1">
+                 <User size={16} className="text-[#C5B358]" />
+                 <span className="font-semibold text-sm">{user.name}</span>
                </div>
+               <div className="flex justify-between">
+                 <span className="text-[#8E8D8A]">Rol:</span>
+                 <span className="font-medium capitalize">{user.role === 'manager' ? 'Manager' : 'Asesora'}</span>
+               </div>
+               {user.salesAssociateId && (
+                 <div className="flex justify-between">
+                   <span className="text-[#8E8D8A]">ID:</span>
+                   <span className="font-medium truncate max-w-[100px]" title={user.salesAssociateId}>{user.salesAssociateId}</span>
+                 </div>
+               )}
              </div>
           </div>
         </aside>
