@@ -3,10 +3,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import OrderForm from "./components/OrderForm";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function NuevaOrdenPage({ searchParams }: { searchParams: Promise<{ quotationId?: string }> }) {
+  const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor']);
+
   const params = await searchParams;
   const qid = params.quotationId;
 

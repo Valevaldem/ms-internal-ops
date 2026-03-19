@@ -3,7 +3,7 @@ import prisma from "./prisma";
 // Temporary centralized auth context for development phase
 // This will eventually be replaced by a real authentication system (e.g. NextAuth)
 
-export type UserRole = "advisor" | "manager";
+export type UserRole = "advisor" | "manager" | "certificate_operator";
 
 export interface ActiveUser {
   id: string; // The user's actual ID (could be from a User table later)
@@ -19,6 +19,14 @@ const MOCK_MANAGER: ActiveUser = {
   role: "manager",
 };
 
+const MOCK_CERT_OPERATOR: ActiveUser = {
+  id: "cert-1",
+  name: "Operador de Certificados",
+  role: "certificate_operator",
+};
+
+import { redirect } from "next/navigation";
+
 export async function getCurrentUser(): Promise<ActiveUser> {
   // --------------------------------------------------------------------------
   // TEMPORARY AUTHENTICATION SWITCH FOR DEVELOPMENT
@@ -26,11 +34,14 @@ export async function getCurrentUser(): Promise<ActiveUser> {
   // INSTRUCTIONS TO TEST ROLES:
   //
   // 1. To test as a MANAGER (sees all quotations, dashboard breakdown, etc):
-  //    Uncomment line A and comment out block B.
+  //    Uncomment line A and comment out blocks B and C.
   //
   // 2. To test as an ADVISOR (only sees their own quotations):
-  //    Comment out line A and uncomment block B.
+  //    Uncomment block B and comment out line A and line C.
   //    To test a different advisor, change the `where: { name: "..." }` filter.
+  //
+  // 3. To test as a CERTIFICATE OPERATOR (only sees certificates module):
+  //    Uncomment line C and comment out line A and block B.
   //
   // NOTE: You do NOT need to restart the Next.js dev server. Just save this file
   // and refresh the page. Next.js will recompile and reflect the new active user.
@@ -38,6 +49,9 @@ export async function getCurrentUser(): Promise<ActiveUser> {
 
   // --- LINE A: Test as Manager ---
   // return MOCK_MANAGER;
+
+  // --- LINE C: Test as Certificate Operator ---
+  // return MOCK_CERT_OPERATOR;
 
   // --- BLOCK B: Test as Advisor ---
   const advisor = await prisma.salesAssociate.findFirst({
@@ -56,4 +70,10 @@ export async function getCurrentUser(): Promise<ActiveUser> {
     salesAssociateId: advisor.id,
   };
   // --- END BLOCK B ---
+}
+
+export function verifyAccess(user: ActiveUser, allowedRoles: UserRole[], redirectTo: string = "/certificados") {
+  if (!allowedRoles.includes(user.role)) {
+    redirect(redirectTo);
+  }
 }

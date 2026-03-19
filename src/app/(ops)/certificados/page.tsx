@@ -20,11 +20,16 @@ export const dynamic = "force-dynamic";
 
 import CertificadosFilter from "./CertificadosFilter";
 
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
+
 export default async function CertificadosPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor', 'certificate_operator'], "/");
+
   const params = await searchParams;
   const filter = typeof params.filter === 'string' ? params.filter : 'all';
 

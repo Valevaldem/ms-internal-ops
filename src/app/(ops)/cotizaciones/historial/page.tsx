@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -58,8 +58,10 @@ export default async function HistorialCotizaciones(props: {
     advisorName?: string
   }>
 }) {
-  const searchParams = await props.searchParams;
   const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor']);
+
+  const searchParams = await props.searchParams;
   const search = searchParams.search || '';
   const tab = searchParams.tab || 'active';
 

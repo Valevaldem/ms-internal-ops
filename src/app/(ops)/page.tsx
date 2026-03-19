@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { AlertCircle, Clock, FileWarning, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import DashboardDateFilter from "./_components/DashboardDateFilter";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +11,11 @@ export default async function Dashboard({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor']);
+
   const params = await searchParams;
   const now = new Date();
-  const user = await getCurrentUser();
 
   const advisorQuotationFilter = user.role === 'advisor' && user.salesAssociateId ? { salesAssociateId: user.salesAssociateId } : {};
   const advisorOrderFilter = user.role === 'advisor' && user.salesAssociateId ? { quotation: { salesAssociateId: user.salesAssociateId } } : {};

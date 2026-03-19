@@ -2,12 +2,14 @@ import { getCatalogs } from "./actions"
 import NuevaCotizacionClient from "./client"
 
 import prisma from "@/lib/prisma"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUser, verifyAccess } from "@/lib/auth"
 
 export default async function NuevaCotizacionPage({ searchParams }: { searchParams: Promise<{ versionFromId?: string }> }) {
+  const user = await getCurrentUser()
+  verifyAccess(user, ['manager', 'advisor']);
+
   const catalogs = await getCatalogs()
   const params = await searchParams
-  const user = await getCurrentUser()
 
   let initialData = null;
   if (params.versionFromId) {

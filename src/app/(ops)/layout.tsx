@@ -23,21 +23,38 @@ export default async function OpsLayout({
           </div>
 
           <nav className="flex-1 w-full space-y-2">
-            <SidebarLink href="/" icon={<Home size={18} />} label="Resumen" />
+            {user.role !== 'certificate_operator' && (
+              <>
+                <SidebarLink href="/" icon={<Home size={18} />} label="Resumen" />
 
-            <div className="pt-4 pb-2">
-              <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Cotizaciones</p>
-            </div>
-            <SidebarLink href="/cotizaciones/nueva" icon={<Calculator size={18} />} label="Nueva Cotización" />
-            <SidebarLink href="/cotizaciones/historial" icon={<FileText size={18} />} label="Historial" />
+                <div className="pt-4 pb-2">
+                  <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Cotizaciones</p>
+                </div>
+                <SidebarLink href="/cotizaciones/nueva" icon={<Calculator size={18} />} label="Nueva Cotización" />
+                <SidebarLink href="/cotizaciones/historial" icon={<FileText size={18} />} label="Historial" />
 
-            <div className="pt-4 pb-2">
-              <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Órdenes</p>
-            </div>
-            <SidebarLink href="/ordenes/activas" icon={<List size={18} />} label="Órdenes Activas" />
-            <SidebarLink href="/ordenes/produccion" icon={<Settings size={18} />} label="En Producción" />
-            <SidebarLink href="/certificados" icon={<Award size={18} />} label="Certificados" />
-            <SidebarLink href="/ordenes/historial" icon={<ShoppingBag size={18} />} label="Historial de Órdenes" />
+                <div className="pt-4 pb-2">
+                  <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Órdenes</p>
+                </div>
+                <SidebarLink href="/ordenes/activas" icon={<List size={18} />} label="Órdenes Activas" />
+                <SidebarLink href="/ordenes/produccion" icon={<Settings size={18} />} label="En Producción" />
+              </>
+            )}
+
+            {(user.role === 'manager' || user.role === 'certificate_operator') && (
+              <>
+                {user.role === 'certificate_operator' && (
+                  <div className="pt-4 pb-2">
+                    <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Operación</p>
+                  </div>
+                )}
+                <SidebarLink href="/certificados" icon={<Award size={18} />} label="Certificados" />
+              </>
+            )}
+
+            {user.role !== 'certificate_operator' && (
+              <SidebarLink href="/ordenes/historial" icon={<ShoppingBag size={18} />} label="Historial de Órdenes" />
+            )}
 
             <div className="pt-4 pb-2">
               <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Sistema</p>
@@ -56,7 +73,7 @@ export default async function OpsLayout({
                </div>
                <div className="flex justify-between">
                  <span className="text-[#8E8D8A]">Rol:</span>
-                 <span className="font-medium capitalize">{user.role === 'manager' ? 'Manager' : 'Asesora'}</span>
+                 <span className="font-medium capitalize">{user.role === 'manager' ? 'Manager' : user.role === 'certificate_operator' ? 'Certificados' : 'Asesora'}</span>
                </div>
                {user.salesAssociateId && (
                  <div className="flex justify-between">

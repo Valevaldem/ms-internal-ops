@@ -2,10 +2,14 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { translateStage } from "@/lib/translations";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function OrdenesActivasPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor']);
+
   const searchParams = await props.searchParams;
 
   const q = typeof searchParams.q === 'string' ? searchParams.q : '';

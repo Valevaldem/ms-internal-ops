@@ -2,10 +2,14 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { translateStage } from "@/lib/translations";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function HistorialOrdenesPage(props: { searchParams: Promise<{ tab?: string }> }) {
+  const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor']);
+
   const searchParams = await props.searchParams;
   const tab = searchParams.tab || 'active';
 

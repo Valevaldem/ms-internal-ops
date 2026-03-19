@@ -6,7 +6,7 @@ import StatusSelect from "./status-select";
 import DiscountEdit from "./discount-edit";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +33,10 @@ async function reactivateQuotation(formData: FormData) {
 }
 
 export default async function DetailCotizacionPage({ params }: { params: Promise<{ id: string }> }) {
-  const p = await params;
   const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor']);
+
+  const p = await params;
 
   const quotation = await prisma.quotation.findUnique({
     where: { id: p.id },

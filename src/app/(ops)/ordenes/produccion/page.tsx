@@ -3,10 +3,14 @@ import Link from "next/link";
 import { Clock, CheckCircle } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { translateStage } from "@/lib/translations";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProduccionPage() {
+  const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor']);
+
   const orders = await prisma.order.findMany({
     where: { stage: { notIn: ["Entregado", "Post-Sale Follow-Up Pending (5 days)", "Post-Sale Follow-Up Pending (1 month)", "Cycle Closed"] } },
     include: { quotation: { include: { salesAssociate: true } } },

@@ -7,10 +7,14 @@ import CertificateEditForm from "./CertificateEditForm";
 import PaymentStatusForm from "./PaymentStatusForm";
 import PosTicketForm from "./PosTicketForm";
 import { updatePaymentStatus, updatePosTicket } from "./actions";
+import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function DetailOrdenPage({ params }: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentUser();
+  verifyAccess(user, ['manager', 'advisor']);
+
   const p = await params;
   const order = await prisma.order.findUnique({
     where: { id: p.id },
