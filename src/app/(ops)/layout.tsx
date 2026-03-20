@@ -56,6 +56,15 @@ export default async function OpsLayout({
               <SidebarLink href="/ordenes/historial" icon={<ShoppingBag size={18} />} label="Historial de Órdenes" />
             )}
 
+            {user.role === 'manager' && (
+              <>
+                <div className="pt-4 pb-2">
+                  <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Inventario</p>
+                </div>
+                <SidebarLink href="/inventario/lotes" icon={<Settings size={18} />} label="Lotes de Piedras" />
+              </>
+            )}
+
             <div className="pt-4 pb-2">
               <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Sistema</p>
             </div>
