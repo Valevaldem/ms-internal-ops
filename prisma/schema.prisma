@@ -40,6 +40,7 @@ model StoneLot {
   cut          String
   color        String
   pricePerCt   Float   @map("price_per_ct")
+  pricingMode  String  @default("CT") @map("pricing_mode") // CT or PZ
   activeStatus Boolean @default(true) @map("active_status")
 
   @@map("stone_lots")
@@ -106,9 +107,11 @@ model QuotationStone {
 
   lotCode       String @map("lot_code")
   stoneName     String @map("stone_name")
+  quantity      Int    @default(1)
   weightCt      Float  @map("weight_ct")
-  pricePerCt    Float  @map("price_per_ct")
-  stoneSubtotal Float  @map("stone_subtotal") // weightCt * pricePerCt
+  pricePerCt    Float  @map("price_per_ct") // Acts as flat price if pricingMode is PZ
+  pricingMode   String @default("CT") @map("pricing_mode")
+  stoneSubtotal Float  @map("stone_subtotal") // weightCt * pricePerCt OR quantity * pricePerCt
 
   @@map("quotation_stones")
 }
@@ -129,7 +132,7 @@ model Order {
   certificateStatus             String              @default("Not Started") @map("certificate_status") // Not Started, Incomplete, Ready, Generated, Delivered
   certificateMembers            CertificateMember[]
   certificateVinylReady         Boolean             @default(false) @map("certificate_vinyl_ready") // Mapped to: Título preparado
-  certificatePhotoReady         Boolean             @default(false) @map("certificate_photo_ready")   // Mapped to: Foto tomada
+  certificatePhotoReady         Boolean             @default(false) @map("certificate_photo_ready") // Mapped to: Foto tomada
   certificatePrintedReady       Boolean             @default(false) @map("certificate_printed_ready") // Mapped to: Certificado impreso
   certificateDeliveredToAdvisor Boolean             @default(false) @map("certificate_delivered_to_advisor") // Mapped to: Entregado a asesora
   certificateNeedsReview        Boolean             @default(false) @map("certificate_needs_review")
