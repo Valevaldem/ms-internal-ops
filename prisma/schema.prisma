@@ -49,10 +49,25 @@ model Model {
   basePrice    Float   @map("base_price")
   activeStatus Boolean @default(true) @map("active_status")
 
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
   @@map("models")
 }
 
-// 3. Stone Lot Catalog
+// 3. Piece Types Catalog
+model PieceType {
+  id           String  @id @default(cuid()) @map("piece_type_id")
+  name         String  @unique @map("piece_type_name")
+  activeStatus Boolean @default(true) @map("active_status")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("piece_types")
+}
+
+// 4. Stone Lot Catalog
 model StoneLot {
   code         String  @id @map("lot_code")
   stoneName    String  @map("stone_name")

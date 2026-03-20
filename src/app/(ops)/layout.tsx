@@ -66,6 +66,7 @@ export default async function OpsLayout({
                 <div className="pt-4 pb-2">
                   <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Inventario</p>
                 </div>
+                <SidebarLink href="/inventario/modelos" icon={<Award size={18} />} label="Modelos Base" />
                 <SidebarLink href="/inventario/lotes" icon={<Settings size={18} />} label="Lotes de Piedras" />
               </>
             )}

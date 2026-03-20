@@ -47,7 +47,19 @@ async function main() {
     ],
   })
 
-  // 3. Stone Lots
+  // 3. Piece Types
+  await prisma.pieceType.deleteMany({})
+  await prisma.pieceType.createMany({
+    data: [
+      { id: "pt-ring", name: 'Ring', activeStatus: true },
+      { id: "pt-chain", name: 'Chain', activeStatus: true },
+      { id: "pt-earrings", name: 'Earrings', activeStatus: true },
+      { id: "pt-bracelet", name: 'Bracelet', activeStatus: true },
+      { id: "pt-other", name: 'Other', activeStatus: true },
+    ]
+  })
+
+  // 4. Stone Lots
   // Clear existing lots first to avoid unique constraint issues if we re-seed
   await prisma.stoneLot.deleteMany({});
   await prisma.stoneLot.createMany({
