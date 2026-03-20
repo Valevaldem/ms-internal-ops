@@ -108,3 +108,13 @@ export async function updatePosTicket(formData: FormData) {
   revalidatePath(`/ordenes/${id}`);
   revalidatePath(`/ordenes/produccion`);
 }
+
+export async function togglePriority(orderId: string, currentPriority: boolean) {
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { isPriority: !currentPriority }
+  });
+
+  revalidatePath(`/ordenes/${orderId}`);
+  revalidatePath(`/ordenes/activas`);
+}

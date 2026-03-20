@@ -41,12 +41,16 @@ export default async function NuevaOrdenPage({ searchParams }: { searchParams: P
           <div className="font-medium text-[#333333] text-right">{quotation.clientNameOrUsername}</div>
 
           <div className="text-[#8E8D8A]">Pieza:</div>
-          <div className="font-medium text-[#333333] text-right">{quotation.modelName}</div>
+          <div className="font-medium text-[#333333] text-right">{quotation.type === 'Manual' ? quotation.manualPieceDescription : quotation.modelName}</div>
 
-          <div className="text-[#8E8D8A]">Piedras:</div>
-          <div className="font-medium text-[#333333] text-right">
-            {quotation.stones.map(s => `${s.lotCode} (${s.weightCt}ct)`).join(', ') || 'Ninguna'}
-          </div>
+          {quotation.type !== 'Manual' && (
+            <>
+              <div className="text-[#8E8D8A]">Piedras:</div>
+              <div className="font-medium text-[#333333] text-right">
+                {quotation.stones.map(s => `${s.lotCode} (${s.weightCt}ct)`).join(', ') || 'Ninguna'}
+              </div>
+            </>
+          )}
 
           <div className="col-span-2 border-t border-[#D8D3CC] my-2"></div>
 
@@ -55,7 +59,7 @@ export default async function NuevaOrdenPage({ searchParams }: { searchParams: P
         </div>
       </div>
 
-      <OrderForm quotationId={qid} quotationStones={quotation.stones} />
+      <OrderForm quotationId={qid} quotationStones={quotation.stones} isManual={quotation.type === 'Manual'} />
     </div>
   );
 }

@@ -92,18 +92,23 @@ model Quotation {
   salesAssociateId String         @map("sales_associate_id")
   salesAssociate   SalesAssociate @relation(fields: [salesAssociateId], references: [id])
 
+  type           String  @default("Standard") @map("type") // Standard, Manual
+
   // Piece Information
-  pieceType      String  @map("piece_type") // Ring, Chain, Earrings, Bracelet, Other
-  modelName      String  @map("model_name")
-  modelBasePrice Float   @map("model_base_price")
-  notes          String?
+  pieceType              String  @map("piece_type") // Ring, Chain, Earrings, Bracelet, Other
+  modelName              String?  @map("model_name") // Optional for Manual
+  modelBasePrice         Float?   @map("model_base_price") // Optional for Manual
+  manualPieceDescription String? @map("manual_piece_description") // Used for Manual
+  notes                  String?
+
+  productionTiming       String? @map("production_timing") // Express, Regular, Special (used in Manual)
 
   // Stones
   stones QuotationStone[]
 
   // Pricing & Internal Rules
-  totalStonesPrice          Float @map("total_stones_price")
-  subtotalBeforeAdjustments Float @map("subtotal_before_adjustments") // totalStonesPrice + modelBasePrice
+  totalStonesPrice          Float? @map("total_stones_price")
+  subtotalBeforeAdjustments Float? @map("subtotal_before_adjustments") // totalStonesPrice + modelBasePrice
 
   msInternalAdjustment    Float   @default(0) @map("ms_internal_adjustment") // +5000 if associate applies
   marginProtectionEnabled Boolean @default(false) @map("margin_protection_enabled")
@@ -182,6 +187,9 @@ model Order {
   productionDaysElapsed  Int       @default(0) @map("production_days_elapsed")
 
   paymentStatus String @default("Parcial") @map("payment_status") // Parcial, Liquidado
+
+  productionTiming String? @map("production_timing") // Express, Regular, Special
+  isPriority       Boolean @default(false) @map("is_priority")
 
   stageHistory OrderStageHistory[]
 

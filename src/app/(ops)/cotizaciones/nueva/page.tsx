@@ -21,7 +21,7 @@ export default async function NuevaCotizacionPage({ searchParams }: { searchPara
     if (parent) {
       // Find model id based on modelName and pieceType
       const model = await prisma.model.findFirst({
-        where: { name: parent.modelName, pieceType: parent.pieceType }
+        where: { name: parent.modelName || "", pieceType: parent.pieceType }
       });
 
       initialData = {

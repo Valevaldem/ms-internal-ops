@@ -190,46 +190,55 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
             <div>
               <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Desglose Financiero</h3>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-[#8E8D8A]">Precio Base Modelo:</span>
-                  <span className="text-[#333333]">${quotation.modelBasePrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#8E8D8A]">Total Piedras:</span>
-                  <span className="text-[#333333]">${quotation.totalStonesPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="border-t border-dashed border-[#D8D3CC] pt-2 flex justify-between">
-                  <span className="text-[#8E8D8A]">Subtotal:</span>
-                  <span className="text-[#333333]">${quotation.subtotalBeforeAdjustments.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                </div>
-
-                {quotation.msInternalAdjustment > 0 && (
+                {quotation.type === 'Manual' ? (
                   <div className="flex justify-between">
-                    <span className="text-[#8E8D8A]">Ajuste MS (+):</span>
-                    <span className="text-[#333333]">${quotation.msInternalAdjustment.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-[#8E8D8A]">Cotización Manual:</span>
+                    <span className="text-[#333333]">Sin desglose automático</span>
                   </div>
-                )}
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-[#8E8D8A]">Precio Base Modelo:</span>
+                      <span className="text-[#333333]">${(quotation.modelBasePrice || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#8E8D8A]">Total Piedras:</span>
+                      <span className="text-[#333333]">${(quotation.totalStonesPrice || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="border-t border-dashed border-[#D8D3CC] pt-2 flex justify-between">
+                      <span className="text-[#8E8D8A]">Subtotal:</span>
+                      <span className="text-[#333333]">${(quotation.subtotalBeforeAdjustments || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                    </div>
 
-                {quotation.marginProtectionAmount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#8E8D8A]">Protección Margen (+):</span>
-                    <span className="text-[#333333]">${quotation.marginProtectionAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                )}
+                    {quotation.msInternalAdjustment > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[#8E8D8A]">Ajuste MS (+):</span>
+                        <span className="text-[#333333]">${quotation.msInternalAdjustment.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
 
-                <DiscountEdit
-                  id={quotation.id}
-                  initialDiscount={quotation.discountPercent || 0}
-                  isConverted={quotation.status === 'Converted'}
-                />
+                    {quotation.marginProtectionAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[#8E8D8A]">Protección Margen (+):</span>
+                        <span className="text-[#333333]">${quotation.marginProtectionAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+
+                    <DiscountEdit
+                      id={quotation.id}
+                      initialDiscount={quotation.discountPercent || 0}
+                      isConverted={quotation.status === 'Converted'}
+                    />
+                  </>
+                )}
 
                 <div className="border-t border-[#D8D3CC] pt-3 mt-3 flex justify-between items-center">
                   <span className="font-semibold text-[#333333]">Precio Final Cliente:</span>
                   <div className="flex flex-col items-end">
-                    {quotation.discountPercent !== null && quotation.discountPercent > 0 ? (
+                    {quotation.type !== 'Manual' && quotation.discountPercent !== null && quotation.discountPercent > 0 ? (
                       <span className="text-sm line-through text-[#8E8D8A] mb-1">
                         ${(() => {
-                          const rawClientPrice = quotation.subtotalBeforeAdjustments + quotation.msInternalAdjustment + quotation.marginProtectionAmount;
+                          const rawClientPrice = (quotation.subtotalBeforeAdjustments || 0) + quotation.msInternalAdjustment + quotation.marginProtectionAmount;
                           const getRoundedCommercialPrice = (price: number) => {
                             if (price <= 0) return 0;
                             const baseThousand = Math.floor(price / 1000) * 1000;

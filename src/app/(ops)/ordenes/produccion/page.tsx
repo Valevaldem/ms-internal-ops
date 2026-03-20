@@ -65,6 +65,7 @@ export default async function ProduccionPage() {
     if (nextStage === stage) return; // No change
 
     const isMovingToProduction = nextStage === "Producción";
+    const totalDays = order.productionTiming === 'Express' ? 5 : order.productionTiming === 'Special' ? 50 : 20;
 
     await prisma.order.update({
       where: { id },
@@ -72,7 +73,7 @@ export default async function ProduccionPage() {
         stage: nextStage,
         ...(isMovingToProduction ? {
           productionStartDate: new Date(),
-          estimatedProductionEnd: new Date(new Date().getTime() + 20 * 24 * 60 * 60 * 1000)
+          estimatedProductionEnd: new Date(new Date().getTime() + totalDays * 24 * 60 * 60 * 1000)
         } : {}),
         stageHistory: {
           create: { stage: nextStage }
@@ -149,7 +150,7 @@ export default async function ProduccionPage() {
               const start = o.productionStartDate ? new Date(o.productionStartDate).getTime() : new Date().getTime();
               const now = new Date().getTime();
               const daysElapsed = Math.max(0, Math.floor((now - start) / (1000 * 60 * 60 * 24)));
-              const totalDays = 20; // Simplified 20 business days
+              const totalDays = o.productionTiming === 'Express' ? 5 : o.productionTiming === 'Special' ? 50 : 20; // Simplified business days
 
               const isOverdue = daysElapsed > totalDays && o.stage === "Producción";
               const showProductionTimer = ["Producción", "Certificación", "Revisión final de asesora", "Guía realizada", "Preparando envío", "Listo para entrega", "En tránsito", "Entregado"].includes(o.stage);
@@ -158,10 +159,11 @@ export default async function ProduccionPage() {
               const productionTimerActive = showProductionTimer && o.productionStartDate;
 
               return (
-                <tr key={o.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
+                <tr key={o.id} className={`hover:bg-[#F5F2EE]/50 transition-colors ${o.isPriority ? 'bg-red-50/50' : ''}`}>
                   <td className="px-6 py-4">
-                    <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors">
+                    <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors flex items-center gap-2">
                       {o.quotation.folio || o.quotation.id.split('-')[0] + '..'}
+                      {o.isPriority && <span title="Prioritaria" className="w-2 h-2 rounded-full bg-red-500 inline-block"></span>}
                     </Link>
                     <div className="text-[10px] text-[#8E8D8A] uppercase tracking-wider mt-1">ID: {o.id.split('-')[0]}..</div>
                   </td>
@@ -170,7 +172,7 @@ export default async function ProduccionPage() {
                     <div className="text-xs text-[#8E8D8A]">{o.quotation.salesAssociate.name}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-[#333333]">{o.quotation.modelName}</div>
+                    <div className="text-[#333333]">{o.quotation.type === 'Manual' ? o.quotation.pieceType : o.quotation.modelName}</div>
                     <div className="text-xs text-[#8E8D8A] truncate max-w-[120px]">
                       {o.deliveryMethod === 'Store Pickup' ? 'Recoger Tienda' : 'Envío'}
                     </div>

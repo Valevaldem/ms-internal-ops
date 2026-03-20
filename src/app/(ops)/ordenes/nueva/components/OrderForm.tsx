@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { convertToOrderAction } from "../actions";
 
-export default function OrderForm({ quotationId, quotationStones }: { quotationId: string, quotationStones: any[] }) {
+export default function OrderForm({ quotationId, quotationStones, isManual = false }: { quotationId: string, quotationStones: any[], isManual?: boolean }) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,12 +27,14 @@ export default function OrderForm({ quotationId, quotationStones }: { quotationI
         return;
       }
 
-      for (let i = 0; i < quotationStones.length; i++) {
-        const memberName = formData.get(`member_${i}`);
-        if (!memberName || (memberName as string).trim() === "") {
-          setError(`Falta el nombre del miembro para la piedra ${quotationStones[i].lotCode}`);
-          setIsPending(false);
-          return;
+      if (!isManual) {
+        for (let i = 0; i < quotationStones.length; i++) {
+          const memberName = formData.get(`member_${i}`);
+          if (!memberName || (memberName as string).trim() === "") {
+            setError(`Falta el nombre del miembro para la piedra ${quotationStones[i].lotCode}`);
+            setIsPending(false);
+            return;
+          }
         }
       }
     }
@@ -106,7 +108,7 @@ export default function OrderForm({ quotationId, quotationStones }: { quotationI
             <textarea name="certificateNotes" rows={2} placeholder="Mensajes personalizados, instrucciones especiales..." className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]"></textarea>
           </div>
 
-          {quotationStones.length > 0 && (
+          {!isManual && quotationStones.length > 0 && (
             <div>
               <label className="block text-sm text-[#333333] mb-2 font-medium">Asignación de Piedras</label>
               <div className="space-y-3">
