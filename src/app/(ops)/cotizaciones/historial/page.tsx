@@ -3,6 +3,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser, verifyAccess } from "@/lib/auth";
 import StatusSelect from "../[id]/status-select";
+import SalesChannelFilter from "@/components/SalesChannelFilter";
 
 export const dynamic = "force-dynamic";
 
@@ -154,20 +155,7 @@ export default async function HistorialCotizaciones(props: {
               className="w-full md:w-64 border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]"
             />
             {user.role === 'manager' && (
-              <select
-                name="salesChannel"
-                defaultValue={salesChannel || ''}
-                onChange={(e) => e.target.form?.submit()}
-                className="w-40 border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white"
-              >
-                <option value="">Canal de Venta</option>
-                <option value="Store">Tienda</option>
-                <option value="WhatsApp">WhatsApp</option>
-                <option value="Instagram">Instagram</option>
-                <option value="Facebook">Facebook</option>
-                <option value="TikTok">TikTok</option>
-                <option value="Form">Formulario</option>
-              </select>
+              <SalesChannelFilter defaultValue={salesChannel || ''} />
             )}
             {(search || salesChannel) && (
               <Link href={`/cotizaciones/historial${tab === 'archived' ? '?tab=archived' : ''}`} className="text-[#8E8D8A] hover:text-[#333333] flex items-center px-2 text-sm transition-colors">
