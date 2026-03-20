@@ -1,0 +1,107 @@
+<<<<<<< SEARCH
+import { useState } from "react"
+import { Search, Plus, Edit, CheckCircle, XCircle } from "lucide-react"
+import { createStoneLot, updateStoneLot } from "./actions"
+
+type StoneLot = {
+=======
+import { useState } from "react"
+import { Search, Plus, Edit, CheckCircle, XCircle, Download, UploadCloud } from "lucide-react"
+import { createStoneLot, updateStoneLot } from "./actions"
+import ImportModal from "./ImportModal"
+import Papa from "papaparse"
+
+type StoneLot = {
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+  const [errors, setErrors] = useState<Record<string, string[]>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const filteredLots = lots.filter(lot =>
+=======
+  const [errors, setErrors] = useState<Record<string, string[]>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+
+  const filteredLots = lots.filter(lot =>
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+          <button
+            onClick={handleOpenCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-[#333333] text-white text-sm font-medium rounded-md hover:bg-[#4A4A4A] transition-colors"
+          >
+            <Plus size={16} />
+            Nuevo Lote
+          </button>
+        </div>
+=======
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#D8D3CC] text-[#555555] text-sm font-medium rounded-md hover:bg-[#F5F2EE] transition-colors"
+            >
+              <UploadCloud size={16} />
+              Importar
+            </button>
+            <button
+              onClick={() => {
+                const csvData = lots.map(lot => ({
+                  "Código": lot.code,
+                  "Piedra": lot.stoneName,
+                  "Corte": lot.cut,
+                  "Color": lot.color,
+                  "Modo": lot.pricingMode,
+                  "Precio": lot.pricePerCt,
+                  "Activo": lot.activeStatus ? "Si" : "No"
+                }))
+                const csv = Papa.unparse(csvData)
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = url
+                link.setAttribute('download', `inventario_lotes_${new Date().toISOString().split('T')[0]}.csv`)
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#D8D3CC] text-[#555555] text-sm font-medium rounded-md hover:bg-[#F5F2EE] transition-colors"
+            >
+              <Download size={16} />
+              Exportar
+            </button>
+            <button
+              onClick={handleOpenCreate}
+              className="flex items-center gap-2 px-4 py-2 bg-[#333333] text-white text-sm font-medium rounded-md hover:bg-[#4A4A4A] transition-colors ml-2"
+            >
+              <Plus size={16} />
+              Nuevo Lote
+            </button>
+          </div>
+        </div>
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+=======
+          </div>
+        </div>
+      )}
+
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        existingLots={lots}
+        onSuccess={() => {
+          // Revalidation happens on server, data will refresh automatically
+        }}
+      />
+    </div>
+  )
+}
+>>>>>>> REPLACE
