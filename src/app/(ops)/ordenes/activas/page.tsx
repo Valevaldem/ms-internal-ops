@@ -17,6 +17,7 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
   const filterDelivery = typeof searchParams.delivery === 'string' ? searchParams.delivery : '';
   const filterPayment = typeof searchParams.payment === 'string' ? searchParams.payment : '';
   const filterBlocked = typeof searchParams.blocked === 'string' ? searchParams.blocked : '';
+  const filterPriority = typeof searchParams.priority === 'string' ? searchParams.priority : '';
 
   const whereClause: any = {
     stage: {
@@ -27,6 +28,7 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
   if (filterStage) whereClause.stage = filterStage;
   if (filterDelivery) whereClause.deliveryMethod = filterDelivery;
   if (filterPayment) whereClause.paymentStatus = filterPayment;
+  if (filterPriority === 'true') whereClause.isPriority = true;
   if (q) {
     whereClause.quotation = {
       OR: [
@@ -166,6 +168,13 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
             <option value="unblocked">En proceso</option>
           </select>
         </div>
+        <div className="w-32">
+          <label htmlFor="priority" className="block text-xs font-medium text-[#8E8D8A] mb-1">Prioridad</label>
+          <select id="priority" name="priority" defaultValue={filterPriority} className="w-full text-sm border border-[#D8D3CC] rounded px-3 py-2 bg-[#F5F2EE] focus:outline-none focus:border-[#C5B358]">
+            <option value="">Todas</option>
+            <option value="true">Prioritarias</option>
+          </select>
+        </div>
         <div>
           <button type="submit" className="bg-[#333333] text-white px-4 py-2 rounded text-sm hover:bg-[#1A1A1A] transition-colors h-[38px]">
             Filtrar
@@ -195,10 +204,11 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
           </thead>
           <tbody className="divide-y divide-[#F5F2EE]">
             {processedOrders.map(o => (
-              <tr key={o.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
+              <tr key={o.id} className={`hover:bg-[#F5F2EE]/50 transition-colors ${o.isPriority ? 'bg-red-50/50' : ''}`}>
                 <td className="px-6 py-4">
-                  <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors">
+                  <Link href={`/ordenes/${o.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors flex items-center gap-2">
                     {o.quotation.folio || o.quotation.id.split('-')[0] + '..'}
+                    {o.isPriority && <span title="Prioritaria" className="w-2 h-2 rounded-full bg-red-500 inline-block"></span>}
                   </Link>
                 </td>
                 <td className="px-6 py-4">

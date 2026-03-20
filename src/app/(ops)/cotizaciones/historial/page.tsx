@@ -76,6 +76,7 @@ export default async function HistorialCotizaciones(props: {
       { folio: { contains: search } },
       { clientNameOrUsername: { contains: search } },
       { modelName: { contains: search } },
+      { manualPieceDescription: { contains: search } },
       { salesAssociate: { name: { contains: search } } }
     ]
   } : {};
@@ -146,9 +147,14 @@ export default async function HistorialCotizaciones(props: {
               className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]"
             />
           </form>
-          <Link href="/cotizaciones/nueva" className="bg-[#C5B358] text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-[#b0a04f] transition-colors shadow-sm whitespace-nowrap">
-            + Nueva Cotización
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/cotizaciones/manual" className="bg-white text-[#C5B358] border border-[#C5B358] px-4 py-2 rounded-md text-sm font-semibold hover:bg-[#F5F2EE] transition-colors shadow-sm whitespace-nowrap">
+              + Manual
+            </Link>
+            <Link href="/cotizaciones/nueva" className="bg-[#C5B358] text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-[#b0a04f] transition-colors shadow-sm whitespace-nowrap">
+              + Cotización
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -181,12 +187,19 @@ export default async function HistorialCotizaciones(props: {
               return (
                 <tr key={q.id} className="hover:bg-[#F5F2EE]/50 transition-colors">
                   <td className="px-6 py-4">
-                    <Link href={`/cotizaciones/${q.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors">{q.folio || q.id.split('-')[0] + '..'}</Link>
+                    <Link href={`/cotizaciones/${q.id}`} className="font-semibold text-[#333333] hover:text-[#C5B358] transition-colors flex items-center gap-2">
+                      {q.folio || q.id.split('-')[0] + '..'}
+                      {q.type === 'Manual' && (
+                        <span className="text-[10px] bg-[#F5F2EE] text-[#8E8D8A] px-1.5 py-0.5 rounded uppercase tracking-wider font-medium border border-[#D8D3CC]">Manual</span>
+                      )}
+                    </Link>
                     <div className="text-xs text-[#8E8D8A] truncate max-w-[150px]">{q.clientNameOrUsername}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-[#333333]">{q.modelName}</div>
-                    <div className="text-xs text-[#8E8D8A]">{q.salesAssociate.name} ({q.salesChannel})</div>
+                    <div className="text-[#333333]">{q.type === 'Manual' ? q.pieceType : q.modelName}</div>
+                    <div className="text-xs text-[#8E8D8A] truncate max-w-[200px]" title={q.type === 'Manual' ? q.manualPieceDescription || '' : ''}>
+                      {q.type === 'Manual' ? (q.manualPieceDescription || 'Sin descripción') : `${q.salesAssociate.name} (${q.salesChannel})`}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className={`font-medium ${isExpired ? 'text-red-500' : daysRemaining <= 3 ? 'text-amber-500' : 'text-[#333333]'}`}>

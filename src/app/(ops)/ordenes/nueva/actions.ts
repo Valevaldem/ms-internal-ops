@@ -19,18 +19,32 @@ export async function convertToOrderAction(formData: FormData) {
     return { error: "Faltan datos obligatorios." };
   }
 
+  const quotation = await prisma.quotation.findUnique({ where: { id: qid } });
+  const isManual = quotation?.type === "Manual";
+
+  if (!isCertificatePending && (!certificateTitle || certificateTitle.trim() === "")) {
+      return { error: "Falta el título del certificado." };
+  }
+
+  if (!isManual && !isCertificatePending) {
+    let indexCheck = 0;
+    while (formData.has(`stoneId_${indexCheck}`)) {
+      const memberName = formData.get(`member_${indexCheck}`) as string;
+      const lotCode = formData.get(`stoneLot_${indexCheck}`) as string;
+      if (!memberName || memberName.trim() === "") {
+        return { error: `Falta el nombre del miembro para la piedra ${lotCode}` };
+      }
+      indexCheck++;
+    }
+  }
+
   // extract certificate members
   const members = [];
   let index = 0;
   while (formData.has(`stoneId_${index}`)) {
-    const stoneId = formData.get(`stoneId_${index}`) as string;
     const lotCode = formData.get(`stoneLot_${index}`) as string;
     const memberName = formData.get(`member_${index}`) as string;
     const helperDescription = formData.get(`helper_${index}`) as string;
-
-    if (!isCertificatePending && (!memberName || memberName.trim() === "")) {
-       return { error: `Falta el nombre del miembro para la piedra ${lotCode}` };
-    }
 
     if (memberName?.trim()) {
         members.push({
@@ -41,10 +55,6 @@ export async function convertToOrderAction(formData: FormData) {
     }
 
     index++;
-  }
-
-  if (!isCertificatePending && (!certificateTitle || certificateTitle.trim() === "")) {
-      return { error: "Falta el título del certificado." };
   }
 
   try {

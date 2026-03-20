@@ -28,7 +28,7 @@ export async function updateQuotationDiscount(id: string, newDiscountPercent: nu
     throw new Error("Unauthorized");
   }
 
-  const rawClientPrice = quotation.subtotalBeforeAdjustments + quotation.msInternalAdjustment + quotation.marginProtectionAmount;
+  const rawClientPrice = (quotation.subtotalBeforeAdjustments || 0) + quotation.msInternalAdjustment + quotation.marginProtectionAmount;
 
   const getRoundedCommercialPrice = (price: number) => {
     if (price <= 0) return 0;

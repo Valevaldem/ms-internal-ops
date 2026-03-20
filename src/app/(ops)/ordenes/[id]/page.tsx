@@ -6,7 +6,8 @@ import { translateStage, translatePieceType } from "@/lib/translations";
 import CertificateEditForm from "./CertificateEditForm";
 import PaymentStatusForm from "./PaymentStatusForm";
 import PosTicketForm from "./PosTicketForm";
-import { updatePaymentStatus, updatePosTicket } from "./actions";
+import PriorityToggle from "./PriorityToggle";
+import { updatePaymentStatus, updatePosTicket, togglePriority } from "./actions";
 import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -47,9 +48,14 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
       <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm overflow-hidden">
         {/* Encabezado */}
         <div className="bg-[#F5F2EE] p-6 border-b border-[#D8D3CC] flex justify-between items-start">
-          <div>
-            <div className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold mb-1">Folio (Orden)</div>
-            <div className="text-xl font-medium text-[#333333]">{quotation.folio || quotation.id}</div>
+          <div className="flex items-center gap-4">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold mb-1">Folio (Orden)</div>
+              <div className="text-xl font-medium text-[#333333] flex items-center gap-2">
+                {quotation.folio || quotation.id}
+                <PriorityToggle orderId={order.id} isPriority={order.isPriority} />
+              </div>
+            </div>
           </div>
           <div className="text-right">
             <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
@@ -85,8 +91,23 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
               <div className="grid grid-cols-2 gap-y-2 text-sm">
                 <div className="text-[#8E8D8A]">Tipo de Pieza:</div>
                 <div className="font-medium text-[#333333]">{translatePieceType(quotation.pieceType)}</div>
-                <div className="text-[#8E8D8A]">Modelo:</div>
-                <div className="font-medium text-[#333333]">{quotation.modelName}</div>
+                {quotation.type === 'Manual' ? (
+                  <>
+                    <div className="text-[#8E8D8A]">Descripción Manual:</div>
+                    <div className="font-medium text-[#333333]">{quotation.manualPieceDescription || "N/A"}</div>
+                    {order.productionTiming && (
+                      <>
+                        <div className="text-[#8E8D8A]">Tiempo Producción:</div>
+                        <div className="font-medium text-[#333333]">{order.productionTiming}</div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[#8E8D8A]">Modelo:</div>
+                    <div className="font-medium text-[#333333]">{quotation.modelName}</div>
+                  </>
+                )}
                 <div className="text-[#8E8D8A]">Entrega:</div>
                 <div className="font-medium text-[#333333]">{order.deliveryMethod === 'Store Pickup' ? 'Recolección en Tienda' : 'Envío por Paquetería'}</div>
               </div>
@@ -118,23 +139,25 @@ export default async function DetailOrdenPage({ params }: { params: Promise<{ id
 
           {/* Columna Derecha: Piedras y Total */}
           <div className="space-y-6">
-            <div>
-              <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Piedras Seleccionadas</h3>
-              {quotation.stones.length > 0 ? (
-                <div className="space-y-3">
-                  {quotation.stones.map((s, idx) => (
-                    <div key={idx} className="bg-[#F5F2EE]/50 p-3 rounded border border-[#D8D3CC] text-sm flex justify-between">
-                      <div>
-                        <div className="font-medium text-[#333333]">{s.lotCode} - {s.stoneName}</div>
-                        <div className="text-xs text-[#8E8D8A] mt-0.5">{s.weightCt}ct</div>
+            {quotation.type !== 'Manual' && (
+              <div>
+                <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Piedras Seleccionadas</h3>
+                {quotation.stones.length > 0 ? (
+                  <div className="space-y-3">
+                    {quotation.stones.map((s, idx) => (
+                      <div key={idx} className="bg-[#F5F2EE]/50 p-3 rounded border border-[#D8D3CC] text-sm flex justify-between">
+                        <div>
+                          <div className="font-medium text-[#333333]">{s.lotCode} - {s.stoneName}</div>
+                          <div className="text-xs text-[#8E8D8A] mt-0.5">{s.weightCt}ct</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-[#8E8D8A] italic">No se incluyeron piedras adicionales.</div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-[#8E8D8A] italic">No se incluyeron piedras adicionales.</div>
+                )}
+              </div>
+            )}
 
             <div>
               <h3 className="text-sm uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-3">Total Financiero</h3>
