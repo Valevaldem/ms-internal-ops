@@ -161,8 +161,8 @@ export default async function CertificatePreviewPage({
                             {stone.weightCt.toFixed(2)} ct
                           </span>
                           <span className="text-[#D8D3CC]">|</span>
-                          <span className="w-24 font-medium">
-                            {stone.stoneName}
+                          <span className="w-32 font-medium">
+                            {stone.lotCode} - {stone.stoneName}
                           </span>
                           <span className="text-[#D8D3CC]">|</span>
                           {member?.helperDescription ? (

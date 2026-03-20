@@ -6,16 +6,21 @@ import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default async function HistorialOrdenesPage(props: { searchParams: Promise<{ tab?: string }> }) {
+export default async function HistorialOrdenesPage(props: { searchParams: Promise<{ tab?: string, salesChannel?: string }> }) {
   const user = await getCurrentUser();
   verifyAccess(user, ['manager', 'advisor']);
 
   const searchParams = await props.searchParams;
   const tab = searchParams.tab || 'active';
+  const filterSalesChannel = searchParams.salesChannel || '';
 
   const whereClause: any = tab === 'archived'
     ? { stage: 'Cycle Closed' }
     : { stage: { in: ["Entregado", "Post-Sale Follow-Up Pending (5 days)", "Post-Sale Follow-Up Pending (1 month)"] } };
+
+  if (filterSalesChannel) {
+    whereClause.quotation = { salesChannel: filterSalesChannel };
+  }
 
   const orders = await prisma.order.findMany({
     where: whereClause,
@@ -40,6 +45,31 @@ export default async function HistorialOrdenesPage(props: { searchParams: Promis
           <h2 className="text-2xl font-serif text-[#333333]">Historial de Órdenes Completadas</h2>
           <p className="text-sm text-[#8E8D8A] mt-1">Registro de órdenes entregadas y seguimientos post-venta</p>
         </div>
+
+        {user.role === 'manager' && (
+          <form className="flex w-full md:w-auto gap-2">
+            {tab === 'archived' && <input type="hidden" name="tab" value="archived" />}
+            <select
+              name="salesChannel"
+              defaultValue={filterSalesChannel}
+              onChange={(e) => e.target.form?.submit()}
+              className="w-40 border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white"
+            >
+              <option value="">Canal de Venta</option>
+              <option value="Store">Tienda</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Facebook">Facebook</option>
+              <option value="TikTok">TikTok</option>
+              <option value="Form">Formulario</option>
+            </select>
+            {filterSalesChannel && (
+              <Link href={`/ordenes/historial${tab === 'archived' ? '?tab=archived' : ''}`} className="text-[#8E8D8A] hover:text-[#333333] flex items-center px-2 text-sm transition-colors">
+                Limpiar
+              </Link>
+            )}
+          </form>
+        )}
       </div>
 
       <div className="flex gap-4 border-b border-[#D8D3CC] mb-4">
@@ -50,6 +80,18 @@ export default async function HistorialOrdenesPage(props: { searchParams: Promis
           Cerradas (Archivo)
         </Link>
       </div>
+
+      {tab !== 'archived' && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg text-sm mb-6 flex gap-3 items-start">
+          <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <span className="font-semibold block mb-1">Para cerrar el ciclo de una orden:</span>
+            Asegúrese de que el cliente haya enviado un mensaje o foto confirmando la correcta recepción de la pieza, o que haya respondido a la encuesta de servicio.
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm">
         <table className="w-full text-left text-sm">
