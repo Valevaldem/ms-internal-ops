@@ -76,3 +76,14 @@ To fix it:
 Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 ✓ Compiled in 618ms
 ✓ Compiled in 92ms
+✓ Compiled in 1207ms
+ GET /login 200 in 3.5s (compile: 1299ms, proxy.ts: 305ms, render: 1930ms)
+ GET / 200 in 927ms (compile: 444ms, proxy.ts: 17ms, render: 465ms)
+ POST /login 303 in 1294ms (compile: 5ms, proxy.ts: 8ms, render: 1280ms)
+ GET /asesoras 200 in 2.8s (compile: 2.5s, proxy.ts: 7ms, render: 263ms)
+ GET /asesoras/nueva 200 in 1371ms (compile: 1297ms, proxy.ts: 9ms, render: 65ms)
+ GET /asesoras 200 in 304ms (compile: 4ms, proxy.ts: 7ms, render: 292ms)
+ POST /asesoras/nueva 303 in 381ms (compile: 5ms, proxy.ts: 8ms, render: 368ms)
+ GET /asesoras/cmmyidp860000s7kxv1qb2hkc 200 in 2.1s (compile: 2.0s, proxy.ts: 14ms, render: 80ms)
+ GET /asesoras 200 in 274ms (compile: 6ms, proxy.ts: 41ms, render: 227ms)
+ POST /asesoras/cmmyidp860000s7kxv1qb2hkc 303 in 379ms (compile: 51ms, proxy.ts: 11ms, render: 317ms)

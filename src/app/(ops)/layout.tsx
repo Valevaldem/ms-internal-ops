@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award, User, LogOut, Users } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award, User, LogOut, Users, UserPlus } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 
 export default async function OpsLayout({
@@ -62,6 +62,7 @@ export default async function OpsLayout({
                   <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Administración</p>
                 </div>
                 <SidebarLink href="/usuarios" icon={<Users size={18} />} label="Usuarios" />
+                <SidebarLink href="/asesoras" icon={<UserPlus size={18} />} label="Asesoras" />
                 <div className="pt-4 pb-2">
                   <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Inventario</p>
                 </div>
