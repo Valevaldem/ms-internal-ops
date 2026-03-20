@@ -96,6 +96,7 @@ export async function createQuotation(formData: any) {
           stoneName: s.stoneName,
           weightCt: Number(s.weightCt),
           pricePerCt: Number(s.pricePerCt),
+          pricingMode: s.pricingMode || "CT",
           stoneSubtotal: Number(s.stoneSubtotal)
         }))
       }
