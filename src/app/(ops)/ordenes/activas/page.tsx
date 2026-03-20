@@ -18,6 +18,7 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
   const filterPayment = typeof searchParams.payment === 'string' ? searchParams.payment : '';
   const filterBlocked = typeof searchParams.blocked === 'string' ? searchParams.blocked : '';
   const filterPriority = typeof searchParams.priority === 'string' ? searchParams.priority : '';
+  const filterSalesChannel = typeof searchParams.salesChannel === 'string' ? searchParams.salesChannel : '';
 
   const whereClause: any = {
     stage: {
@@ -180,7 +181,7 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
             Filtrar
           </button>
         </div>
-        {(q || filterStage || filterDelivery || filterPayment || filterBlocked) && (
+        {(q || filterStage || filterDelivery || filterPayment || filterBlocked || filterSalesChannel) && (
           <div>
             <Link href="/ordenes/activas" className="text-sm text-[#8E8D8A] hover:text-[#333333] underline px-2 py-2 inline-block h-[38px] leading-[22px]">
               Limpiar
