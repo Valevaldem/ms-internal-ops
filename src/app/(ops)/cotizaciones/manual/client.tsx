@@ -48,16 +48,8 @@ export default function NuevaCotizacionManualClient({ catalogs, activeUser }: { 
       validUntilDate
     };
 
-    const res = await fetch('/api/cotizaciones/manual', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const responseData = await res.json();
-    router.push(`/cotizaciones/${responseData.id}`);
+    const res = await createManualQuotation(payload);
+    router.push(`/cotizaciones/${res.id}`);
   }
 
   return (
