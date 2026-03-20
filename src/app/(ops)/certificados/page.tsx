@@ -37,7 +37,7 @@ export default async function CertificadosPage({
     "Producción",
     "Certificación",
     "Revisión final de asesora",
-    "Guía realizada",
+    "Creación de Guía",
     "Preparando envío",
     "Listo para entrega"
   ];

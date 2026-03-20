@@ -49,9 +49,9 @@ export default async function ProduccionPage() {
       if (order.paymentStatus !== "Liquidado") {
         throw new Error("No se puede crear la guía porque el pago no ha sido liquidado.");
       }
-      nextStage = "Guía realizada";
+      nextStage = "Creación de Guía";
     }
-    else if (stage === "Guía realizada" && order.deliveryMethod === 'Shipping') {
+    else if (stage === "Creación de Guía" && order.deliveryMethod === 'Shipping') {
       nextStage = "Preparando envío";
     }
     else if (stage === "Preparando envío" && order.deliveryMethod === 'Shipping') {
@@ -81,6 +81,21 @@ export default async function ProduccionPage() {
       }
     });
     revalidatePath("/ordenes/produccion");
+  }
+
+  function getActionButtonLabel(stage: string) {
+    switch (stage) {
+      case "Por confirmar diseño final": return "Confirmado";
+      case "Producción": return "Listo";
+      case "Certificación": return "Certificado listo";
+      case "Revisión final de asesora": return "¡Todo en orden!";
+      case "Creación de Guía": return "Hecha";
+      case "Preparando envío": return "Empaquetado";
+      case "En tránsito": return "Recibido";
+      case "Listo para entrega": return "Entregado";
+      case "Entregado": return "Cerrar ciclo";
+      default: return "Avanzar Etapa";
+    }
   }
 
   async function undoLastAdvance(formData: FormData) {
@@ -153,7 +168,7 @@ export default async function ProduccionPage() {
               const totalDays = o.productionTiming === 'Express' ? 5 : o.productionTiming === 'Special' ? 50 : 20; // Simplified business days
 
               const isOverdue = daysElapsed > totalDays && o.stage === "Producción";
-              const showProductionTimer = ["Producción", "Certificación", "Revisión final de asesora", "Guía realizada", "Preparando envío", "Listo para entrega", "En tránsito", "Entregado"].includes(o.stage);
+              const showProductionTimer = ["Producción", "Certificación", "Revisión final de asesora", "Creación de Guía", "Preparando envío", "Listo para entrega", "En tránsito", "Entregado"].includes(o.stage);
 
               // Only start counter when order enters 'Producción'
               const productionTimerActive = showProductionTimer && o.productionStartDate;
@@ -228,7 +243,7 @@ export default async function ProduccionPage() {
                           <input type="hidden" name="id" value={o.id} />
                           <input type="hidden" name="stage" value={o.stage} />
                           <button type="submit" className="text-xs bg-[#F5F2EE] text-[#333333] hover:bg-[#EAE5DF] px-3 py-1.5 rounded font-medium transition-colors">
-                            Avanzar Etapa
+                            {getActionButtonLabel(o.stage)}
                           </button>
                         </form>
                         {o.stage !== "Por confirmar diseño final" && (

@@ -71,7 +71,7 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
       if (order.paymentStatus !== "Liquidado") return "Falta liquidar";
       return "Revisión final";
     }
-    if (order.stage === "Guía realizada") {
+    if (order.stage === "Creación de Guía") {
       return "Lista para empaque";
     }
     if (order.stage === "Listo para entrega") {
@@ -138,7 +138,7 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
             <option value="Producción">Producción</option>
             <option value="Certificación">Certificación</option>
             <option value="Revisión final de asesora">Revisión final de asesora</option>
-            <option value="Guía realizada">Guía realizada</option>
+            <option value="Creación de Guía">Creación de Guía</option>
             <option value="Preparando envío">Preparando envío</option>
             <option value="Listo para entrega">Listo para entrega</option>
             <option value="En tránsito">En tránsito</option>
