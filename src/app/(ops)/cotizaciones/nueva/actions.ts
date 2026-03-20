@@ -10,7 +10,8 @@ export async function getCatalogs() {
   const associates = await prisma.salesAssociate.findMany({ where: { activeStatus: true } })
   const models = await prisma.model.findMany({ where: { activeStatus: true } })
   const stones = await prisma.stoneLot.findMany({ where: { activeStatus: true } })
-  return { associates, models, stones }
+  const pieceTypes = await prisma.pieceType.findMany({ where: { activeStatus: true }, orderBy: { name: 'asc' } })
+  return { associates, models, stones, pieceTypes }
 }
 
 export async function createQuotation(formData: any) {

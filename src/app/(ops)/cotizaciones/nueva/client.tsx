@@ -14,7 +14,7 @@ const schema = z.object({
   phoneNumber: z.string().optional(),
   salesChannel: z.enum(["Store", "WhatsApp", "Instagram", "Facebook", "TikTok", "Form"]),
   salesAssociateId: z.string().min(1, "Requerido"),
-  pieceType: z.enum(["Ring", "Chain", "Earrings", "Bracelet", "Other"]),
+  pieceType: z.string().min(1, "Requerido"),
   modelId: z.string().min(1, "Requerido"),
   notes: z.string().optional(),
   marginProtectionEnabled: z.boolean().default(false),
@@ -42,7 +42,7 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
       phoneNumber: initialData?.phoneNumber || "",
       salesChannel: initialData?.salesChannel || "Store",
       salesAssociateId: isAdvisor ? activeUser.salesAssociateId : (initialData?.salesAssociateId || ""),
-      pieceType: initialData?.pieceType || "Ring",
+      pieceType: initialData?.pieceType || (catalogs.pieceTypes && catalogs.pieceTypes[0]?.name) || "Ring",
       modelId: initialData?.modelId || "",
       notes: initialData?.notes || "",
       marginProtectionEnabled: initialData?.marginProtectionEnabled || false,
@@ -235,11 +235,13 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
             <div>
               <label className="block text-sm text-[#333333] mb-1">Tipo de Pieza</label>
               <select {...register("pieceType")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={initialData ? -1 : 0}>
-                <option value="Ring">Anillo</option>
-                <option value="Chain">Cadena</option>
-                <option value="Earrings">Aretes</option>
-                <option value="Bracelet">Pulsera</option>
-                <option value="Other">Otro</option>
+                {catalogs.pieceTypes?.map((pt: any) => (
+                  <option key={pt.id} value={pt.name}>{pt.name}</option>
+                ))}
+                {/* Fallback for existing old records that might not be in catalogs */}
+                {initialData && (!catalogs.pieceTypes || !catalogs.pieceTypes.some((pt: any) => pt.name === initialData.pieceType)) && (
+                  <option value={initialData.pieceType}>{initialData.pieceType}</option>
+                )}
               </select>
             </div>
             <div>
