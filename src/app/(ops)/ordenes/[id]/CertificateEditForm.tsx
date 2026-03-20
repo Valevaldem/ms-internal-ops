@@ -96,19 +96,23 @@ export default function CertificateEditForm({
                 {certificateMembers.length > 0 && (
                     <div className="space-y-3">
                         <div className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider">Asignación de Piedras:</div>
-                        {certificateMembers.map((member, idx) => (
-                            <div key={idx} className="bg-white p-2.5 rounded border border-[#D8D3CC] text-sm flex flex-col gap-1">
-                                <div className="flex justify-between">
-                                    <span className="font-medium text-[#333333]">{member.memberName}</span>
-                                    <span className="text-xs text-[#8E8D8A]">{member.representativeStone}</span>
-                                </div>
-                                {member.helperDescription && (
-                                    <div className="text-xs text-[#8E8D8A] italic bg-[#F5F2EE] p-1.5 rounded mt-1">
-                                        Nota identificadora: {member.helperDescription}
+                        {certificateMembers.map((member, idx) => {
+                            const relatedStone = quotationStones.find(s => s.lotCode === member.representativeStone);
+                            const stoneLabel = relatedStone ? `${relatedStone.lotCode} - ${relatedStone.stoneName}` : member.representativeStone;
+                            return (
+                                <div key={idx} className="bg-white p-2.5 rounded border border-[#D8D3CC] text-sm flex flex-col gap-1">
+                                    <div className="flex justify-between">
+                                        <span className="font-medium text-[#333333]">{member.memberName}</span>
+                                        <span className="text-xs text-[#8E8D8A]">{stoneLabel}</span>
                                     </div>
-                                )}
-                            </div>
-                        ))}
+                                    {member.helperDescription && (
+                                        <div className="text-xs text-[#8E8D8A] italic bg-[#F5F2EE] p-1.5 rounded mt-1">
+                                            Nota identificadora: {member.helperDescription}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -167,7 +171,7 @@ export default function CertificateEditForm({
                                 return (
                                     <div key={stone.id} className="bg-[#F5F2EE] p-3 rounded border border-[#D8D3CC] flex flex-col gap-2">
                                         <div className="text-xs font-semibold text-[#8E8D8A]">
-                                            Piedra {i + 1}: {stone.lotCode} ({stone.weightCt}ct)
+                                            Piedra {i + 1}: {stone.lotCode} - {stone.stoneName} ({stone.weightCt}ct)
                                             <input type="hidden" name={`stoneId_${i}`} value={stone.id} />
                                             <input type="hidden" name={`stoneLot_${i}`} value={stone.lotCode} />
                                         </div>

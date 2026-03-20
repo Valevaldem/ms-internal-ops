@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser, verifyAccess } from "@/lib/auth";
+import StatusSelect from "../[id]/status-select";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,8 @@ export default async function HistorialCotizaciones(props: {
     startDate?: string,
     endDate?: string,
     status?: string,
-    advisorName?: string
+    advisorName?: string,
+    salesChannel?: string
   }>
 }) {
   const user = await getCurrentUser();
@@ -70,6 +72,7 @@ export default async function HistorialCotizaciones(props: {
   const endDateStr = searchParams.endDate;
   const drillStatus = searchParams.status;
   const advisorName = searchParams.advisorName;
+  const salesChannel = searchParams.salesChannel;
 
   const whereClause: any = search ? {
     OR: [
@@ -102,6 +105,10 @@ export default async function HistorialCotizaciones(props: {
 
   if (advisorName) {
     whereClause.salesAssociate = { name: advisorName };
+  }
+
+  if (salesChannel) {
+    whereClause.salesChannel = salesChannel;
   }
 
   if (drillStatus) {
@@ -137,15 +144,36 @@ export default async function HistorialCotizaciones(props: {
           <p className="text-sm text-[#8E8D8A] mt-1">Gestión y seguimiento de cotizaciones activas</p>
         </div>
         <div className="flex gap-4 w-full md:w-auto">
-          <form className="flex-1 md:w-64">
+          <form className="flex-1 md:w-auto flex gap-2">
             {tab === 'archived' && <input type="hidden" name="tab" value="archived" />}
             <input
               type="text"
               name="search"
               defaultValue={search}
               placeholder="Buscar por folio, cliente, asesor..."
-              className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]"
+              className="w-full md:w-64 border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]"
             />
+            {user.role === 'manager' && (
+              <select
+                name="salesChannel"
+                defaultValue={salesChannel || ''}
+                onChange={(e) => e.target.form?.submit()}
+                className="w-40 border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white"
+              >
+                <option value="">Canal de Venta</option>
+                <option value="Store">Tienda</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Instagram">Instagram</option>
+                <option value="Facebook">Facebook</option>
+                <option value="TikTok">TikTok</option>
+                <option value="Form">Formulario</option>
+              </select>
+            )}
+            {(search || salesChannel) && (
+              <Link href={`/cotizaciones/historial${tab === 'archived' ? '?tab=archived' : ''}`} className="text-[#8E8D8A] hover:text-[#333333] flex items-center px-2 text-sm transition-colors">
+                Limpiar
+              </Link>
+            )}
           </form>
           <div className="flex gap-2">
             <Link href="/cotizaciones/manual" className="bg-white text-[#C5B358] border border-[#C5B358] px-4 py-2 rounded-md text-sm font-semibold hover:bg-[#F5F2EE] transition-colors shadow-sm whitespace-nowrap">
@@ -211,16 +239,7 @@ export default async function HistorialCotizaciones(props: {
                     ${q.finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${
-                      q.order ? 'bg-green-50 text-green-600' :
-                      q.status === 'Pendiente de respuesta' ? 'bg-gray-100 text-gray-600' :
-                      q.status === 'En seguimiento' ? 'bg-blue-50 text-blue-600' :
-                      q.status === 'Oportunidad de cierre' ? 'bg-amber-50 text-amber-600' :
-                      q.status === 'Declinada' ? 'bg-red-50 text-red-600' :
-                      'bg-gray-50 text-gray-600'
-                    }`}>
-                      {q.order ? 'Convertida' : q.status}
-                    </span>
+                    <StatusSelect id={q.id} currentStatus={q.order ? 'Converted' : q.status} />
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
                     {!q.order && tab !== 'archived' && (

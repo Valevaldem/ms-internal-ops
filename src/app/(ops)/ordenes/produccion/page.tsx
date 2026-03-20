@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Clock, CheckCircle } from "lucide-react";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { translateStage } from "@/lib/translations";
 import { getCurrentUser, verifyAccess } from "@/lib/auth";
 
@@ -81,6 +82,10 @@ export default async function ProduccionPage() {
       }
     });
     revalidatePath("/ordenes/produccion");
+
+    if (nextStage === "Entregado") {
+      redirect("/ordenes/historial");
+    }
   }
 
   function getActionButtonLabel(stage: string) {

@@ -30,8 +30,12 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
   if (filterDelivery) whereClause.deliveryMethod = filterDelivery;
   if (filterPayment) whereClause.paymentStatus = filterPayment;
   if (filterPriority === 'true') whereClause.isPriority = true;
+  if (filterSalesChannel) {
+    whereClause.quotation = { salesChannel: filterSalesChannel };
+  }
   if (q) {
     whereClause.quotation = {
+      ...whereClause.quotation,
       OR: [
         { folio: { contains: q } },
         { clientNameOrUsername: { contains: q } }
@@ -145,6 +149,20 @@ export default async function OrdenesActivasPage(props: { searchParams: Promise<
             <option value="En tránsito">En tránsito</option>
           </select>
         </div>
+        {user.role === 'manager' && (
+          <div className="w-32">
+            <label htmlFor="salesChannel" className="block text-xs font-medium text-[#8E8D8A] mb-1">Canal</label>
+            <select id="salesChannel" name="salesChannel" defaultValue={filterSalesChannel} className="w-full text-sm border border-[#D8D3CC] rounded px-3 py-2 bg-[#F5F2EE] focus:outline-none focus:border-[#C5B358]">
+              <option value="">Todos</option>
+              <option value="Store">Tienda</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Facebook">Facebook</option>
+              <option value="TikTok">TikTok</option>
+              <option value="Form">Formulario</option>
+            </select>
+          </div>
+        )}
         <div className="w-32">
           <label htmlFor="delivery" className="block text-xs font-medium text-[#8E8D8A] mb-1">Entrega</label>
           <select id="delivery" name="delivery" defaultValue={filterDelivery} className="w-full text-sm border border-[#D8D3CC] rounded px-3 py-2 bg-[#F5F2EE] focus:outline-none focus:border-[#C5B358]">
