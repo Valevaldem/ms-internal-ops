@@ -131,7 +131,7 @@ export default function ImportModal({ isOpen, onClose, existingLots, onSuccess }
         seenCodes.add(code)
       }
 
-      const isUpdate = existingCodes.has(code)
+      const isUpdate = existingCodes.has(code || '')
 
       processed.push({
         row: rowNum,
@@ -172,7 +172,6 @@ export default function ImportModal({ isOpen, onClose, existingLots, onSuccess }
   }
 
   const reset = () => {
-    setFile(null)
     setParsedRows([])
     setStep("upload")
     if (fileInputRef.current) fileInputRef.current.value = ''

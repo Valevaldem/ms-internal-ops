@@ -5,13 +5,38 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database with operational catalogs...')
 
-  // 1. Sales Associates
-  await prisma.salesAssociate.createMany({
+  // 1.5 System Users
+  const bcrypt = require('bcryptjs');
+  const defaultPassword = await bcrypt.hash('password123', 10);
+
+  await prisma.user.deleteMany({});
+  await prisma.user.createMany({
     data: [
-      { name: 'MS', activeStatus: true, appliesMsAdjustment: true },
-      { name: 'Fernanda Pérez', activeStatus: true, appliesMsAdjustment: false },
-    ],
-  })
+      { name: 'Manager Principal', username: 'manager', passwordHash: defaultPassword, role: 'manager', activeStatus: true },
+      { name: 'Operador de Certificados', username: 'certificados', passwordHash: defaultPassword, role: 'certificate_operator', activeStatus: true },
+    ]
+  });
+
+  // 1. Sales Associates
+  // We don't delete existing ones here to preserve relations in existing db if any,
+  // just insert missing test associates.
+  await prisma.salesAssociate.upsert({
+    where: { id: "sa-ms" },
+    update: { name: 'MS', activeStatus: true, appliesMsAdjustment: true },
+    create: { id: "sa-ms", name: 'MS', activeStatus: true, appliesMsAdjustment: true },
+  });
+  await prisma.salesAssociate.upsert({
+    where: { id: "sa-fp" },
+    update: { name: 'Fernanda Pérez', activeStatus: true, appliesMsAdjustment: false },
+    create: { id: "sa-fp", name: 'Fernanda Pérez', activeStatus: true, appliesMsAdjustment: false },
+  });
+
+  await prisma.user.createMany({
+    data: [
+      { name: 'MS (Asesora)', username: 'asesora_ms', passwordHash: defaultPassword, role: 'advisor', activeStatus: true, salesAssociateId: "sa-ms" },
+      { name: 'Fernanda P. (Asesora)', username: 'asesora_fp', passwordHash: defaultPassword, role: 'advisor', activeStatus: true, salesAssociateId: "sa-fp" },
+    ]
+  });
 
   // 2. Models
   await prisma.model.createMany({

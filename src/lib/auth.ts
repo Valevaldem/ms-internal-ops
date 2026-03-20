@@ -26,50 +26,22 @@ const MOCK_CERT_OPERATOR: ActiveUser = {
 };
 
 import { redirect } from "next/navigation";
+import { verifySession, deleteSession } from "./session";
 
 export async function getCurrentUser(): Promise<ActiveUser> {
-  // --------------------------------------------------------------------------
-  // TEMPORARY AUTHENTICATION SWITCH FOR DEVELOPMENT
-  // --------------------------------------------------------------------------
-  // INSTRUCTIONS TO TEST ROLES:
-  //
-  // 1. To test as a MANAGER (sees all quotations, dashboard breakdown, etc):
-  //    Uncomment line A and comment out blocks B and C.
-  //
-  // 2. To test as an ADVISOR (only sees their own quotations):
-  //    Uncomment block B and comment out line A and line C.
-  //    To test a different advisor, change the `where: { name: "..." }` filter.
-  //
-  // 3. To test as a CERTIFICATE OPERATOR (only sees certificates module):
-  //    Uncomment line C and comment out line A and block B.
-  //
-  // NOTE: You do NOT need to restart the Next.js dev server. Just save this file
-  // and refresh the page. Next.js will recompile and reflect the new active user.
-  // --------------------------------------------------------------------------
+  const session = await verifySession();
 
-  // --- LINE A: Test as Manager ---
-  // return MOCK_MANAGER;
-
-  // --- LINE C: Test as Certificate Operator ---
-  // return MOCK_CERT_OPERATOR;
-
-  // --- BLOCK B: Test as Advisor ---
-  const advisor = await prisma.salesAssociate.findFirst({
-    where: { activeStatus: true }, // e.g. { name: 'MS' } or { name: 'Fernanda Pérez' }
-  });
-
-  if (!advisor) {
-    // Fallback if no active advisors exist in the DB
-    return MOCK_MANAGER;
+  if (!session || !session.user) {
+    redirect("/login");
   }
 
-  return {
-    id: `usr-${advisor.id}`,
-    name: advisor.name,
-    role: "advisor",
-    salesAssociateId: advisor.id,
-  };
-  // --- END BLOCK B ---
+  return session.user;
+}
+
+export async function logout() {
+  "use server";
+  await deleteSession();
+  redirect("/login");
 }
 
 export function verifyAccess(user: ActiveUser, allowedRoles: UserRole[], redirectTo: string = "/certificados") {

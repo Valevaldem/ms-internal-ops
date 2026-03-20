@@ -1,10 +1,79 @@
 
-> ms-app@0.1.0 start
-> next start
+> ms-app@0.1.0 dev
+> next dev
 
-▲ Next.js 16.1.6
+▲ Next.js 16.1.6 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
+- Environments: .env
 
 ✓ Starting...
-✓ Ready in 735ms
+✓ Ready in 1471ms
+○ Compiling /login ...
+ GET /login 200 in 4.1s (compile: 3.6s, proxy.ts: 199ms, render: 316ms)
+⨯ Error: Functions cannot be passed directly to Client Components unless you explicitly expose it by marking it with "use server". Or maybe you meant to call this function rather than return it.
+  <form action={function logout} children=...>
+               ^^^^^^^^^^^^^^^^^
+    at stringify (<anonymous>) {
+  digest: '660948161'
+}
+ GET / 200 in 2.7s (compile: 1072ms, proxy.ts: 8ms, render: 1622ms)
+ POST /login 303 in 3.0s (compile: 6ms, proxy.ts: 21ms, render: 3.0s)
+✓ Compiled in 242ms
+ GET /login 200 in 79ms (compile: 6ms, proxy.ts: 7ms, render: 67ms)
+ GET / 200 in 366ms (compile: 174ms, proxy.ts: 5ms, render: 187ms)
+ POST /login 303 in 540ms (compile: 5ms, proxy.ts: 9ms, render: 526ms)
+ GET /usuarios 200 in 579ms (compile: 518ms, proxy.ts: 7ms, render: 55ms)
+ GET /login 200 in 44ms (compile: 5ms, proxy.ts: 6ms, render: 33ms)
+ POST /usuarios 303 in 74ms (compile: 5ms, proxy.ts: 7ms, render: 62ms)
+ GET /login 200 in 886ms (compile: 185ms, proxy.ts: 159ms, render: 543ms)
+ GET / 200 in 339ms (compile: 21ms, proxy.ts: 6ms, render: 312ms)
+ POST /login 303 in 650ms (compile: 5ms, proxy.ts: 13ms, render: 632ms)
+ GET /login 200 in 87ms (compile: 4ms, proxy.ts: 5ms, render: 78ms)
+ GET / 200 in 132ms (compile: 5ms, proxy.ts: 5ms, render: 122ms)
+ POST /login 303 in 318ms (compile: 5ms, proxy.ts: 8ms, render: 305ms)
+ GET /usuarios 200 in 62ms (compile: 14ms, proxy.ts: 5ms, render: 43ms)
+ GET /login 200 in 75ms (compile: 6ms, proxy.ts: 5ms, render: 64ms)
+ GET / 200 in 204ms (compile: 5ms, proxy.ts: 5ms, render: 194ms)
+ POST /login 303 in 374ms (compile: 4ms, proxy.ts: 7ms, render: 363ms)
+ GET /usuarios 200 in 50ms (compile: 6ms, proxy.ts: 7ms, render: 37ms)
+ GET /login 200 in 84ms (compile: 8ms, proxy.ts: 7ms, render: 70ms)
+ GET / 200 in 150ms (compile: 4ms, proxy.ts: 5ms, render: 141ms)
+ POST /login 303 in 321ms (compile: 6ms, proxy.ts: 7ms, render: 308ms)
+ GET /usuarios 200 in 51ms (compile: 8ms, proxy.ts: 5ms, render: 37ms)
+✓ Compiled in 552ms
+ GET /login 200 in 74ms (compile: 4ms, proxy.ts: 6ms, render: 64ms)
+ GET / 200 in 127ms (compile: 5ms, proxy.ts: 6ms, render: 116ms)
+ POST /login 303 in 303ms (compile: 6ms, proxy.ts: 7ms, render: 289ms)
+⨯ ReferenceError: Edit2 is not defined
+    at <unknown> (src/app/(ops)/usuarios/page.tsx:80:22)
+    at Array.map (<anonymous>)
+    at UsuariosPage (src/app/(ops)/usuarios/page.tsx:56:20)
+  78 |                     className="inline-flex items-center gap-1 text-sm text-[#8E8D8A] hover:text-[#333333] transition-colors"
+  79 |                   >
+> 80 |                     <Edit2 size={14} /> Editar
+     |                      ^
+  81 |                   </Link>
+  82 |                 </td>
+  83 |               </tr> {
+  digest: '2571267706'
+}
+ GET /usuarios 200 in 427ms (compile: 310ms, proxy.ts: 5ms, render: 112ms)
+✓ Compiled in 770ms
+ GET /login 200 in 88ms (compile: 5ms, proxy.ts: 7ms, render: 75ms)
+ GET / 200 in 126ms (compile: 4ms, proxy.ts: 5ms, render: 117ms)
+ POST /login 303 in 302ms (compile: 4ms, proxy.ts: 6ms, render: 292ms)
+ GET /usuarios 200 in 380ms (compile: 265ms, proxy.ts: 5ms, render: 110ms)
+○ Compiling /_not-found/page ...
+ GET /usuarios/cmmyab5bp0002d8w1bj5m7pj7 404 in 5.0s (compile: 4.9s, proxy.ts: 6ms, render: 62ms)
+ GET /usuarios/cmmyab5bp0002d8w1bj5m7pj7 404 in 221ms (compile: 13ms, proxy.ts: 9ms, render: 199ms)
+ GET /login 200 in 464ms (compile: 170ms, proxy.ts: 82ms, render: 213ms)
+ GET / 200 in 224ms (compile: 53ms, proxy.ts: 5ms, render: 166ms)
+ POST /login 303 in 436ms (compile: 4ms, proxy.ts: 7ms, render: 426ms)
+ GET /usuarios 200 in 73ms (compile: 17ms, proxy.ts: 6ms, render: 49ms)
+ GET /usuarios/cmmyab5bp0002d8w1bj5m7pj7 200 in 3.2s (compile: 3.1s, proxy.ts: 7ms, render: 52ms)
+ GET /login 200 in 54ms (compile: 5ms, proxy.ts: 5ms, render: 44ms)
+ POST /usuarios/cmmyab5bp0002d8w1bj5m7pj7 303 in 117ms (compile: 35ms, proxy.ts: 8ms, render: 74ms)
+○ Compiling /_error ...
+ GET /login 404 in 3.3s (compile: 3.2s, proxy.ts: 6ms, render: 49ms)
+ GET /login 404 in 48ms (compile: 13ms, proxy.ts: 7ms, render: 27ms)
