@@ -1,8 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Plus, Edit, CheckCircle, XCircle } from "lucide-react"
+import { Search, Plus, Edit, CheckCircle, XCircle, Download, UploadCloud } from "lucide-react"
 import { createStoneLot, updateStoneLot } from "./actions"
+import ImportModal from "./ImportModal"
+import Papa from "papaparse"
 
 type StoneLot = {
   code: string
@@ -32,6 +34,7 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   const filteredLots = lots.filter(lot =>
     lot.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,7 +111,7 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
           handleCloseForm()
         }
       }
-    } catch (err) {
+    } catch (_err) {
       setSubmitError("Ha ocurrido un error inesperado.")
     } finally {
       setIsSubmitting(false)
@@ -122,13 +125,48 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
           <h2 className="text-2xl font-light text-[#333333] tracking-wide font-serif mb-1">Catálogo de Lotes de Piedras</h2>
           <p className="text-sm text-[#8E8D8A]">Gestiona los lotes de piedras para las cotizaciones.</p>
         </div>
-        <button
-          onClick={handleOpenCreate}
-          className="flex items-center gap-2 bg-[#333333] text-white px-4 py-2 rounded-md hover:bg-[#4A4A4A] transition-colors text-sm"
-        >
-          <Plus size={16} />
-          Nuevo Lote
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#D8D3CC] text-[#555555] text-sm font-medium rounded-md hover:bg-[#F5F2EE] transition-colors"
+          >
+            <UploadCloud size={16} />
+            Importar
+          </button>
+          <button
+            onClick={() => {
+              const csvData = lots.map(lot => ({
+                "Código": lot.code,
+                "Piedra": lot.stoneName,
+                "Corte": lot.cut,
+                "Color": lot.color,
+                "Modo": lot.pricingMode,
+                "Precio": lot.pricePerCt,
+                "Activo": lot.activeStatus ? "Si" : "No"
+              }))
+              const csv = Papa.unparse(csvData)
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const link = document.createElement('a')
+              link.href = url
+              link.setAttribute('download', `inventario_lotes_${new Date().toLocaleDateString('en-CA')}.csv`)
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#D8D3CC] text-[#555555] text-sm font-medium rounded-md hover:bg-[#F5F2EE] transition-colors"
+          >
+            <Download size={16} />
+            Exportar
+          </button>
+          <button
+            onClick={handleOpenCreate}
+            className="flex items-center gap-2 bg-[#333333] text-white px-4 py-2 rounded-md hover:bg-[#4A4A4A] transition-colors text-sm ml-2"
+          >
+            <Plus size={16} />
+            Nuevo Lote
+          </button>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-sm border border-[#D8D3CC]">
@@ -351,6 +389,15 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
           </div>
         </div>
       )}
+
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        existingLots={lots}
+        onSuccess={() => {
+          // Revalidation happens on server, data will refresh automatically
+        }}
+      />
     </div>
   )
 }

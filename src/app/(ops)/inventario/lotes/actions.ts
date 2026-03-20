@@ -104,3 +104,49 @@ export async function updateStoneLot(code: string, formData: any) {
     return { success: false, error: "Error interno al actualizar el lote" }
   }
 }
+
+export async function bulkUpsertStoneLots(lots: Record<string, unknown>[]) {
+  const user = await getCurrentUser()
+  verifyAccess(user, ['manager'])
+
+  try {
+    // Process sequentially or within a transaction
+    // SQLite might have concurrency limits with raw massive transactions,
+    // but Prisma $transaction array works fine for typical batch sizes.
+    // For large uploads, processing sequentially or in chunks is safer.
+
+    await prisma.$transaction(
+      lots.map((lot) => {
+        const parsed = lotSchema.parse(lot)
+        return prisma.stoneLot.upsert({
+          where: { code: parsed.code },
+          update: {
+            stoneName: parsed.stoneName,
+            cut: parsed.cut,
+            color: parsed.color,
+            pricePerCt: parsed.pricePerCt,
+            pricingMode: parsed.pricingMode,
+            activeStatus: parsed.activeStatus,
+          },
+          create: {
+            code: parsed.code,
+            stoneName: parsed.stoneName,
+            cut: parsed.cut,
+            color: parsed.color,
+            pricePerCt: parsed.pricePerCt,
+            pricingMode: parsed.pricingMode,
+            activeStatus: parsed.activeStatus,
+          }
+        })
+      })
+    )
+
+    revalidatePath("/inventario/lotes")
+    revalidatePath("/cotizaciones/nueva")
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error in bulk upsert:", error)
+    return { success: false, error: "Error interno procesando los lotes." }
+  }
+}
