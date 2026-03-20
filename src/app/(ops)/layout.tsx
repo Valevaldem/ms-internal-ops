@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award, User } from 'lucide-react';
-import { getCurrentUser } from '@/lib/auth';
+import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award, User, LogOut, Users } from 'lucide-react';
+import { getCurrentUser, logout } from '@/lib/auth';
 
 export default async function OpsLayout({
   children,
@@ -59,6 +59,10 @@ export default async function OpsLayout({
             {user.role === 'manager' && (
               <>
                 <div className="pt-4 pb-2">
+                  <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Administración</p>
+                </div>
+                <SidebarLink href="/usuarios" icon={<Users size={18} />} label="Usuarios" />
+                <div className="pt-4 pb-2">
                   <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Inventario</p>
                 </div>
                 <SidebarLink href="/inventario/lotes" icon={<Settings size={18} />} label="Lotes de Piedras" />
@@ -90,6 +94,14 @@ export default async function OpsLayout({
                    <span className="font-medium truncate max-w-[100px]" title={user.salesAssociateId}>{user.salesAssociateId}</span>
                  </div>
                )}
+               <div className="mt-2 pt-2 border-t border-[#D8D3CC]">
+                 <form action={logout}>
+                   <button type="submit" className="flex items-center gap-2 w-full text-left text-sm text-red-600 hover:text-red-700 font-medium py-1 transition-colors">
+                     <LogOut size={16} />
+                     <span>Cerrar Sesión</span>
+                   </button>
+                 </form>
+               </div>
              </div>
           </div>
         </aside>

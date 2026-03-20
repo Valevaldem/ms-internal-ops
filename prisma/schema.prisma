@@ -10,6 +10,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// 0. System Users
+model User {
+  id               String   @id @default(cuid()) @map("user_id")
+  name             String
+  username         String   @unique
+  passwordHash     String   @map("password_hash")
+  role             String   // 'manager', 'advisor', 'certificate_operator'
+  activeStatus     Boolean  @default(true) @map("active_status")
+
+  salesAssociateId String?  @map("sales_associate_id")
+  salesAssociate   SalesAssociate? @relation(fields: [salesAssociateId], references: [id])
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
 // 1. Sales Associates Catalog
 model SalesAssociate {
   id                  String  @id @default(cuid()) @map("associate_id")
@@ -18,6 +36,7 @@ model SalesAssociate {
   appliesMsAdjustment Boolean @default(false) @map("applies_ms_adjustment")
 
   quotations Quotation[]
+  users      User[]
 
   @@map("sales_associates")
 }
