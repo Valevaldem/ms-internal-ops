@@ -22,6 +22,7 @@ const schema = z.object({
   stones: z.array(z.object({
     lotCode: z.string().min(1, "Requerido"),
     stoneName: z.string(),
+    quantity: z.number().min(1).default(1),
     weightCt: z.number().min(0.01),
     pricePerCt: z.number(),
     pricingMode: z.string().optional().default("CT"),
@@ -49,8 +50,10 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
       stones: initialData?.stones?.map((s: any) => ({
         lotCode: s.lotCode,
         stoneName: s.stoneName,
+        quantity: s.quantity || 1,
         weightCt: s.weightCt,
         pricePerCt: s.pricePerCt,
+        pricingMode: s.pricingMode || "CT",
         stoneSubtotal: s.stoneSubtotal
       })) || []
     }
@@ -113,8 +116,9 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
       setValue(`stones.${index}.pricingMode`, lot.pricingMode || "CT")
 
       const weight = watch(`stones.${index}.weightCt`) || 0
+      const qty = watch(`stones.${index}.quantity`) || 1
       if (lot.pricingMode === "PZ") {
-        setValue(`stones.${index}.stoneSubtotal`, lot.pricePerCt)
+        setValue(`stones.${index}.stoneSubtotal`, lot.pricePerCt * qty)
       } else {
         setValue(`stones.${index}.stoneSubtotal`, weight * lot.pricePerCt)
       }
@@ -130,9 +134,23 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   const handleWeightChange = (index: number, weight: number) => {
     const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
     const pricingMode = watch(`stones.${index}.pricingMode`) || "CT"
+    const qty = watch(`stones.${index}.quantity`) || 1
 
     if (pricingMode === "PZ") {
-      setValue(`stones.${index}.stoneSubtotal`, pricePerCt)
+      setValue(`stones.${index}.stoneSubtotal`, pricePerCt * qty)
+    } else {
+      setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt)
+    }
+  }
+
+  const handleQuantityChange = (index: number, qty: number) => {
+    setValue(`stones.${index}.quantity`, qty)
+    const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
+    const pricingMode = watch(`stones.${index}.pricingMode`) || "CT"
+    const weight = watch(`stones.${index}.weightCt`) || 0
+
+    if (pricingMode === "PZ") {
+      setValue(`stones.${index}.stoneSubtotal`, pricePerCt * qty)
     } else {
       setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt)
     }
@@ -242,7 +260,7 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-[#F5F2EE] pb-2">
             <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold">Piedras</h3>
-            <button type="button" onClick={() => append({ lotCode: "", stoneName: "", weightCt: 0, pricePerCt: 0, pricingMode: "CT", stoneSubtotal: 0 })} className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium">
+            <button type="button" onClick={() => append({ lotCode: "", stoneName: "", quantity: 1, weightCt: 0, pricePerCt: 0, pricingMode: "CT", stoneSubtotal: 0 })} className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium">
               <Plus size={14} /> Agregar Piedra
             </button>
           </div>
@@ -250,7 +268,7 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
           <div className="space-y-3">
             {fields.map((field, index) => (
               <div key={field.id} className="grid grid-cols-12 gap-2 items-end bg-[#F5F2EE]/30 p-3 rounded-md border border-[#F5F2EE]">
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Lote</label>
                   <input {...register(`stones.${index}.lotCode`)} onBlur={(e) => handleLotCodeChange(index, e.target.value)} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white uppercase" placeholder="Ej: D-001" />
                 </div>
@@ -261,9 +279,13 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
                     <span className="absolute top-1 right-2 text-[9px] bg-[#D8D3CC] text-[#333333] px-1 rounded">Precio por Pieza</span>
                   )}
                 </div>
+                <div className="col-span-1">
+                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1" title="Cantidad de piezas">Cant.</label>
+                  <input type="number" min="1" step="1" disabled={watch(`stones.${index}.pricingMode`) !== "PZ"} {...register(`stones.${index}.quantity`, { valueAsNumber: true })} onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 1)} className={`w-full border ${watch(`stones.${index}.pricingMode`) !== "PZ" ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A]' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-center`} />
+                </div>
                 <div className="col-span-2">
-                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">
-                    Peso (ct) <span className="text-[#C5B358] font-bold" title="Requerido para el certificado">*</span>
+                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                    {watch(`stones.${index}.pricingMode`) === "PZ" ? "Peso total (CT)" : "Peso (CT)"} <span className="text-[#C5B358] font-bold" title="Requerido para el certificado">*</span>
                   </label>
                   <input type="number" step="0.01" {...register(`stones.${index}.weightCt`, { valueAsNumber: true })} onChange={(e) => handleWeightChange(index, parseFloat(e.target.value) || 0)} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white" placeholder="0.00" />
                 </div>

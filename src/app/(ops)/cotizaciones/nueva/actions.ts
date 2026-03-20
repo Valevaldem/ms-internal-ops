@@ -94,6 +94,7 @@ export async function createQuotation(formData: any) {
         create: data.stones.map((s: any) => ({
           lotCode: s.lotCode,
           stoneName: s.stoneName,
+          quantity: Number(s.quantity || 1),
           weightCt: Number(s.weightCt),
           pricePerCt: Number(s.pricePerCt),
           pricingMode: s.pricingMode || "CT",

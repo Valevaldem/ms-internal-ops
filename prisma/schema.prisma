@@ -107,10 +107,11 @@ model QuotationStone {
 
   lotCode       String @map("lot_code")
   stoneName     String @map("stone_name")
+  quantity      Int    @default(1)
   weightCt      Float  @map("weight_ct")
   pricePerCt    Float  @map("price_per_ct") // Acts as flat price if pricingMode is PZ
   pricingMode   String @default("CT") @map("pricing_mode")
-  stoneSubtotal Float  @map("stone_subtotal") // weightCt * pricePerCt OR just pricePerCt
+  stoneSubtotal Float  @map("stone_subtotal") // weightCt * pricePerCt OR quantity * pricePerCt
 
   @@map("quotation_stones")
 }
