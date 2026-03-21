@@ -16,6 +16,7 @@ const schema = z.object({
   salesAssociateId: z.string().min(1, "Requerido"),
   pieceType: z.string().min(1, "Requerido"),
   modelId: z.string().min(1, "Requerido"),
+  modelBasePrice: z.number().min(0).optional(),
   notes: z.string().optional(),
   marginProtectionEnabled: z.boolean().default(false),
   discountPercent: z.number().min(0).max(100).optional(),
@@ -44,6 +45,7 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
       salesAssociateId: isAdvisor ? activeUser.salesAssociateId : (initialData?.salesAssociateId || ""),
       pieceType: initialData?.pieceType || (catalogs.pieceTypes && catalogs.pieceTypes[0]?.name) || "Ring",
       modelId: initialData?.modelId || "",
+      modelBasePrice: initialData?.modelBasePrice || 0,
       notes: initialData?.notes || "",
       marginProtectionEnabled: initialData?.marginProtectionEnabled || false,
       discountPercent: initialData?.discountPercent || 0,
@@ -66,12 +68,17 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   const marginProtectionEnabled = watch("marginProtectionEnabled")
   const discountPercent = watch("discountPercent")
   const stones = watch("stones")
+  const pieceType = watch("pieceType")
+  const manualBasePrice = watch("modelBasePrice")
 
   const selectedModel = catalogs.models.find((m: any) => m.id === modelId)
   const selectedAssociate = catalogs.associates.find((a: any) => a.id === associateId)
 
+  const selectedPieceTypeObj = catalogs.pieceTypes?.find((pt: any) => pt.name === pieceType)
+  const filteredModels = catalogs.models.filter((m: any) => m.pieceTypeId === selectedPieceTypeObj?.id)
+
   // Calculations
-  const modelBasePrice = selectedModel?.basePrice || 0
+  const modelBasePrice = activeUser.role === 'manager' && manualBasePrice !== undefined ? manualBasePrice : (selectedModel?.basePrice || 0)
   const totalStonesPrice = stones.reduce((sum, s) => sum + (s.stoneSubtotal || 0), 0)
   const subtotalBeforeAdjustments = totalStonesPrice + modelBasePrice
   const msInternalAdjustment = selectedAssociate?.appliesMsAdjustment ? 5000 : 0
@@ -246,10 +253,35 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
             </div>
             <div>
               <label className="block text-sm text-[#333333] mb-1">Modelo Base</label>
-              <select {...register("modelId")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={initialData ? -1 : 0}>
+              <select
+                {...register("modelId", {
+                  onChange: (e) => {
+                    const newModelId = e.target.value;
+                    const newModel = catalogs.models.find((m: any) => m.id === newModelId);
+                    if (newModel) {
+                      setValue("modelBasePrice", newModel.basePrice);
+                    }
+                  }
+                })}
+                className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}
+                tabIndex={initialData ? -1 : 0}
+              >
                 <option value="">Selecciona modelo...</option>
-                {catalogs.models.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                {filteredModels.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-sm text-[#333333] mb-1">Precio Base</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8E8D8A]">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  readOnly={activeUser.role !== 'manager' || !!initialData}
+                  {...register("modelBasePrice", { valueAsNumber: true })}
+                  className={`w-full pl-8 pr-3 border ${activeUser.role !== 'manager' || initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}
+                />
+              </div>
             </div>
           </div>
           <div>

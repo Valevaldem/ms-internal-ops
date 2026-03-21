@@ -20,6 +20,24 @@ export async function createQuotation(formData: any) {
   const user = await getCurrentUser();
   const finalAssociateId = user.role === 'advisor' && user.salesAssociateId ? user.salesAssociateId : associateId;
 
+  // Backend validation: selected model belongs to selected piece type, and stored base price matches model base price unless manager
+  if (data.modelId) {
+    const pt = await prisma.pieceType.findUnique({ where: { name: data.pieceType } });
+    if (pt) {
+      const model = await prisma.model.findUnique({
+        where: { id: data.modelId }
+      });
+      if (!model || model.pieceTypeId !== pt.id) {
+        throw new Error("El modelo seleccionado no pertenece al tipo de pieza seleccionado.");
+      }
+
+      const submittedBasePrice = Number(data.modelBasePrice);
+      if (user.role !== 'manager' && submittedBasePrice !== model.basePrice) {
+        throw new Error("El precio base del modelo no puede ser modificado libremente.");
+      }
+    }
+  }
+
   let folio = "";
   let versionNumber = 1;
   let parentQuotationId = null;

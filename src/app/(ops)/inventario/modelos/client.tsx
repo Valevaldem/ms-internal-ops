@@ -8,7 +8,7 @@ import { translatePieceType } from "@/lib/translations"
 type Model = {
   id: string
   name: string
-  pieceType: string
+  pieceTypeId: string
   basePrice: number
   activeStatus: boolean
   createdAt: Date
@@ -27,7 +27,7 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
 
   const [formData, setFormData] = useState({
     name: "",
-    pieceType: pieceTypes[0]?.name || "Ring",
+    pieceTypeId: pieceTypes[0]?.id || "",
     basePrice: 0,
     activeStatus: true,
   })
@@ -36,16 +36,21 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  const getPieceTypeName = (id: string) => {
+    const pt = pieceTypes.find(p => p.id === id);
+    return pt ? pt.name : id;
+  }
+
   const filteredModels = models.filter(model =>
     model.name.toLowerCase().includes(search.toLowerCase()) ||
-    translatePieceType(model.pieceType).toLowerCase().includes(search.toLowerCase())
+    translatePieceType(getPieceTypeName(model.pieceTypeId)).toLowerCase().includes(search.toLowerCase())
   )
 
   const handleOpenNew = () => {
     setEditingModel(null)
     setFormData({
       name: "",
-      pieceType: pieceTypes[0]?.name || "Ring",
+      pieceTypeId: pieceTypes[0]?.id || "",
       basePrice: 0,
       activeStatus: true,
     })
@@ -58,7 +63,7 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
     setEditingModel(model)
     setFormData({
       name: model.name,
-      pieceType: model.pieceType,
+      pieceTypeId: model.pieceTypeId,
       basePrice: model.basePrice,
       activeStatus: model.activeStatus,
     })
@@ -166,7 +171,7 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
                 filteredModels.map((model) => (
                   <tr key={model.id} className="hover:bg-[#F9F8F6] transition-colors">
                     <td className="px-4 py-4 font-medium text-[#333333]">{model.name}</td>
-                    <td className="px-4 py-4 text-[#555555]">{model.pieceType}</td>
+                    <td className="px-4 py-4 text-[#555555]">{translatePieceType(getPieceTypeName(model.pieceTypeId))}</td>
                     <td className="px-4 py-4 text-[#555555]">${model.basePrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                     <td className="px-4 py-4 text-center">
                       {model.activeStatus ? (
@@ -245,19 +250,19 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
                       Tipo de Pieza
                     </label>
                     <select
-                      name="pieceType"
-                      value={formData.pieceType}
+                      name="pieceTypeId"
+                      value={formData.pieceTypeId}
                       onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#C5B358] focus:border-[#C5B358] ${errors.pieceType ? "border-red-500" : "border-[#D8D3CC]"}`}
+                      className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#C5B358] focus:border-[#C5B358] ${errors.pieceTypeId ? "border-red-500" : "border-[#D8D3CC]"}`}
                     >
                       {pieceTypes.map(pt => (
-                        <option key={pt.id} value={pt.name}>{pt.name}</option>
+                        <option key={pt.id} value={pt.id}>{translatePieceType(pt.name)}</option>
                       ))}
-                      {editingModel && !pieceTypes.some(pt => pt.name === editingModel.pieceType) && (
-                        <option value={editingModel.pieceType}>{editingModel.pieceType}</option>
+                      {editingModel && !pieceTypes.some(pt => pt.id === editingModel.pieceTypeId) && (
+                        <option value={editingModel.pieceTypeId}>{translatePieceType(getPieceTypeName(editingModel.pieceTypeId))}</option>
                       )}
                     </select>
-                    {errors.pieceType && <p className="text-red-500 text-xs mt-1">{errors.pieceType[0]}</p>}
+                    {errors.pieceTypeId && <p className="text-red-500 text-xs mt-1">{errors.pieceTypeId[0]}</p>}
                   </div>
 
                   <div>

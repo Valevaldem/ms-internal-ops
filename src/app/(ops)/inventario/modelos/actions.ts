@@ -7,7 +7,7 @@ import { getCurrentUser, verifyAccess } from "@/lib/auth"
 
 const modelSchema = z.object({
   name: z.string().min(1, "El nombre del modelo es requerido"),
-  pieceType: z.string().min(1, "El tipo de pieza es requerido"),
+  pieceTypeId: z.string().min(1, "El tipo de pieza es requerido"),
   basePrice: z.coerce.number().min(0, "El precio base debe ser mayor o igual a 0"),
   activeStatus: z.boolean().default(true),
 })
@@ -48,7 +48,7 @@ export async function createModel(formData: any) {
 
   // Verify unique name
   const existingModel = await prisma.model.findFirst({
-    where: { name: data.name, pieceType: data.pieceType }
+    where: { name: data.name, pieceTypeId: data.pieceTypeId }
   })
 
   if (existingModel) {
@@ -90,11 +90,11 @@ export async function updateModel(id: string, formData: any) {
 
   const data = parsed.data
 
-  // Verify unique name + pieceType (excluding current model)
+  // Verify unique name + pieceTypeId (excluding current model)
   const existingModel = await prisma.model.findFirst({
     where: {
       name: data.name,
-      pieceType: data.pieceType,
+      pieceTypeId: data.pieceTypeId,
       id: { not: id }
     }
   })
@@ -113,7 +113,7 @@ export async function updateModel(id: string, formData: any) {
       where: { id },
       data: {
         name: data.name,
-        pieceType: data.pieceType,
+        pieceTypeId: data.pieceTypeId,
         basePrice: data.basePrice,
         activeStatus: data.activeStatus,
       }
