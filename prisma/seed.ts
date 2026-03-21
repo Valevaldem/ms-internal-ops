@@ -38,15 +38,6 @@ async function main() {
     ]
   });
 
-  // 2. Models
-  await prisma.model.createMany({
-    data: [
-      { name: 'Nova', pieceType: 'Ring', basePrice: 18000, activeStatus: true },
-      { name: 'Galaxy', pieceType: 'Ring', basePrice: 24000, activeStatus: true },
-      { name: 'Atom', pieceType: 'Ring', basePrice: 16000, activeStatus: true },
-    ],
-  })
-
   // 3. Piece Types
   await prisma.pieceType.deleteMany({})
   await prisma.pieceType.createMany({
@@ -57,6 +48,15 @@ async function main() {
       { id: "pt-bracelet", name: 'Bracelet', activeStatus: true },
       { id: "pt-other", name: 'Other', activeStatus: true },
     ]
+  })
+
+  // 2. Models
+  await prisma.model.createMany({
+    data: [
+      { name: 'Nova', pieceTypeId: 'pt-ring', basePrice: 18000, activeStatus: true },
+      { name: 'Galaxy', pieceTypeId: 'pt-ring', basePrice: 24000, activeStatus: true },
+      { name: 'Atom', pieceTypeId: 'pt-ring', basePrice: 16000, activeStatus: true },
+    ],
   })
 
   // 4. Stone Lots

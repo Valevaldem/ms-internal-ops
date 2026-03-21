@@ -46,13 +46,15 @@ model SalesAssociate {
 model Model {
   id           String  @id @default(cuid()) @map("model_id")
   name         String  @map("model_name")
-  pieceType    String  @map("piece_type")
+  pieceTypeId  String  @map("piece_type_id")
+  pieceType    PieceType @relation(fields: [pieceTypeId], references: [id])
   basePrice    Float   @map("base_price")
   activeStatus Boolean @default(true) @map("active_status")
 
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  @@unique([name, pieceTypeId])
   @@map("models")
 }
 
@@ -61,6 +63,7 @@ model PieceType {
   id           String  @id @default(cuid()) @map("piece_type_id")
   name         String  @unique @map("piece_type_name")
   activeStatus Boolean @default(true) @map("active_status")
+  models       Model[]
 
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
