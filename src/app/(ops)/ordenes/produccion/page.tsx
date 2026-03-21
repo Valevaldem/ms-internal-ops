@@ -98,7 +98,6 @@ export default async function ProduccionPage() {
       case "Preparando envío": return "Empaquetado";
       case "En tránsito": return "Recibido";
       case "Listo para entrega": return "Entregado";
-      case "Entregado": return "Cerrar ciclo";
       default: return "Avanzar Etapa";
     }
   }

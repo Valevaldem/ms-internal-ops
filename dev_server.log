@@ -1,0 +1,22 @@
+
+> ms-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+✓ Ready in 1435ms
+○ Compiling /login ...
+ GET /login 200 in 3.9s (compile: 3.4s, proxy.ts: 192ms, render: 302ms)
+ GET /login 200 in 92ms (compile: 7ms, proxy.ts: 7ms, render: 79ms)
+ POST /login 200 in 221ms (compile: 4ms, proxy.ts: 8ms, render: 209ms)
+  Reload env: .env
+ GET /login 200 in 188ms (compile: 68ms, proxy.ts: 23ms, render: 96ms)
+ POST /login 200 in 164ms (compile: 4ms, proxy.ts: 7ms, render: 153ms)
+ GET /login 200 in 84ms (compile: 6ms, proxy.ts: 7ms, render: 71ms)
+ GET / 200 in 1484ms (compile: 1022ms, proxy.ts: 7ms, render: 454ms)
+ POST /login 303 in 1665ms (compile: 5ms, proxy.ts: 9ms, render: 1652ms)
+ GET /ordenes/produccion 200 in 1235ms (compile: 943ms, proxy.ts: 8ms, render: 284ms)
+ GET /ordenes/historial 200 in 1154ms (compile: 865ms, proxy.ts: 6ms, render: 283ms)
