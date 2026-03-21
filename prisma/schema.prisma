@@ -10,14 +10,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// 0. System Users
+model User {
+  id               String   @id @default(cuid()) @map("user_id")
+  name             String
+  username         String   @unique
+  passwordHash     String   @map("password_hash")
+  role             String   // 'manager', 'advisor', 'certificate_operator'
+  activeStatus     Boolean  @default(true) @map("active_status")
+
+  salesAssociateId String?  @map("sales_associate_id")
+  salesAssociate   SalesAssociate? @relation(fields: [salesAssociateId], references: [id])
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
 // 1. Sales Associates Catalog
 model SalesAssociate {
-  id                  String      @id @default(cuid()) @map("associate_id")
-  name                String      @map("associate_name")
-  activeStatus        Boolean     @default(true) @map("active_status")
-  appliesMsAdjustment Boolean     @default(false) @map("applies_ms_adjustment")
+  id                  String  @id @default(cuid()) @map("associate_id")
+  name                String  @map("associate_name")
+  activeStatus        Boolean @default(true) @map("active_status")
+  appliesMsAdjustment Boolean @default(false) @map("applies_ms_adjustment")
 
-  quotations          Quotation[]
+  quotations Quotation[]
+  users      User[]
 
   @@map("sales_associates")
 }
@@ -30,16 +49,32 @@ model Model {
   basePrice    Float   @map("base_price")
   activeStatus Boolean @default(true) @map("active_status")
 
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
   @@map("models")
 }
 
-// 3. Stone Lot Catalog
+// 3. Piece Types Catalog
+model PieceType {
+  id           String  @id @default(cuid()) @map("piece_type_id")
+  name         String  @unique @map("piece_type_name")
+  activeStatus Boolean @default(true) @map("active_status")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("piece_types")
+}
+
+// 4. Stone Lot Catalog
 model StoneLot {
   code         String  @id @map("lot_code")
   stoneName    String  @map("stone_name")
   cut          String
   color        String
   pricePerCt   Float   @map("price_per_ct")
+  pricingMode  String  @default("CT") @map("pricing_mode") // CT or PZ
   activeStatus Boolean @default(true) @map("active_status")
 
   @@map("stone_lots")
@@ -47,114 +82,157 @@ model StoneLot {
 
 // Create Quotation Module
 model Quotation {
-  id                        String   @id @default(cuid()) @map("quotation_id")
-  quotationDate             DateTime @default(now()) @map("quotation_date")
-  clientNameOrUsername      String   @map("client_name_or_username")
-  phoneNumber               String?  @map("phone_number")
-  salesChannel              String   @map("sales_channel") // Store, WhatsApp, Instagram, Facebook, TikTok, Form
+  id                   String   @id @default(cuid()) @map("quotation_id")
+  folio                String?  @unique
+  quotationDate        DateTime @default(now()) @map("quotation_date")
+  clientNameOrUsername String   @map("client_name_or_username")
+  phoneNumber          String?  @map("phone_number")
+  salesChannel         String   @map("sales_channel") // Store, WhatsApp, Instagram, Facebook, TikTok, Form
 
-  salesAssociateId          String   @map("sales_associate_id")
-  salesAssociate            SalesAssociate @relation(fields: [salesAssociateId], references: [id])
+  salesAssociateId String         @map("sales_associate_id")
+  salesAssociate   SalesAssociate @relation(fields: [salesAssociateId], references: [id])
+
+  type           String  @default("Standard") @map("type") // Standard, Manual
 
   // Piece Information
-  pieceType                 String   @map("piece_type") // Ring, Chain, Earrings, Bracelet, Other
-  modelName                 String   @map("model_name")
-  modelBasePrice            Float    @map("model_base_price")
-  notes                     String?
+  pieceType              String  @map("piece_type") // Ring, Chain, Earrings, Bracelet, Other
+  modelName              String?  @map("model_name") // Optional for Manual
+  modelBasePrice         Float?   @map("model_base_price") // Optional for Manual
+  manualPieceDescription String? @map("manual_piece_description") // Used for Manual
+  notes                  String?
+
+  productionTiming       String? @map("production_timing") // Express, Regular, Special (used in Manual)
 
   // Stones
-  stones                    QuotationStone[]
+  stones QuotationStone[]
 
   // Pricing & Internal Rules
-  totalStonesPrice          Float    @map("total_stones_price")
-  subtotalBeforeAdjustments Float    @map("subtotal_before_adjustments") // totalStonesPrice + modelBasePrice
+  totalStonesPrice          Float? @map("total_stones_price")
+  subtotalBeforeAdjustments Float? @map("subtotal_before_adjustments") // totalStonesPrice + modelBasePrice
 
-  msInternalAdjustment      Float    @default(0) @map("ms_internal_adjustment") // +5000 if associate applies
-  marginProtectionEnabled   Boolean  @default(false) @map("margin_protection_enabled")
-  marginProtectionPercent   Float    @default(15) @map("margin_protection_percent")
-  marginProtectionAmount    Float    @default(0) @map("margin_protection_amount")
+  msInternalAdjustment    Float   @default(0) @map("ms_internal_adjustment") // +5000 if associate applies
+  marginProtectionEnabled Boolean @default(false) @map("margin_protection_enabled")
+  marginProtectionPercent Float   @default(15) @map("margin_protection_percent")
+  marginProtectionAmount  Float   @default(0) @map("margin_protection_amount")
 
-  finalClientPrice          Float    @map("final_client_price")
+  discountPercent  Float? @map("discount_percent") // Percentage 0-100 applied to subtotal
+  finalClientPrice Float  @map("final_client_price")
 
   // Validity
-  validUntil                DateTime @map("valid_until")
-  daysRemaining             Int      @map("days_remaining")
+  validUntil    DateTime @map("valid_until")
+  daysRemaining Int      @map("days_remaining")
 
   // Status & Tracking
-  status                    String   @default("Draft") // Draft, Sent, Waiting for Response, In Follow-Up, Extended, Expired, Converted, Cancelled, Deleted
-  followupCount             Int      @default(0) @map("followup_count")
-  tags                      String?  // warnings/tags separated by comma
+  status        String  @default("Pendiente de respuesta") // Pendiente de respuesta, En seguimiento, Oportunidad de cierre, Declinada, Converted
+  followupCount Int     @default(0) @map("followup_count")
+  tags          String? // warnings/tags separated by comma
 
   // Conversion
-  order                     Order?
+  order Order?
+
+  // Versioning
+  parentQuotationId String?     @map("parent_quotation_id")
+  parentQuotation   Quotation?  @relation("QuotationVersions", fields: [parentQuotationId], references: [id])
+  versions          Quotation[] @relation("QuotationVersions")
+  versionNumber     Int         @default(1) @map("version_number")
 
   @@map("quotations")
 }
 
 model QuotationStone {
-  id             String    @id @default(cuid())
-  quotationId    String    @map("quotation_id")
-  quotation      Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  quotationId String    @map("quotation_id")
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 
-  lotCode        String    @map("lot_code")
-  stoneName      String    @map("stone_name")
-  weightCt       Float     @map("weight_ct")
-  pricePerCt     Float     @map("price_per_ct")
-  stoneSubtotal  Float     @map("stone_subtotal") // weightCt * pricePerCt
+  lotCode       String @map("lot_code")
+  stoneName     String @map("stone_name")
+  quantity      Int    @default(1)
+  weightCt      Float  @map("weight_ct")
+  pricePerCt    Float  @map("price_per_ct") // Acts as flat price if pricingMode is PZ
+  pricingMode   String @default("CT") @map("pricing_mode")
+  stoneSubtotal Float  @map("stone_subtotal") // weightCt * pricePerCt OR quantity * pricePerCt
 
   @@map("quotation_stones")
 }
 
 // Converted Orders
 model Order {
-  id                     String    @id @default(cuid()) @map("order_id")
-  quotationId            String    @unique @map("quotation_id")
-  quotation              Quotation @relation(fields: [quotationId], references: [id])
+  id          String    @id @default(cuid()) @map("order_id")
+  quotationId String    @unique @map("quotation_id")
+  quotation   Quotation @relation(fields: [quotationId], references: [id])
 
-  referenceImageUrl      String?   @map("reference_image_url")
-  posTicketNumber        String?   @map("pos_ticket_number")
-  deliveryMethod         String    @map("delivery_method") // Shipping, Store Pickup
+  referenceImageUrl String? @map("reference_image_url")
+  posTicketNumber   String? @map("pos_ticket_number")
+  deliveryMethod    String  @map("delivery_method") // Shipping, Store Pickup
 
   // Certificate Data
-  certificateTitle       String?   @map("certificate_title")
-  familyLastNameOrTitle  String?   @map("family_last_name_or_title")
-  certificateStatus      String    @default("Not Started") @map("certificate_status") // Not Started, Incomplete, Ready, Generated, Delivered
-  certificateMembers     CertificateMember[]
+  certificateTitle              String?             @map("certificate_title")
+  familyLastNameOrTitle         String?             @map("family_last_name_or_title")
+  certificateStatus             String              @default("Not Started") @map("certificate_status") // Not Started, Incomplete, Ready, Generated, Delivered
+  certificateMembers            CertificateMember[]
+  certificateVinylReady         Boolean             @default(false) @map("certificate_vinyl_ready") // Mapped to: Título preparado
+  certificatePhotoReady         Boolean             @default(false) @map("certificate_photo_ready") // Mapped to: Foto tomada
+  certificatePrintedReady       Boolean             @default(false) @map("certificate_printed_ready") // Mapped to: Certificado impreso
+  certificateDeliveredToAdvisor Boolean             @default(false) @map("certificate_delivered_to_advisor") // Mapped to: Entregado a asesora
+  certificateNeedsReview        Boolean             @default(false) @map("certificate_needs_review")
+
+  orderNotes           String? @map("order_notes")
+  certificateNotes     String? @map("certificate_notes")
+  isCertificatePending Boolean @default(false) @map("is_certificate_pending")
 
   // Stages & Production Tracking
-  stage                  String    @default("Converted") // Converted, In Production, Finished, Shipped, Ready for Store Pickup, Delivered, Post-Sale Follow-Up Pending (5 days), Post-Sale Follow-Up Pending (1 month), Cycle Closed
+  stage                  String    @default("Por confirmar diseño final") // Por confirmar diseño final, Producción, Certificación, Revisión final de asesora, Creación de Guía, Preparando envío, Listo para entrega, En tránsito, Entregado, Post-Sale Follow-Up Pending (5 days), Post-Sale Follow-Up Pending (1 month), Cycle Closed
   productionStartDate    DateTime? @map("production_start_date")
   estimatedProductionEnd DateTime? @map("estimated_production_end")
   productionDaysElapsed  Int       @default(0) @map("production_days_elapsed")
 
+  paymentStatus String @default("Parcial") @map("payment_status") // Parcial, Liquidado
+
+  productionTiming String? @map("production_timing") // Express, Regular, Special
+  isPriority       Boolean @default(false) @map("is_priority")
+
+  stageHistory OrderStageHistory[]
+
   // Delivery/Shipping Info (If Shipping)
-  shippingCarrier        String?   @map("shipping_carrier")
-  trackingNumber         String?   @map("tracking_number")
-  shippingDate           DateTime? @map("shipping_date")
-  estimatedDeliveryDate  DateTime? @map("estimated_delivery_date")
-  deliveredConfirmation  DateTime? @map("delivered_confirmation")
+  shippingCarrier       String?   @map("shipping_carrier")
+  trackingNumber        String?   @map("tracking_number")
+  shippingDate          DateTime? @map("shipping_date")
+  estimatedDeliveryDate DateTime? @map("estimated_delivery_date")
+  deliveredConfirmation DateTime? @map("delivered_confirmation")
 
   // Pickup Info (If Store Pickup)
-  pickupReadyDate        DateTime? @map("pickup_ready_date")
-  pickupCompletedDate    DateTime? @map("pickup_completed_date")
+  pickupReadyDate     DateTime? @map("pickup_ready_date")
+  pickupCompletedDate DateTime? @map("pickup_completed_date")
 
   // Post-sale
-  postSale5DaysDate      DateTime? @map("post_sale_5_days_date")
-  postSale1MonthDate     DateTime? @map("post_sale_1_month_date")
+  postSale5DaysDate  DateTime? @map("post_sale_5_days_date")
+  postSale1MonthDate DateTime? @map("post_sale_1_month_date")
 
-  createdAt              DateTime  @default(now()) @map("created_at")
-  updatedAt              DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("orders")
 }
 
 model CertificateMember {
-  id                  String @id @default(cuid())
-  orderId             String @map("order_id")
-  order               Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  orderId String @map("order_id")
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  memberName          String @map("member_name")
-  representativeStone String @map("representative_stone")
+  memberName          String  @map("member_name")
+  representativeStone String  @map("representative_stone")
+  helperDescription   String? @map("helper_description")
 
   @@map("certificate_members")
+}
+
+model OrderStageHistory {
+  id      String @id @default(cuid())
+  orderId String @map("order_id")
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  stage     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("order_stage_history")
 }
