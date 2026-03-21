@@ -70,13 +70,13 @@ export default async function HistorialOrdenesPage(props: { searchParams: Promis
       </div>
 
       {tab !== 'archived' && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg text-sm mb-6 flex gap-3 items-start">
-          <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="bg-[#F5F2EE]/80 border border-[#D8D3CC] text-[#333333] p-4 rounded-lg text-sm mb-6 flex gap-3 items-start shadow-sm">
+          <svg className="w-5 h-5 mt-0.5 flex-shrink-0 text-[#C5B358]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <span className="font-semibold block mb-1">Para cerrar el ciclo de una orden:</span>
-            Asegúrese de que el cliente haya enviado un mensaje o foto confirmando la correcta recepción de la pieza, o que haya respondido a la encuesta de servicio.
+            <span className="font-semibold block mb-1 text-[#C5B358]">Recordatorio importante antes de Cerrar Ciclo:</span>
+            El ciclo de una orden <strong>sólo debe cerrarse</strong> después de que el cliente haya confirmado la correcta recepción de su pieza (ya sea mediante un mensaje, foto, reseña o encuesta de servicio).
           </div>
         </div>
       )}
