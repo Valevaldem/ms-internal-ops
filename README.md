@@ -1,5 +1,14 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Local environment setup
+
+To get started with local development using Neon/Prisma:
+
+1. Copy `.env.example` to `.env`
+2. Fill `DATABASE_URL` and `DIRECT_URL` with your local Postgres/Neon values
+3. Run the database model migration audit: `npx tsx scripts/audit_model_migration.ts`
+4. Run migrations: `npx prisma@5 migrate dev`
+
 ## Getting Started
 
 First, run the development server:
