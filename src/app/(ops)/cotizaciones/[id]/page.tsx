@@ -283,21 +283,27 @@ export default async function DetailCotizacionPage({ params }: { params: Promise
         )}
 
         {/* Acciones */}
-        <div className="bg-[#F5F2EE] p-4 border-t border-[#D8D3CC] flex justify-end gap-4">
-           {quotation.status !== 'Archived' && quotation.status !== 'Converted' && (
-  <Link href={`/cotizaciones/${quotation.id}/editar`} className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
-    Editar
+      {/* Acciones */}
+<div className="bg-[#F5F2EE] p-4 border-t border-[#D8D3CC] flex justify-end gap-4">
+  {quotation.status !== 'Archived' && quotation.status !== 'Converted' && (
+    <Link href={`/cotizaciones/${quotation.id}/editar`} className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
+      Editar
+    </Link>
+  )}
+  {quotation.status !== 'Archived' && quotation.status !== 'Converted' && (
+    <Link href={`/cotizaciones/nueva?versionFromId=${quotation.id}`} className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
+      Crear Nueva Versión
+    </Link>
+  )}
+  <Link href={`/cotizaciones/${quotation.id}/cliente`} target="_blank" className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
+    Ver Vista Cliente
   </Link>
-)}
-           <Link href={`/cotizaciones/${quotation.id}/cliente`} target="_blank" className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm font-semibold hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider">
-             Ver Vista Cliente
-           </Link>
-           {quotation.status !== 'Converted' && quotation.status !== 'Archived' && (
-             <Link href={`/ordenes/nueva?quotationId=${quotation.id}`} className="bg-[#333333] text-white px-6 py-2 rounded text-sm font-semibold hover:bg-black transition-colors uppercase tracking-wider">
-               Convertir a Orden
-             </Link>
-           )}
-        </div>
+  {quotation.status !== 'Converted' && quotation.status !== 'Archived' && (
+    <Link href={`/ordenes/nueva?quotationId=${quotation.id}`} className="bg-[#333333] text-white px-6 py-2 rounded text-sm font-semibold hover:bg-black transition-colors uppercase tracking-wider">
+      Convertir a Orden
+    </Link>
+  )}
+</div>
       </div>
     </div>
   );
