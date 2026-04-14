@@ -243,3 +243,20 @@ model OrderStageHistory {
 
   @@map("order_stage_history")
 }
+
+model ManualCertificateRequest {
+  id               String   @id @default(cuid()) @map("request_id")
+  folio            String   @unique
+  clientName       String   @map("client_name")
+  invoiceNumber    String?  @map("invoice_number")
+  pieceDescription String   @map("piece_description")
+  advisorName      String   @map("advisor_name")
+  certificateTitle String?  @map("certificate_title")
+  stonesData       Json?    @map("stones_data")
+  status           String   @default("Pendiente") @map("status")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("manual_certificate_requests")
+}
