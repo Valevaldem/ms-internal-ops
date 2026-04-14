@@ -320,7 +320,7 @@ export default async function HistorialCotizaciones(props: {
                       ) : q.status === 'Borrador' ? (
                         <span className="px-2 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase border bg-gray-50 text-gray-500 border-gray-200">Borrador</span>
                       ) : (
-                        <StatusSelect quotationId={q.id} currentStatus={q.status} />
+                        <StatusSelect id={q.id} currentStatus={q.status} />
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
