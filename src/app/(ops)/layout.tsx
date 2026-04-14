@@ -75,6 +75,7 @@ export default async function OpsLayout({
               </div>
               <SidebarLink href="/inventario/modelos" icon={<Award size={18} />} label="Modelos Base" />
               <SidebarLink href="/inventario/lotes" icon={<Settings size={18} />} label="Lotes de Piedras" />
+              <SidebarLink href="/inventario/canales" icon={<Tag size={18} />} label="Canales de Venta" />
             </>
           )}
 
