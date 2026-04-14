@@ -218,10 +218,13 @@ export default function NuevaCotizacionClient({
 
   const onSubmit = async (data: any) => {
     if (initialData?.id) data.versionFromId = initialData.id
-    if (data.stones.some((s: any) => !s.stoneName) || invalidLots.length > 0) {
+    // Solo bloquear si hay lotes inválidos (stones vacío es permitido)
+    if (invalidLots.length > 0) {
       alert("Por favor corrige los lotes inválidos antes de continuar.")
       return
     }
+    // Filtrar stones sin lotCode (vacíos)
+    data.stones = data.stones.filter((s: any) => s.lotCode && s.lotCode.trim() !== '')
 
     const isCustom = data.modelId === CUSTOM_MODEL_ID
     const modelName = isCustom ? "Personalizado" : (selectedModel?.name || "Desconocido")
@@ -405,17 +408,17 @@ export default function NuevaCotizacionClient({
               <>
                 <div>
                   <label className="block text-sm text-[#333333] mb-1">Días hábiles de producción <span className="text-red-500">*</span></label>
-                  <select
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
                     {...register("customProductionDays", { valueAsNumber: true })}
                     className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]"
-                  >
-                    <option value={5}>5 días hábiles (Express)</option>
-                    <option value={20}>20 días hábiles (Regular)</option>
-                    <option value={50}>50 días hábiles (Especial)</option>
-                  </select>
+                    placeholder="Ej. 15"
+                  />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm text-[#333333] mb-1">Descripción de la pieza personalizada <span className="text-red-500">*</span></label>
+                  <label className="block text-sm text-[#333333] mb-1">Descripción de la pieza personalizada <span className="text-[#8E8D8A] text-xs font-normal">(opcional)</span></label>
                   <textarea
                     {...register("manualPieceDescription")}
                     rows={2}
@@ -427,15 +430,7 @@ export default function NuevaCotizacionClient({
             )}
           </div>
 
-          <div>
-            <label className="block text-sm text-[#333333] mb-1">Notas del diseño</label>
-            <textarea
-              readOnly={!!initialData}
-              {...register("notes")}
-              className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}
-              rows={2}
-            />
-          </div>
+
         </section>
 
         {/* Piedras */}
