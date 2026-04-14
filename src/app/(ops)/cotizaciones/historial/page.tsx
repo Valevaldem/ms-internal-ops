@@ -43,7 +43,7 @@ export default async function HistorialCotizaciones(props: {
   }>;
 }) {
   const user = await getCurrentUser();
-  verifyAccess(user, ['manager', 'advisor']);
+  verifyAccess(user, ['manager', 'advisor', 'stock_operator']);
 
   const sp = await props.searchParams;
   const search = sp.search || '';
@@ -66,7 +66,7 @@ export default async function HistorialCotizaciones(props: {
     ]
   } : {};
 
-  if (user.role === 'advisor' && user.salesAssociateId) {
+  if ((user.role === 'advisor' || user.role === 'stock_operator') && user.salesAssociateId) {
     whereClause.salesAssociateId = user.salesAssociateId;
   }
 

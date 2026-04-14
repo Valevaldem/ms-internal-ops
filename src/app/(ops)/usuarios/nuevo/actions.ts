@@ -23,26 +23,34 @@ export async function createUserAction(formData: FormData) {
     return { error: "Debe seleccionar una asesora de ventas para este rol." };
   }
 
-  // Check if username already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { username },
-  });
-
+  const existingUser = await prisma.user.findUnique({ where: { username } });
   if (existingUser) {
     return { error: "El nombre de usuario ya está en uso." };
   }
 
-  // Hash password
   const passwordHash = await bcrypt.hash(password, 10);
 
-  // Create user
+  // Para stock_operator, crear un SalesAssociate propio automáticamente
+  let finalAssociateId = role === "advisor" ? salesAssociateId : null;
+
+  if (role === "stock_operator") {
+    const stockAssociate = await prisma.salesAssociate.create({
+      data: {
+        name: `[Stock] ${name}`,
+        activeStatus: true,
+        appliesMsAdjustment: false,
+      }
+    });
+    finalAssociateId = stockAssociate.id;
+  }
+
   await prisma.user.create({
     data: {
       name,
       username,
       passwordHash,
       role,
-      salesAssociateId: role === "advisor" ? salesAssociateId : null,
+      salesAssociateId: finalAssociateId,
       activeStatus: true,
     },
   });

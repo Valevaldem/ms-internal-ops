@@ -8,24 +8,13 @@ export async function createStockQuotation(formData: any) {
   const {
     referenceCode, pieceType, modelId, modelBasePrice, modelName,
     notes, stones, totalStonesPrice, subtotal, finalClientPrice,
-    operatorId, operatorName,
   } = formData
 
   const user = await getCurrentUser()
 
-  // Buscar o crear un SalesAssociate para el operador de stock
-  // Usamos el nombre del operador como identificador
-  let stockAssociate = await prisma.salesAssociate.findFirst({
-    where: { name: { startsWith: "[STOCK]" } }
-  })
-  if (!stockAssociate) {
-    stockAssociate = await prisma.salesAssociate.create({
-      data: {
-        name: `[STOCK] ${operatorName}`,
-        activeStatus: true,
-        appliesMsAdjustment: false,
-      }
-    })
+  // Usar el salesAssociateId del operador (creado al registrar el usuario)
+  if (!user.salesAssociateId) {
+    throw new Error("El operador de stock no tiene un perfil de asesora vinculado. Contacta al administrador.")
   }
 
   const count = await prisma.quotation.count({ where: { parentQuotationId: null } })
@@ -49,10 +38,9 @@ export async function createStockQuotation(formData: any) {
       folio,
       versionNumber: 1,
       type: 'Standard',
-      // Sin datos de cliente — usamos referencia
       clientNameOrUsername: referenceCode || `Stock-${seq}`,
       salesChannel: 'Store',
-      salesAssociateId: stockAssociate.id,
+      salesAssociateId: user.salesAssociateId,
       pieceType,
       modelName: modelName || "",
       modelBasePrice: Number(modelBasePrice) || 0,
@@ -66,7 +54,7 @@ export async function createStockQuotation(formData: any) {
       marginProtectionAmount: 0,
       discountPercent: 0,
       finalClientPrice: Number(finalClientPrice),
-      validUntil: new Date(Date.now() + 90 * 86400000), // 90 días
+      validUntil: new Date(Date.now() + 90 * 86400000),
       daysRemaining: 90,
       status: 'Pendiente de respuesta',
       tags: 'stock',
