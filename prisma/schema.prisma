@@ -246,7 +246,7 @@ model OrderStageHistory {
 
 model ManualCertificateRequest {
   id               String   @id @default(cuid()) @map("request_id")
-  folio            String   @unique
+  folio            String?  @unique
   clientName       String   @map("client_name")
   invoiceNumber    String?  @map("invoice_number")
   pieceDescription String   @map("piece_description")
@@ -254,6 +254,11 @@ model ManualCertificateRequest {
   certificateTitle String?  @map("certificate_title")
   stonesData       String?  @map("stones_data")
   status           String   @default("Pendiente") @map("status")
+
+  certificateVinylReady         Boolean @default(false) @map("certificate_vinyl_ready")
+  certificatePhotoReady         Boolean @default(false) @map("certificate_photo_ready")
+  certificatePrintedReady       Boolean @default(false) @map("certificate_printed_ready")
+  certificateDeliveredToAdvisor Boolean @default(false) @map("certificate_delivered_to_advisor")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
