@@ -1,55 +1,86 @@
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, Award, User, LogOut, Users, UserPlus, Package } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, Award, User, LogOut, Users, UserPlus, Package, Tag } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 
-export default async function OpsLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function OpsLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser();
 
   return (
     <div className="flex h-screen bg-[#F5F2EE] text-[#333333] font-sans antialiased selection:bg-[#D8D3CC] selection:text-[#333333]">
       <aside className="w-64 bg-white border-r border-[#D8D3CC] flex flex-col items-center py-8 px-4 h-full shadow-sm">
         <div className="mb-12">
-          <h1 className="text-xl tracking-widest text-center text-[#333333] uppercase font-medium" style={{ fontFamily: 'var(--font-poppins)' }}>Maria Salinas</h1>
+          <h1 className="text-xl tracking-widest text-center text-[#333333] uppercase font-medium" style={{ fontFamily: 'var(--font-poppins)' }}>
+            Maria Salinas
+          </h1>
           <p className="text-xs text-center text-[#8E8D8A] tracking-wider mt-1">Internal Ops</p>
         </div>
 
         <nav className="flex-1 w-full space-y-2">
-          {user.role !== 'certificate_operator' && (
+
+          {/* ADVISOR / MANAGER */}
+          {(user.role === 'advisor' || user.role === 'manager') && (
             <>
               <SidebarLink href="/" icon={<Home size={18} />} label="Resumen" />
-              <div className="pt-4 pb-2"><p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Cotizaciones</p></div>
+
+              <div className="pt-4 pb-2">
+                <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Cotizaciones</p>
+              </div>
               <SidebarLink href="/cotizaciones/nueva" icon={<Calculator size={18} />} label="Nueva Cotización" />
               <SidebarLink href="/cotizaciones/historial" icon={<FileText size={18} />} label="Historial" />
-              <div className="pt-4 pb-2"><p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Órdenes</p></div>
+
+              <div className="pt-4 pb-2">
+                <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Órdenes</p>
+              </div>
               <SidebarLink href="/ordenes/produccion" icon={<Package size={18} />} label="Órdenes" />
             </>
           )}
 
+          {/* STOCK OPERATOR */}
+          {user.role === 'stock_operator' && (
+            <>
+              <SidebarLink href="/cotizaciones/stock" icon={<Tag size={18} />} label="Cotización Stock" />
+              <SidebarLink href="/cotizaciones/historial" icon={<FileText size={18} />} label="Mis Cotizaciones" />
+            </>
+          )}
+
+          {/* CERTIFICATE OPERATOR */}
           {(user.role === 'manager' || user.role === 'certificate_operator') && (
             <>
               {user.role === 'certificate_operator' && (
-                <div className="pt-4 pb-2"><p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Operación</p></div>
+                <div className="pt-4 pb-2">
+                  <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Operación</p>
+                </div>
               )}
               <SidebarLink href="/certificados" icon={<Award size={18} />} label="Certificados" />
             </>
           )}
 
-          {user.role !== 'certificate_operator' && (
+          {/* POST-VENTA — advisor y manager */}
+          {(user.role === 'advisor' || user.role === 'manager') && (
             <SidebarLink href="/ordenes/historial" icon={<ShoppingBag size={18} />} label="Post-venta" />
           )}
 
+          {/* ADMIN — solo manager */}
           {user.role === 'manager' && (
             <>
-              <div className="pt-4 pb-2"><p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Administración</p></div>
+              <div className="pt-4 pb-2">
+                <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Administración</p>
+              </div>
               <SidebarLink href="/usuarios" icon={<Users size={18} />} label="Usuarios" />
               <SidebarLink href="/asesoras" icon={<UserPlus size={18} />} label="Asesoras" />
-              <div className="pt-4 pb-2"><p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Inventario</p></div>
+              <div className="pt-4 pb-2">
+                <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Inventario</p>
+              </div>
               <SidebarLink href="/inventario/modelos" icon={<Award size={18} />} label="Modelos Base" />
               <SidebarLink href="/inventario/lotes" icon={<Settings size={18} />} label="Lotes de Piedras" />
             </>
           )}
 
-          <div className="pt-4 pb-2"><p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Sistema</p></div>
+          <div className="pt-4 pb-2">
+            <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Sistema</p>
+          </div>
           <SidebarLink href="/alertas" icon={<Bell size={18} />} label="Alertas" />
         </nav>
 
@@ -62,7 +93,12 @@ export default async function OpsLayout({ children }: Readonly<{ children: React
             </div>
             <div className="flex justify-between">
               <span className="text-[#8E8D8A]">Rol:</span>
-              <span className="font-medium capitalize">{user.role === 'manager' ? 'Manager' : user.role === 'certificate_operator' ? 'Certificados' : 'Asesora'}</span>
+              <span className="font-medium capitalize">
+                {user.role === 'manager' ? 'Manager'
+                  : user.role === 'certificate_operator' ? 'Certificados'
+                  : user.role === 'stock_operator' ? 'Stock'
+                  : 'Asesora'}
+              </span>
             </div>
             {user.salesAssociateId && (
               <div className="flex justify-between">

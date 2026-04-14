@@ -37,95 +37,51 @@ export default function NuevoUsuarioClient({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-[#333333] mb-1">
-                Nombre Completo
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border"
-                placeholder="Ej. Ana García"
-              />
+              <label htmlFor="name" className="block text-sm font-medium text-[#333333] mb-1">Nombre Completo</label>
+              <input id="name" name="name" type="text" required className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border" placeholder="Ej. Ana García" />
             </div>
-
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-[#333333] mb-1">
-                Nombre de Usuario
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border"
-                placeholder="Ej. agarcia"
-              />
+              <label htmlFor="username" className="block text-sm font-medium text-[#333333] mb-1">Nombre de Usuario</label>
+              <input id="username" name="username" type="text" required className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border" placeholder="Ej. agarcia" />
             </div>
-
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#333333] mb-1">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border"
-              />
+              <label htmlFor="password" className="block text-sm font-medium text-[#333333] mb-1">Contraseña</label>
+              <input id="password" name="password" type="password" required className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border" />
             </div>
-
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-[#333333] mb-1">
-                Rol
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                required
-                className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border bg-white"
-              >
-                <option value="advisor">Asesora (Advisor)</option>
+              <label htmlFor="role" className="block text-sm font-medium text-[#333333] mb-1">Rol</label>
+              <select id="role" name="role" value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} required className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border bg-white">
+                <option value="advisor">Asesora</option>
                 <option value="manager">Administrador (Manager)</option>
                 <option value="certificate_operator">Operador de Certificados</option>
+                <option value="stock_operator">Operador de Stock</option>
               </select>
             </div>
 
             {selectedRole === "advisor" && (
               <div className="md:col-span-2">
-                <label htmlFor="salesAssociateId" className="block text-sm font-medium text-[#333333] mb-1">
-                  Vincular a Asesora de Ventas
-                </label>
-                <p className="text-xs text-[#8E8D8A] mb-2">
-                  Seleccione la asesora que este usuario representará en las operaciones. Esto definirá qué cotizaciones y órdenes puede ver.
-                </p>
-                <select
-                  id="salesAssociateId"
-                  name="salesAssociateId"
-                  required
-                  className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border bg-white"
-                >
+                <label htmlFor="salesAssociateId" className="block text-sm font-medium text-[#333333] mb-1">Vincular a Asesora de Ventas</label>
+                <p className="text-xs text-[#8E8D8A] mb-2">Seleccione la asesora que este usuario representará en las operaciones.</p>
+                <select id="salesAssociateId" name="salesAssociateId" required className="w-full border-[#D8D3CC] rounded-md py-2 px-3 focus:ring-[#C5B358] focus:border-[#C5B358] sm:text-sm border bg-white">
                   <option value="">-- Seleccionar Asesora --</option>
                   {salesAssociates.map((sa) => (
-                    <option key={sa.id} value={sa.id}>
-                      {sa.name}
-                    </option>
+                    <option key={sa.id} value={sa.id}>{sa.name}</option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {selectedRole === "stock_operator" && (
+              <div className="md:col-span-2">
+                <div className="bg-[#F5F2EE] border border-[#D8D3CC] rounded-md p-3 text-xs text-[#8E8D8A]">
+                  El operador de stock puede crear cotizaciones internas de piezas sin datos de cliente, con precio base editable y subtotal de piedras sin redondear.
+                </div>
               </div>
             )}
           </div>
 
           <div className="pt-4 flex justify-end">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="bg-[#333333] text-white px-6 py-2 rounded text-sm hover:bg-[#222222] transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider font-medium"
-            >
+            <button type="submit" disabled={isPending} className="bg-[#333333] text-white px-6 py-2 rounded text-sm hover:bg-[#222222] transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider font-medium">
               {isPending ? "Creando..." : "Crear Usuario"}
             </button>
           </div>

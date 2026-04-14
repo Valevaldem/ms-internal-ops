@@ -14,27 +14,28 @@ export async function loginAction(formData: FormData) {
     return { error: "Por favor, ingresa tu usuario y contraseña." };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { username },
-  });
+  const user = await prisma.user.findUnique({ where: { username } });
 
   if (!user || !user.activeStatus) {
     return { error: "Credenciales inválidas o cuenta inactiva." };
   }
 
   const passwordMatch = await bcrypt.compare(password, user.passwordHash);
-
   if (!passwordMatch) {
     return { error: "Credenciales inválidas." };
   }
 
   const role = user.role as UserRole;
-  const redirectUrl = role === "certificate_operator" ? "/certificados" : "/";
+
+  // Redirigir según rol
+  let redirectUrl = "/";
+  if (role === "certificate_operator") redirectUrl = "/certificados";
+  else if (role === "stock_operator") redirectUrl = "/cotizaciones/stock";
 
   await createSession({
     id: user.id,
     name: user.name,
-    role: role,
+    role,
     salesAssociateId: user.salesAssociateId || undefined,
   });
 
