@@ -405,14 +405,14 @@ export default function NuevaCotizacionClient({
               <>
                 <div>
                   <label className="block text-sm text-[#333333] mb-1">Días hábiles de producción <span className="text-red-500">*</span></label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="365"
+                  <select
                     {...register("customProductionDays", { valueAsNumber: true })}
                     className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]"
-                    placeholder="Ej. 15"
-                  />
+                  >
+                    <option value={5}>5 días hábiles (Express)</option>
+                    <option value={20}>20 días hábiles (Regular)</option>
+                    <option value={50}>50 días hábiles (Especial)</option>
+                  </select>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm text-[#333333] mb-1">Descripción de la pieza personalizada <span className="text-red-500">*</span></label>
