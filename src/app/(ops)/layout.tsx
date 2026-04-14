@@ -49,6 +49,7 @@ function buildNavItems(user: any) {
   if (user.role === 'manager' || user.role === 'certificate_operator') {
     const section = user.role === 'certificate_operator' ? 'Operación' : undefined;
     items.push({ href: '/certificados', icon: 'Award', label: 'Certificados', section });
+    items.push({ href: '/certificados/manual', icon: 'Award', label: 'Certs. Manuales' });
   }
 
   if (user.role === 'advisor' || user.role === 'manager') {
