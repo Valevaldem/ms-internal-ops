@@ -4,7 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { convertToOrderAction } from "../actions";
 
-export default function OrderForm({ quotationId, quotationStones, isManual = false }: { quotationId: string, quotationStones: any[], isManual?: boolean }) {
+export default function OrderForm({
+  quotationId,
+  quotationStones,
+  isManual = false,
+}: {
+  quotationId: string;
+  quotationStones: any[];
+  isManual?: boolean;
+}) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +26,6 @@ export default function OrderForm({ quotationId, quotationStones, isManual = fal
 
     const isCertificatePending = formData.get("isCertificatePending") === "on";
 
-    // Validate certificate data if not pending
     if (!isCertificatePending) {
       const title = formData.get("certificateTitle");
       if (!title || (title as string).trim() === "") {
@@ -26,7 +33,6 @@ export default function OrderForm({ quotationId, quotationStones, isManual = fal
         setIsPending(false);
         return;
       }
-
       if (!isManual) {
         for (let i = 0; i < quotationStones.length; i++) {
           const memberName = formData.get(`member_${i}`);
@@ -56,9 +62,7 @@ export default function OrderForm({ quotationId, quotationStones, isManual = fal
       <h3 className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider mb-4 border-b border-[#F5F2EE] pb-2">Datos de la Orden</h3>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded text-sm border border-red-200">
-          {error}
-        </div>
+        <div className="bg-red-50 text-red-600 p-3 rounded text-sm border border-red-200">{error}</div>
       )}
 
       <div>
@@ -78,7 +82,7 @@ export default function OrderForm({ quotationId, quotationStones, isManual = fal
       </div>
 
       <div>
-        <label className="block text-sm text-[#333333] mb-1">Número de Ticket POS (requerido para Producción)</label>
+        <label className="block text-sm text-[#333333] mb-1">Número de Ticket POS (opcional)</label>
         <input type="text" name="posTicketNumber" className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
       </div>
 
@@ -115,7 +119,7 @@ export default function OrderForm({ quotationId, quotationStones, isManual = fal
                 {quotationStones.map((stone, i) => (
                   <div key={stone.id} className="bg-[#F5F2EE] p-3 rounded border border-[#D8D3CC] flex flex-col gap-2">
                     <div className="text-xs font-semibold text-[#8E8D8A]">
-                      Piedra {i + 1}: {stone.lotCode} ({stone.weightCt}ct)
+                      Piedra {i + 1}: {stone.stoneName} — Lote: {stone.lotCode} ({stone.weightCt}ct)
                       <input type="hidden" name={`stoneId_${i}`} value={stone.id} />
                       <input type="hidden" name={`stoneLot_${i}`} value={stone.lotCode} />
                     </div>
@@ -140,7 +144,7 @@ export default function OrderForm({ quotationId, quotationStones, isManual = fal
           Cancelar
         </Link>
         <button type="submit" disabled={isPending} className="bg-[#333333] hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-2 rounded text-sm uppercase tracking-wider font-semibold transition-colors">
-          {isPending ? 'Generando...' : 'Generar Orden'}
+          {isPending ? "Generando..." : "Generar Orden"}
         </button>
       </div>
     </form>
