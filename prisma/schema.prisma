@@ -252,7 +252,7 @@ model ManualCertificateRequest {
   pieceDescription String   @map("piece_description")
   advisorName      String   @map("advisor_name")
   certificateTitle String?  @map("certificate_title")
-  stonesData       Json?    @map("stones_data")
+  stonesData       String?  @map("stones_data")
   status           String   @default("Pendiente") @map("status")
 
   createdAt DateTime @default(now()) @map("created_at")
