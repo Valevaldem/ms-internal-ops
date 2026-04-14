@@ -6,12 +6,13 @@ import { getCurrentUser } from "@/lib/auth"
 
 export async function createManualCertRequest(data: {
   clientName: string
+  invoiceNumber?: string
   pieceDescription: string
   advisorName: string
-  notes?: string
   certificateTitle?: string
+  stonesData?: any[]
 }) {
-  const user = await getCurrentUser()
+  await getCurrentUser()
 
   const count = await prisma.manualCertificateRequest.count()
   const seq = (count + 1).toString().padStart(3, '0')
@@ -23,10 +24,11 @@ export async function createManualCertRequest(data: {
     data: {
       folio,
       clientName: data.clientName,
+      invoiceNumber: data.invoiceNumber || null,
       pieceDescription: data.pieceDescription,
       advisorName: data.advisorName,
-      notes: data.notes || null,
       certificateTitle: data.certificateTitle || null,
+      stonesData: data.stonesData ? JSON.stringify(data.stonesData) : null,
       status: 'Pendiente',
     }
   })
@@ -35,17 +37,16 @@ export async function createManualCertRequest(data: {
 }
 
 export async function toggleManualCertField(id: string, field: string, value: boolean) {
-  const user = await getCurrentUser()
-
+  await getCurrentUser()
   await prisma.manualCertificateRequest.update({
     where: { id },
     data: { [field]: value }
   })
-
   revalidatePath('/certificados/manual')
 }
 
 export async function deleteManualCertRequest(id: string) {
+  await getCurrentUser()
   await prisma.manualCertificateRequest.delete({ where: { id } })
   revalidatePath('/certificados/manual')
 }

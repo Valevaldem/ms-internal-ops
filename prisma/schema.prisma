@@ -258,6 +258,8 @@ model ManualCertificateRequest {
   id                            String   @id @default(cuid())
   folio                         String?
   clientName                    String   @map("client_name")
+  invoiceNumber                 String?  @map("invoice_number")
+  stonesData                    String?  @map("stones_data")
   pieceDescription              String   @map("piece_description")
   advisorName                   String   @map("advisor_name")
   notes                         String?
