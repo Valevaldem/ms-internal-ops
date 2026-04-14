@@ -44,15 +44,17 @@ model SalesAssociate {
 
 // 2. Models Catalog
 model Model {
-  id           String  @id @default(cuid()) @map("model_id")
-  name         String  @map("model_name")
-  pieceTypeId  String  @map("piece_type_id")
-  pieceType    PieceType @relation(fields: [pieceTypeId], references: [id])
-  basePrice    Float   @map("base_price")
-  activeStatus Boolean @default(true) @map("active_status")
+  id              String    @id @default(cuid()) @map("model_id")
+  name            String    @map("model_name")
+  pieceTypeId     String    @map("piece_type_id")
+  pieceType       PieceType @relation(fields: [pieceTypeId], references: [id])
+  basePrice       Float     @map("base_price")
+  productionDays  Int       @default(20) @map("production_days") // días hábiles estimados de producción
+  note            String?   @map("note") // Nota visible para la asesora al cotizar
+  activeStatus    Boolean   @default(true) @map("active_status")
 
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([name, pieceTypeId])
   @@map("models")
@@ -65,8 +67,8 @@ model PieceType {
   activeStatus Boolean @default(true) @map("active_status")
   models       Model[]
 
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("piece_types")
 }
@@ -102,10 +104,11 @@ model Quotation {
   pieceType              String  @map("piece_type") // Ring, Chain, Earrings, Bracelet, Other
   modelName              String?  @map("model_name") // Optional for Manual
   modelBasePrice         Float?   @map("model_base_price") // Optional for Manual
-  manualPieceDescription String? @map("manual_piece_description") // Used for Manual
+  manualPieceDescription String? @map("manual_piece_description") // Used for Manual / Personalizado
   notes                  String?
 
   productionTiming       String? @map("production_timing") // Express, Regular, Special (used in Manual)
+  customProductionDays   Int?    @map("custom_production_days") // For "Personalizado" model
 
   // Stones
   stones QuotationStone[]
@@ -174,10 +177,10 @@ model Order {
   familyLastNameOrTitle         String?             @map("family_last_name_or_title")
   certificateStatus             String              @default("Not Started") @map("certificate_status") // Not Started, Incomplete, Ready, Generated, Delivered
   certificateMembers            CertificateMember[]
-  certificateVinylReady         Boolean             @default(false) @map("certificate_vinyl_ready") // Mapped to: Título preparado
-  certificatePhotoReady         Boolean             @default(false) @map("certificate_photo_ready") // Mapped to: Foto tomada
-  certificatePrintedReady       Boolean             @default(false) @map("certificate_printed_ready") // Mapped to: Certificado impreso
-  certificateDeliveredToAdvisor Boolean             @default(false) @map("certificate_delivered_to_advisor") // Mapped to: Entregado a asesora
+  certificateVinylReady         Boolean             @default(false) @map("certificate_vinyl_ready")
+  certificatePhotoReady         Boolean             @default(false) @map("certificate_photo_ready")
+  certificatePrintedReady       Boolean             @default(false) @map("certificate_printed_ready")
+  certificateDeliveredToAdvisor Boolean             @default(false) @map("certificate_delivered_to_advisor")
   certificateNeedsReview        Boolean             @default(false) @map("certificate_needs_review")
 
   orderNotes           String? @map("order_notes")
@@ -185,7 +188,7 @@ model Order {
   isCertificatePending Boolean @default(false) @map("is_certificate_pending")
 
   // Stages & Production Tracking
-  stage                  String    @default("Por confirmar diseño final") // Por confirmar diseño final, Producción, Certificación, Revisión final de asesora, Creación de Guía, Preparando envío, Listo para entrega, En tránsito, Entregado, Post-Sale Follow-Up Pending (5 days), Post-Sale Follow-Up Pending (1 month), Cycle Closed
+  stage                  String    @default("Por confirmar diseño final")
   productionStartDate    DateTime? @map("production_start_date")
   estimatedProductionEnd DateTime? @map("estimated_production_end")
   productionDaysElapsed  Int       @default(0) @map("production_days_elapsed")
@@ -239,39 +242,4 @@ model OrderStageHistory {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("order_stage_history")
-}
-
-// 5. Sales Channels Catalog
-model SalesChannel {
-  id           String  @id @default(cuid()) @map("sales_channel_id")
-  name         String  @unique @map("sales_channel_name")
-  activeStatus Boolean @default(true) @map("active_status")
-
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  @@map("sales_channels")
-}
-
-// 6. Manual Certificate Requests
-model ManualCertificateRequest {
-  id                            String   @id @default(cuid())
-  folio                         String?
-  clientName                    String   @map("client_name")
-  invoiceNumber                 String?  @map("invoice_number")
-  stonesData                    String?  @map("stones_data")
-  pieceDescription              String   @map("piece_description")
-  advisorName                   String   @map("advisor_name")
-  notes                         String?
-  certificateTitle              String?  @map("certificate_title")
-  certificateVinylReady         Boolean  @default(false) @map("certificate_vinyl_ready")
-  certificatePhotoReady         Boolean  @default(false) @map("certificate_photo_ready")
-  certificatePrintedReady       Boolean  @default(false) @map("certificate_printed_ready")
-  certificateDeliveredToAdvisor Boolean  @default(false) @map("certificate_delivered_to_advisor")
-  certificateNeedsReview        Boolean  @default(false) @map("certificate_needs_review")
-  status                        String   @default("Pendiente")
-  createdAt                     DateTime @default(now()) @map("created_at")
-  updatedAt                     DateTime @updatedAt @map("updated_at")
-
-  @@map("manual_certificate_requests")
 }

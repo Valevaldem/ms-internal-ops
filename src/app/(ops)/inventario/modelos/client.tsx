@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Plus, Edit, CheckCircle, XCircle } from "lucide-react"
+import { Search, Plus, Edit, CheckCircle, XCircle, Info } from "lucide-react"
 import { createModel, updateModel } from "./actions"
 import { translatePieceType } from "@/lib/translations"
 
@@ -10,6 +10,8 @@ type Model = {
   name: string
   pieceTypeId: string
   basePrice: number
+  productionDays: number
+  note: string | null
   activeStatus: boolean
   createdAt: Date
   updatedAt: Date
@@ -29,6 +31,8 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
     name: "",
     pieceTypeId: pieceTypes[0]?.id || "",
     basePrice: 0,
+    productionDays: 20,
+    note: "",
     activeStatus: true,
   })
 
@@ -52,6 +56,8 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
       name: "",
       pieceTypeId: pieceTypes[0]?.id || "",
       basePrice: 0,
+      productionDays: 20,
+      note: "",
       activeStatus: true,
     })
     setErrors({})
@@ -65,6 +71,8 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
       name: model.name,
       pieceTypeId: model.pieceTypeId,
       basePrice: model.basePrice,
+      productionDays: model.productionDays ?? 20,
+      note: model.note || "",
       activeStatus: model.activeStatus,
     })
     setErrors({})
@@ -77,7 +85,7 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
     setEditingModel(null)
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
     const checked = (e.target as HTMLInputElement).checked
 
@@ -100,6 +108,8 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
       const payload = {
         ...formData,
         basePrice: parseFloat(formData.basePrice.toString()),
+        productionDays: parseInt(formData.productionDays.toString(), 10),
+        note: formData.note.trim() || null,
       }
 
       const result = editingModel
@@ -126,7 +136,7 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
         <div>
           <h2 className="text-2xl font-serif text-[#333333]">Modelos Base</h2>
           <p className="text-sm text-[#8E8D8A] mt-1">
-            Gestiona los precios base de los modelos para nuevas cotizaciones.
+            Gestiona los precios base, tiempos y notas de los modelos para nuevas cotizaciones.
           </p>
         </div>
         <div className="flex gap-3">
@@ -161,8 +171,9 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
                 <th className="px-4 py-3 font-semibold rounded-tl-md">Nombre</th>
                 <th className="px-4 py-3 font-semibold">Tipo de Pieza</th>
                 <th className="px-4 py-3 font-semibold">Precio Base</th>
+                <th className="px-4 py-3 font-semibold text-center">Días Prod.</th>
+                <th className="px-4 py-3 font-semibold">Nota</th>
                 <th className="px-4 py-3 font-semibold text-center">Estado</th>
-                <th className="px-4 py-3 font-semibold">Última Act.</th>
                 <th className="px-4 py-3 font-semibold text-right rounded-tr-md">Acciones</th>
               </tr>
             </thead>
@@ -173,6 +184,17 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
                     <td className="px-4 py-4 font-medium text-[#333333]">{model.name}</td>
                     <td className="px-4 py-4 text-[#555555]">{translatePieceType(getPieceTypeName(model.pieceTypeId))}</td>
                     <td className="px-4 py-4 text-[#555555]">${model.basePrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-4 text-center text-[#555555]">{model.productionDays ?? 20} días</td>
+                    <td className="px-4 py-4 text-[#8E8D8A] text-xs max-w-[200px]">
+                      {model.note ? (
+                        <span className="flex items-start gap-1">
+                          <Info size={12} className="shrink-0 mt-0.5 text-[#C5B358]" />
+                          <span className="line-clamp-2">{model.note}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[#D8D3CC]">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-4 text-center">
                       {model.activeStatus ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E8F3EB] text-[#2E6B41]">
@@ -183,9 +205,6 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
                           <XCircle size={12} /> Inactivo
                         </span>
                       )}
-                    </td>
-                    <td className="px-4 py-4 text-[#8E8D8A] text-xs">
-                      {new Date(model.updatedAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
                     <td className="px-4 py-4 text-right">
                       <button
@@ -200,7 +219,7 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-[#8E8D8A]">
+                  <td colSpan={7} className="px-4 py-8 text-center text-[#8E8D8A]">
                     No se encontraron modelos.
                   </td>
                 </tr>
@@ -232,7 +251,7 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
               <div className="grid grid-cols-1 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-[#555555] mb-1">
-                    Nombre del Modelo
+                    Nombre del Modelo <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -247,7 +266,7 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-[#555555] mb-1">
-                      Tipo de Pieza
+                      Tipo de Pieza <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="pieceTypeId"
@@ -267,7 +286,7 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
 
                   <div>
                     <label className="block text-sm font-medium text-[#555555] mb-1">
-                      Precio Base
+                      Precio Base <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8E8D8A]">$</span>
@@ -284,23 +303,56 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
                     {errors.basePrice && <p className="text-red-500 text-xs mt-1">{errors.basePrice[0]}</p>}
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#555555] mb-1">
+                    Días hábiles de producción <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="productionDays"
+                    min="1"
+                    max="365"
+                    value={formData.productionDays}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#C5B358] focus:border-[#C5B358] ${errors.productionDays ? "border-red-500" : "border-[#D8D3CC]"}`}
+                  />
+                  <p className="text-xs text-[#8E8D8A] mt-1">Este tiempo se mostrará al seleccionar el modelo en una cotización.</p>
+                  {errors.productionDays && <p className="text-red-500 text-xs mt-1">{errors.productionDays[0]}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#555555] mb-1 flex items-center gap-1">
+                    <Info size={14} className="text-[#C5B358]" />
+                    Nota para la asesora <span className="text-[#8E8D8A] font-normal">(opcional)</span>
+                  </label>
+                  <textarea
+                    name="note"
+                    value={formData.note}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="Ej: No incluye diamantes. Base para 10 diamantes alrededor. Usar código X-103."
+                    className="w-full px-3 py-2 border border-[#D8D3CC] rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#C5B358] focus:border-[#C5B358] resize-none"
+                  />
+                  <p className="text-xs text-[#8E8D8A] mt-1">Esta nota aparecerá al seleccionar este modelo en el formulario de cotización.</p>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="activeStatus"
+                    name="activeStatus"
+                    checked={formData.activeStatus}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-[#C5B358] border-[#D8D3CC] rounded focus:ring-[#C5B358]"
+                  />
+                  <label htmlFor="activeStatus" className="text-sm text-[#555555] font-medium">
+                    Modelo Activo (Disponible en cotizaciones)
+                  </label>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="activeStatus"
-                  name="activeStatus"
-                  checked={formData.activeStatus}
-                  onChange={handleChange}
-                  className="w-4 h-4 text-[#C5B358] border-[#D8D3CC] rounded focus:ring-[#C5B358]"
-                />
-                <label htmlFor="activeStatus" className="text-sm text-[#555555] font-medium">
-                  Modelo Activo (Disponible en cotizaciones)
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6 border-t border-[#D8D3CC] sticky bottom-0 bg-white pb-2">
+              <div className="flex justify-end gap-3 pt-6 border-t border-[#D8D3CC]">
                 <button
                   type="button"
                   onClick={handleCloseForm}
@@ -314,7 +366,14 @@ export default function ModelosClient({ models, pieceTypes }: { models: Model[],
                   disabled={isSubmitting}
                   className="px-4 py-2 text-sm text-white bg-[#333333] hover:bg-[#4A4A4A] rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isSubmitting ? "Guardando..." : "Guardar Modelo"}
+                  {isSubmitting ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    editingModel ? "Guardar cambios" : "Crear Modelo"
+                  )}
                 </button>
               </div>
             </form>

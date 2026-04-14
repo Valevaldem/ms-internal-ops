@@ -9,6 +9,8 @@ const modelSchema = z.object({
   name: z.string().min(1, "El nombre del modelo es requerido"),
   pieceTypeId: z.string().min(1, "El tipo de pieza es requerido"),
   basePrice: z.coerce.number().min(0, "El precio base debe ser mayor o igual a 0"),
+  productionDays: z.coerce.number().min(1, "Debe ser al menos 1 día").default(20),
+  note: z.string().optional().nullable(),
   activeStatus: z.boolean().default(true),
 })
 
@@ -17,7 +19,16 @@ export async function getModels() {
   verifyAccess(user, ['manager'])
 
   return prisma.model.findMany({
-    orderBy: { name: 'asc' }
+    orderBy: { name: 'asc' },
+    include: { pieceType: true }
+  })
+}
+
+export async function getModelsForQuotation() {
+  return prisma.model.findMany({
+    where: { activeStatus: true },
+    orderBy: { name: 'asc' },
+    include: { pieceType: true }
   })
 }
 
@@ -46,7 +57,7 @@ export async function createModel(formData: any) {
 
   const data = parsed.data
 
-  // Verify unique name
+  // Verify unique name within piece type
   const existingModel = await prisma.model.findFirst({
     where: { name: data.name, pieceTypeId: data.pieceTypeId }
   })
@@ -62,7 +73,14 @@ export async function createModel(formData: any) {
 
   try {
     const newModel = await prisma.model.create({
-      data
+      data: {
+        name: data.name,
+        pieceTypeId: data.pieceTypeId,
+        basePrice: data.basePrice,
+        productionDays: data.productionDays,
+        note: data.note || null,
+        activeStatus: data.activeStatus,
+      }
     })
 
     revalidatePath("/inventario/modelos")
@@ -90,13 +108,9 @@ export async function updateModel(id: string, formData: any) {
 
   const data = parsed.data
 
-  // Verify unique name + pieceTypeId (excluding current model)
+  // Check unique name for different model
   const existingModel = await prisma.model.findFirst({
-    where: {
-      name: data.name,
-      pieceTypeId: data.pieceTypeId,
-      id: { not: id }
-    }
+    where: { name: data.name, pieceTypeId: data.pieceTypeId, NOT: { id } }
   })
 
   if (existingModel) {
@@ -115,6 +129,8 @@ export async function updateModel(id: string, formData: any) {
         name: data.name,
         pieceTypeId: data.pieceTypeId,
         basePrice: data.basePrice,
+        productionDays: data.productionDays,
+        note: data.note || null,
         activeStatus: data.activeStatus,
       }
     })
