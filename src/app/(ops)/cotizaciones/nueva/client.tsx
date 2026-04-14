@@ -218,13 +218,10 @@ export default function NuevaCotizacionClient({
 
   const onSubmit = async (data: any) => {
     if (initialData?.id) data.versionFromId = initialData.id
-    // Solo bloquear si hay lotes inválidos (stones vacío es permitido)
-    if (invalidLots.length > 0) {
+    if (data.stones.some((s: any) => !s.stoneName) || invalidLots.length > 0) {
       alert("Por favor corrige los lotes inválidos antes de continuar.")
       return
     }
-    // Filtrar stones sin lotCode (vacíos)
-    data.stones = data.stones.filter((s: any) => s.lotCode && s.lotCode.trim() !== '')
 
     const isCustom = data.modelId === CUSTOM_MODEL_ID
     const modelName = isCustom ? "Personalizado" : (selectedModel?.name || "Desconocido")
@@ -418,7 +415,7 @@ export default function NuevaCotizacionClient({
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm text-[#333333] mb-1">Descripción de la pieza personalizada <span className="text-[#8E8D8A] text-xs font-normal">(opcional)</span></label>
+                  <label className="block text-sm text-[#333333] mb-1">Descripción de la pieza personalizada <span className="text-red-500">*</span></label>
                   <textarea
                     {...register("manualPieceDescription")}
                     rows={2}
@@ -429,7 +426,6 @@ export default function NuevaCotizacionClient({
               </>
             )}
           </div>
-
 
         </section>
 
@@ -575,24 +571,6 @@ export default function NuevaCotizacionClient({
                 {marginProtectionEnabled && (
                   <span className="text-[#C5B358] text-sm ml-auto">
                     +${marginProtectionAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                  </span>
-                )}
-              </div>
-            )}
-            {!initialData && (
-              <div className="flex items-center gap-4 pt-2">
-                <label className="text-[#555555] text-sm whitespace-nowrap">Descuento %</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.5"
-                  {...register("discountPercent", { valueAsNumber: true })}
-                  className="w-24 border border-[#D8D3CC] rounded p-1.5 text-sm focus:outline-none focus:border-[#C5B358]"
-                />
-                {(discountPercent || 0) > 0 && (
-                  <span className="text-red-500 text-sm">
-                    −${calculatedDiscountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                   </span>
                 )}
               </div>
