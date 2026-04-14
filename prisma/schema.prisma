@@ -273,24 +273,3 @@ model ManualCertificateRequest {
 
   @@map("manual_certificate_requests")
 }
-
-// 6. Manual Certificate Requests
-model ManualCertificateRequest {
-  id                            String   @id @default(cuid())
-  folio                         String?
-  clientName                    String   @map("client_name")
-  pieceDescription              String   @map("piece_description")
-  advisorName                   String   @map("advisor_name")
-  notes                         String?
-  certificateTitle              String?  @map("certificate_title")
-  certificateVinylReady         Boolean  @default(false) @map("certificate_vinyl_ready")
-  certificatePhotoReady         Boolean  @default(false) @map("certificate_photo_ready")
-  certificatePrintedReady       Boolean  @default(false) @map("certificate_printed_ready")
-  certificateDeliveredToAdvisor Boolean  @default(false) @map("certificate_delivered_to_advisor")
-  certificateNeedsReview        Boolean  @default(false) @map("certificate_needs_review")
-  status                        String   @default("Pendiente")
-  createdAt                     DateTime @default(now()) @map("created_at")
-  updatedAt                     DateTime @updatedAt @map("updated_at")
-
-  @@map("manual_certificate_requests")
-}
