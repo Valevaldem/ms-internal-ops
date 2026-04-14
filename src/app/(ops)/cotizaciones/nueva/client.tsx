@@ -35,8 +35,12 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   const router = useRouter()
   const [invalidLots, setInvalidLots] = useState<number[]>([])
   const isAdvisor = activeUser.role === "advisor";
+
+  // Toggle descuento: 'percent' o 'amount'
   const [discountMode, setDiscountMode] = useState<'percent' | 'amount'>('percent')
   const [discountAmountInput, setDiscountAmountInput] = useState<number>(0)
+
+  // Strings locales para campos numéricos
   const [quantityStrings, setQuantityStrings] = useState<Record<number, string>>({})
   const [weightStrings, setWeightStrings] = useState<Record<number, string>>({})
 
@@ -46,7 +50,9 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
       clientNameOrUsername: initialData?.clientNameOrUsername || "",
       phoneNumber: initialData?.phoneNumber || "",
       salesChannel: initialData?.salesChannel || "Store",
-      salesAssociateId: isAdvisor ? activeUser.salesAssociateId : (initialData?.salesAssociateId || ""),
+      salesAssociateId: isAdvisor
+        ? activeUser.salesAssociateId
+        : (initialData?.salesAssociateId || ""),
       pieceType: initialData?.pieceType || (catalogs.pieceTypes && catalogs.pieceTypes[0]?.name) || "Ring",
       modelId: initialData?.modelId || "",
       modelBasePrice: initialData?.modelBasePrice || 0,
@@ -54,14 +60,19 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
       marginProtectionEnabled: initialData?.marginProtectionEnabled || false,
       discountPercent: initialData?.discountPercent || 0,
       stones: initialData?.stones?.map((s: any) => ({
-        lotCode: s.lotCode, stoneName: s.stoneName, quantity: s.quantity || 1,
-        weightCt: s.weightCt, pricePerCt: s.pricePerCt,
-        pricingMode: s.pricingMode || "CT", stoneSubtotal: s.stoneSubtotal
+        lotCode: s.lotCode,
+        stoneName: s.stoneName,
+        quantity: s.quantity || 1,
+        weightCt: s.weightCt,
+        pricePerCt: s.pricePerCt,
+        pricingMode: s.pricingMode || "CT",
+        stoneSubtotal: s.stoneSubtotal
       })) || []
     }
   })
 
   const { fields, append, remove } = useFieldArray({ control, name: "stones" })
+
   const modelId = watch("modelId")
   const associateId = watch("salesAssociateId")
   const marginProtectionEnabled = watch("marginProtectionEnabled")
@@ -75,7 +86,10 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   const selectedPieceTypeObj = catalogs.pieceTypes?.find((pt: any) => pt.name === pieceType)
   const filteredModels = catalogs.models.filter((m: any) => m.pieceTypeId === selectedPieceTypeObj?.id)
 
-  const modelBasePrice = activeUser.role === 'manager' && manualBasePrice !== undefined ? manualBasePrice : (selectedModel?.basePrice || 0)
+  // Cálculos
+  const modelBasePrice = activeUser.role === 'manager' && manualBasePrice !== undefined
+    ? manualBasePrice
+    : (selectedModel?.basePrice || 0)
   const totalStonesPrice = stones.reduce((sum, s) => sum + (s.stoneSubtotal || 0), 0)
   const subtotalBeforeAdjustments = totalStonesPrice + modelBasePrice
   const msInternalAdjustment = selectedAssociate?.appliesMsAdjustment ? 5000 : 0
@@ -95,23 +109,33 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
 
   const roundedPriceBeforeDiscount = getRoundedCommercialPrice(rawClientPrice);
 
-  let effectiveDiscountPercent = 0, effectiveDiscountAmount = 0;
+  // Descuento: según modo
+  let effectiveDiscountPercent = 0;
+  let effectiveDiscountAmount = 0;
   if (discountMode === 'percent') {
     effectiveDiscountPercent = discountPercent || 0;
     effectiveDiscountAmount = (roundedPriceBeforeDiscount * effectiveDiscountPercent) / 100;
   } else {
     effectiveDiscountAmount = discountAmountInput || 0;
-    effectiveDiscountPercent = roundedPriceBeforeDiscount > 0 ? (effectiveDiscountAmount / roundedPriceBeforeDiscount) * 100 : 0;
+    effectiveDiscountPercent = roundedPriceBeforeDiscount > 0
+      ? (effectiveDiscountAmount / roundedPriceBeforeDiscount) * 100
+      : 0;
   }
   const finalClientPrice = roundedPriceBeforeDiscount - effectiveDiscountAmount;
 
+  // Cuando cambia modo, sincronizar el valor en el form
   const handleDiscountModeToggle = (mode: 'percent' | 'amount') => {
     setDiscountMode(mode);
     if (mode === 'percent') {
-      const pct = roundedPriceBeforeDiscount > 0 ? (discountAmountInput / roundedPriceBeforeDiscount) * 100 : 0;
+      // Recalcular % desde el monto actual
+      const pct = roundedPriceBeforeDiscount > 0
+        ? (discountAmountInput / roundedPriceBeforeDiscount) * 100
+        : 0;
       setValue('discountPercent', Math.round(pct * 10) / 10);
     } else {
-      setDiscountAmountInput(Math.round((roundedPriceBeforeDiscount * (discountPercent || 0)) / 100));
+      // Calcular monto desde % actual
+      const amt = (roundedPriceBeforeDiscount * (discountPercent || 0)) / 100;
+      setDiscountAmountInput(Math.round(amt));
     }
   };
 
@@ -124,12 +148,17 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
       const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
       const weightCt = watch(`stones.${index}.weightCt`) || 0
       setValue(`stones.${index}.quantity`, num)
-      setValue(`stones.${index}.stoneSubtotal`, pricingMode === "PZ" ? pricePerCt * num : weightCt * pricePerCt)
+      if (pricingMode === "PZ") {
+        setValue(`stones.${index}.stoneSubtotal`, pricePerCt * num)
+      } else {
+        setValue(`stones.${index}.stoneSubtotal`, weightCt * pricePerCt)
+      }
     }
   }
 
   const handleQuantityStringBlur = (index: number) => {
-    const num = parseInt(quantityStrings[index] ?? "")
+    const raw = quantityStrings[index] ?? ""
+    const num = parseInt(raw)
     const validNum = (!isNaN(num) && num > 0) ? num : 1
     setQuantityStrings(prev => ({ ...prev, [index]: String(validNum) }))
     setValue(`stones.${index}.quantity`, validNum)
@@ -138,7 +167,10 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   const handleWeightChange = (index: number, weight: number) => {
     const pricingMode = watch(`stones.${index}.pricingMode`)
     const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
-    if (pricingMode !== "PZ") setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt)
+    const qty = watch(`stones.${index}.quantity`) || 1
+    if (pricingMode !== "PZ") {
+      setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt)
+    }
   }
 
   const handleWeightStringChange = (index: number, value: string) => {
@@ -147,12 +179,15 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
     if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('')
     const intPart = parts[0].slice(0, 2)
     cleaned = parts.length > 1 ? intPart + '.' + parts[1] : intPart
-    if (parts.length > 1 && parts[1].length > 2) cleaned = parts[0].slice(0, 2) + '.' + parts[1].slice(0, 2)
+    if (parts.length > 1 && parts[1].length > 2) {
+      cleaned = parts[0].slice(0, 2) + '.' + parts[1].slice(0, 2)
+    }
     setWeightStrings(prev => ({ ...prev, [index]: cleaned }))
   }
 
   const handleWeightStringBlur = (index: number) => {
-    const num = parseFloat(weightStrings[index] ?? "")
+    const raw = weightStrings[index] ?? ""
+    const num = parseFloat(raw)
     const validNum = (!isNaN(num) && num > 0) ? num : 0
     handleWeightChange(index, validNum)
     setValue(`stones.${index}.weightCt`, validNum)
@@ -161,16 +196,25 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   const handleLotCodeChange = (index: number, code: string) => {
     if (!code) {
       setInvalidLots(prev => prev.filter(i => i !== index))
-      setValue(`stones.${index}.stoneName`, ""); setValue(`stones.${index}.pricePerCt`, 0); setValue(`stones.${index}.stoneSubtotal`, 0)
+      setValue(`stones.${index}.stoneName`, "")
+      setValue(`stones.${index}.pricePerCt`, 0)
+      setValue(`stones.${index}.stoneSubtotal`, 0)
       return
     }
     const lot = catalogs.stones.find((s: any) => s.code.toUpperCase() === code.toUpperCase())
     if (lot) {
       setInvalidLots(prev => prev.filter(i => i !== index))
-      setValue(`stones.${index}.lotCode`, lot.code); setValue(`stones.${index}.stoneName`, lot.stoneName)
-      setValue(`stones.${index}.pricePerCt`, lot.pricePerCt); setValue(`stones.${index}.pricingMode`, lot.pricingMode || "CT")
-      const weight = watch(`stones.${index}.weightCt`) || 0, qty = watch(`stones.${index}.quantity`) || 1
-      setValue(`stones.${index}.stoneSubtotal`, lot.pricingMode === "PZ" ? lot.pricePerCt * qty : weight * lot.pricePerCt)
+      setValue(`stones.${index}.lotCode`, lot.code)
+      setValue(`stones.${index}.stoneName`, lot.stoneName)
+      setValue(`stones.${index}.pricePerCt`, lot.pricePerCt)
+      setValue(`stones.${index}.pricingMode`, lot.pricingMode || "CT")
+      const weight = watch(`stones.${index}.weightCt`) || 0
+      const qty = watch(`stones.${index}.quantity`) || 1
+      if (lot.pricingMode === "PZ") {
+        setValue(`stones.${index}.stoneSubtotal`, lot.pricePerCt * qty)
+      } else {
+        setValue(`stones.${index}.stoneSubtotal`, weight * lot.pricePerCt)
+      }
     } else {
       setInvalidLots(prev => !prev.includes(index) ? [...prev, index] : prev)
       setValue(`stones.${index}.stoneName`, "")
@@ -179,40 +223,75 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
 
   const buildPayload = (data: any, asDraft = false) => {
     if (initialData?.id) data.versionFromId = initialData.id;
-    return { ...data, associateId: data.salesAssociateId, modelName: selectedModel?.name || "Desconocido", modelBasePrice, totalStonesPrice, subtotalBeforeAdjustments, msInternalAdjustment, marginProtectionAmount, discountPercent: effectiveDiscountPercent, finalClientPrice, validUntilDate: new Date(Date.now() + 15 * 86400000), asDraft }
+    return {
+      ...data,
+      associateId: data.salesAssociateId,
+      modelName: selectedModel?.name || "Desconocido",
+      modelBasePrice,
+      totalStonesPrice,
+      subtotalBeforeAdjustments,
+      msInternalAdjustment,
+      marginProtectionAmount,
+      discountPercent: effectiveDiscountPercent,
+      finalClientPrice,
+      validUntilDate: new Date(Date.now() + 15 * 86400000),
+      asDraft,
+    }
   }
 
   const onSubmit = async (data: any) => {
-    if (data.stones.some((s: any) => !s.stoneName) || invalidLots.length > 0) { alert("Por favor corrige los lotes inválidos."); return }
-    try { await createQuotation(buildPayload(data, false)); router.push("/cotizaciones/historial") } catch (e) { console.error(e); alert("Error al guardar.") }
+    if (data.stones.some((s: any) => !s.stoneName) || invalidLots.length > 0) {
+      alert("Por favor corrige los lotes inválidos antes de continuar.")
+      return
+    }
+    try {
+      await createQuotation(buildPayload(data, false))
+      router.push("/cotizaciones/historial")
+    } catch (e) {
+      console.error(e)
+      alert("Error al guardar.")
+    }
   }
 
   const onSaveDraft = async (data: any) => {
-    try { const result = await createQuotation(buildPayload(data, true)); router.push(`/cotizaciones/${result?.id}`) } catch (e) { console.error(e); alert("Error al guardar borrador.") }
+    try {
+      const result = await createQuotation(buildPayload(data, true))
+      router.push(`/cotizaciones/${result?.id}`)
+    } catch (e) {
+      console.error(e)
+      alert("Error al guardar borrador.")
+    }
   }
 
   return (
     <div className="max-w-4xl mx-auto pb-10">
       <h2 className="text-2xl font-serif text-[#333333] mb-6">Nueva Cotización</h2>
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
 
+        {/* Datos Generales */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2">Datos Generales</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#333333] mb-1">Cliente / Usuario</label>
-              <input readOnly={!!initialData} {...register("clientNameOrUsername")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} placeholder="Ej. Maria Lopez" />
+              <input readOnly={!!initialData} {...register("clientNameOrUsername")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} placeholder="Ej. Maria Lopez / @marialopez" />
             </div>
             <div>
               <label className="block text-sm text-[#333333] mb-1">Teléfono</label>
-              <input readOnly={!!initialData} {...register("phoneNumber")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} placeholder="Opcional" />
+              <input readOnly={!!initialData} {...register("phoneNumber")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} placeholder="Opcional" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#333333] mb-1">Canal de Venta</label>
               <select disabled={!!initialData} {...register("salesChannel")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}>
-                <option value="Store">Tienda</option><option value="WhatsApp">WhatsApp</option><option value="Instagram">Instagram</option><option value="Facebook">Facebook</option><option value="TikTok">TikTok</option><option value="Form">Formulario</option>
+                <option value="Store">Tienda</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Instagram">Instagram</option>
+                <option value="Facebook">Facebook</option>
+                <option value="TikTok">TikTok</option>
+                <option value="Form">Formulario</option>
               </select>
             </div>
             <div>
@@ -222,27 +301,34 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
               ) : (
                 <select disabled={!!initialData} {...register("salesAssociateId")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}>
                   <option value="">Selecciona asesora</option>
-                  {catalogs.associates.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  {catalogs.associates.map((a: any) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
                 </select>
               )}
             </div>
           </div>
         </section>
 
+        {/* Pieza */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2">Pieza</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#333333] mb-1">Tipo de Pieza</label>
               <select disabled={!!initialData} {...register("pieceType")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}>
-                {catalogs.pieceTypes?.map((pt: any) => <option key={pt.id} value={pt.name}>{pt.name}</option>)}
+                {catalogs.pieceTypes?.map((pt: any) => (
+                  <option key={pt.id} value={pt.name}>{pt.name}</option>
+                ))}
               </select>
             </div>
             <div>
               <label className="block text-sm text-[#333333] mb-1">Modelo</label>
               <select disabled={!!initialData} {...register("modelId")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}>
                 <option value="">Selecciona modelo</option>
-                {filteredModels.map((m: any) => <option key={m.id} value={m.id}>{m.name} — ${m.basePrice.toLocaleString('es-MX')}</option>)}
+                {filteredModels.map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.name} — ${m.basePrice.toLocaleString('es-MX')}</option>
+                ))}
               </select>
               {errors.modelId && <span className="text-xs text-red-500">{errors.modelId.message as string}</span>}
             </div>
@@ -255,10 +341,11 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
           )}
           <div>
             <label className="block text-sm text-[#333333] mb-1">Notas del diseño</label>
-            <textarea readOnly={!!initialData} {...register("notes")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} rows={2}></textarea>
+            <textarea readOnly={!!initialData} {...register("notes")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} rows={2}></textarea>
           </div>
         </section>
 
+        {/* Piedras */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-[#F5F2EE] pb-2">
             <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold">Piedras</h3>
@@ -310,18 +397,24 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
                 </div>
               )
             })}
-            {fields.length === 0 && <p className="text-xs text-[#8E8D8A] italic">Sin piedras. Haz clic en "Agregar Piedra" para incluir.</p>}
+            {fields.length === 0 && (
+              <p className="text-xs text-[#8E8D8A] italic">Sin piedras. Haz clic en "Agregar Piedra" para incluir.</p>
+            )}
           </div>
         </section>
 
+        {/* Precio */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-3">
           <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Precio Final</h3>
+
           <div className="flex justify-between text-sm text-[#333333]">
-            <span>Subtotal:</span><span>${subtotalBeforeAdjustments.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+            <span>Subtotal:</span>
+            <span>${subtotalBeforeAdjustments.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
           </div>
           {msInternalAdjustment > 0 && (
             <div className="flex justify-between text-sm text-[#8E8D8A]">
-              <span>Ajuste MS:</span><span>+${msInternalAdjustment.toLocaleString()}</span>
+              <span>Ajuste MS:</span>
+              <span>+${msInternalAdjustment.toLocaleString()}</span>
             </div>
           )}
           <div className="flex justify-between text-sm items-center">
@@ -331,19 +424,42 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
             </label>
             {marginProtectionEnabled && <span className="text-[#C5B358] font-medium">${marginProtectionAmount.toLocaleString()}</span>}
           </div>
+
+          {/* Descuento con toggle % / $ */}
           <div className="pt-3 border-t border-[#F5F2EE]">
             <div className="flex justify-between items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-[#333333]">Descuento</span>
+                {/* Toggle */}
                 <div className="flex rounded border border-[#D8D3CC] overflow-hidden text-xs">
-                  <button type="button" onClick={() => handleDiscountModeToggle('percent')} className={`px-2 py-1 transition-colors ${discountMode === 'percent' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>%</button>
-                  <button type="button" onClick={() => handleDiscountModeToggle('amount')} className={`px-2 py-1 transition-colors ${discountMode === 'amount' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>$</button>
+                  <button
+                    type="button"
+                    onClick={() => handleDiscountModeToggle('percent')}
+                    className={`px-2 py-1 transition-colors ${discountMode === 'percent' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}
+                  >%</button>
+                  <button
+                    type="button"
+                    onClick={() => handleDiscountModeToggle('amount')}
+                    className={`px-2 py-1 transition-colors ${discountMode === 'amount' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}
+                  >$</button>
                 </div>
               </div>
               {discountMode === 'percent' ? (
-                <input readOnly={!!initialData} type="number" step="0.1" min="0" max="100" {...register("discountPercent", { valueAsNumber: true })} className={`w-24 border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]`} placeholder="0" />
+                <input
+                  readOnly={!!initialData}
+                  type="number" step="0.1" min="0" max="100"
+                  {...register("discountPercent", { valueAsNumber: true })}
+                  className={`w-24 border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]`}
+                  placeholder="0"
+                />
               ) : (
-                <input type="number" step="1" min="0" value={discountAmountInput} onChange={(e) => setDiscountAmountInput(Number(e.target.value))} className="w-28 border border-[#D8D3CC] bg-white rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]" placeholder="0" />
+                <input
+                  type="number" step="1" min="0"
+                  value={discountAmountInput}
+                  onChange={(e) => setDiscountAmountInput(Number(e.target.value))}
+                  className="w-28 border border-[#D8D3CC] bg-white rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]"
+                  placeholder="0"
+                />
               )}
             </div>
             {effectiveDiscountAmount > 0 && (
@@ -353,23 +469,39 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
               </div>
             )}
           </div>
+
           <div className="flex justify-between text-lg font-serif pt-4 mt-2 border-t border-[#D8D3CC]">
             <span>Precio Final Cliente:</span>
             <div className="flex flex-col items-end">
-              {effectiveDiscountAmount > 0 && <span className="text-sm line-through text-[#8E8D8A] mb-1">${roundedPriceBeforeDiscount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>}
+              {effectiveDiscountAmount > 0 && (
+                <span className="text-sm line-through text-[#8E8D8A] mb-1">
+                  ${roundedPriceBeforeDiscount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </span>
+              )}
               <span className="text-[#C5B358] font-semibold">${finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
         </section>
 
+        {/* Botones */}
         <div className="flex justify-end gap-3 pt-4">
-          <button type="button" disabled={isSubmitting} onClick={handleSubmit(onSaveDraft)} className="bg-white border border-[#D8D3CC] text-[#8E8D8A] hover:bg-[#F5F2EE] hover:text-[#333333] px-6 py-3 rounded-md text-sm font-semibold transition-colors disabled:opacity-50">
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={handleSubmit(onSaveDraft)}
+            className="bg-white border border-[#D8D3CC] text-[#8E8D8A] hover:bg-[#F5F2EE] hover:text-[#333333] px-6 py-3 rounded-md text-sm font-semibold transition-colors disabled:opacity-50"
+          >
             Guardar borrador
           </button>
-          <button type="submit" disabled={isSubmitting} className="bg-[#333333] hover:bg-black text-white px-8 py-3 rounded-md text-sm uppercase tracking-wider font-semibold transition-colors disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-[#333333] hover:bg-black text-white px-8 py-3 rounded-md text-sm uppercase tracking-wider font-semibold transition-colors disabled:opacity-50"
+          >
             {isSubmitting ? "Guardando..." : "Crear Cotización"}
           </button>
         </div>
+
       </form>
     </div>
   )
