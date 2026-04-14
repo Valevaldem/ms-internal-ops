@@ -36,6 +36,10 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   const [invalidLots, setInvalidLots] = useState<number[]>([])
   const isAdvisor = activeUser.role === "advisor";
 
+  // FIX: State para manejar los strings de cantidad y peso mientras se editan
+  const [quantityStrings, setQuantityStrings] = useState<Record<number, string>>({})
+  const [weightStrings, setWeightStrings] = useState<Record<number, string>>({})
+
   const { register, control, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -87,7 +91,6 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   const marginProtectionAmount = marginProtectionEnabled ? baseForMargin * 0.15 : 0
   const rawClientPrice = baseForMargin + marginProtectionAmount
 
-  // Commercial rounding logic: always round UP to nearest X,000 | X,500 | X,850
   const getRoundedCommercialPrice = (price: number) => {
     if (price === 0) return 0;
     const baseThousand = Math.floor(price / 1000) * 1000;
@@ -100,8 +103,6 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   };
 
   const roundedPriceBeforeDiscount = getRoundedCommercialPrice(rawClientPrice);
-
-  // Applies discount WITHOUT re-rounding
   const calculatedDiscountAmount = (roundedPriceBeforeDiscount * (discountPercent || 0)) / 100;
   const finalClientPrice = roundedPriceBeforeDiscount - calculatedDiscountAmount;
 
@@ -163,11 +164,56 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
     }
   }
 
+  // FIX: Handler para cantidad como string — permite borrar el "1" sin que se resetee
+  const handleQuantityStringChange = (index: number, raw: string) => {
+    // Solo permitir dígitos
+    const cleaned = raw.replace(/[^0-9]/g, '')
+    setQuantityStrings(prev => ({ ...prev, [index]: cleaned }))
+  }
+
+  const handleQuantityStringBlur = (index: number) => {
+    const raw = quantityStrings[index] ?? ""
+    const num = parseInt(raw, 10)
+    const validNum = (!isNaN(num) && num >= 1) ? num : 1
+    setQuantityStrings(prev => ({ ...prev, [index]: String(validNum) }))
+    handleQuantityChange(index, validNum)
+    setValue(`stones.${index}.quantity`, validNum)
+  }
+
+  // FIX: Handler para peso CT — limita a formato 00.00, sin letras
+  const handleWeightStringChange = (index: number, raw: string) => {
+    // Quitar todo lo que no sea dígito o punto
+    let cleaned = raw.replace(/[^0-9.]/g, '')
+    // Solo un punto decimal
+    const parts = cleaned.split('.')
+    if (parts.length > 2) {
+      cleaned = parts[0] + '.' + parts.slice(1).join('')
+    }
+    // Máximo 2 dígitos antes del punto
+    if (parts[0].length > 2) {
+      const intPart = parts[0].slice(0, 2)
+      cleaned = parts.length > 1 ? intPart + '.' + parts[1] : intPart
+    }
+    // Máximo 2 dígitos después del punto
+    if (parts.length > 1 && parts[1].length > 2) {
+      cleaned = parts[0].slice(0, 2) + '.' + parts[1].slice(0, 2)
+    }
+    setWeightStrings(prev => ({ ...prev, [index]: cleaned }))
+  }
+
+  const handleWeightStringBlur = (index: number) => {
+    const raw = weightStrings[index] ?? ""
+    const num = parseFloat(raw)
+    const validNum = (!isNaN(num) && num > 0) ? num : 0
+    // No actualizar el string display en blur para no forzar formato
+    handleWeightChange(index, validNum)
+    setValue(`stones.${index}.weightCt`, validNum)
+  }
+
   const onSubmit = async (data: any) => {
     if (initialData?.id) {
       data.versionFromId = initialData.id;
     }
-    // Check invalid stones
     if (data.stones.some((s: any) => !s.stoneName) || invalidLots.length > 0) {
       alert("Por favor corrige los lotes inválidos antes de continuar.")
       return
@@ -245,7 +291,6 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
                 {catalogs.pieceTypes?.map((pt: any) => (
                   <option key={pt.id} value={pt.name}>{pt.name}</option>
                 ))}
-                {/* Fallback for existing old records that might not be in catalogs */}
                 {initialData && (!catalogs.pieceTypes || !catalogs.pieceTypes.some((pt: any) => pt.name === initialData.pieceType)) && (
                   <option value={initialData.pieceType}>{initialData.pieceType}</option>
                 )}
@@ -294,54 +339,108 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-[#F5F2EE] pb-2">
             <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold">Piedras</h3>
-            <button type="button" onClick={() => append({ lotCode: "", stoneName: "", quantity: 1, weightCt: 0, pricePerCt: 0, pricingMode: "CT", stoneSubtotal: 0 })} className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium">
+            <button
+              type="button"
+              onClick={() => append({ lotCode: "", stoneName: "", quantity: 1, weightCt: 0, pricePerCt: 0, pricingMode: "CT", stoneSubtotal: 0 })}
+              className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium"
+            >
               <Plus size={14} /> Agregar Piedra
             </button>
           </div>
 
           <div className="space-y-3">
-            {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-12 gap-2 items-end bg-[#F5F2EE]/30 p-3 rounded-md border border-[#F5F2EE]">
-                <div className="col-span-2">
-                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Lote</label>
-                  <input {...register(`stones.${index}.lotCode`)} onBlur={(e) => handleLotCodeChange(index, e.target.value)} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white uppercase" placeholder="Ej: D-001" />
-                </div>
-                <div className="col-span-3 relative">
-                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Nombre</label>
-                  <input disabled {...register(`stones.${index}.stoneName`)} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-[#8E8D8A]" />
-                  {watch(`stones.${index}.pricingMode`) === "PZ" && (
-                    <span className="absolute top-1 right-2 text-[9px] bg-[#D8D3CC] text-[#333333] px-1 rounded">Precio por Pieza</span>
+            {fields.map((field, index) => {
+              const pricingMode = watch(`stones.${index}.pricingMode`)
+              const isPZ = pricingMode === "PZ"
+              // Usa el string local si existe, si no usa el valor del form como string
+              const qtyDisplay = quantityStrings[index] !== undefined
+                ? quantityStrings[index]
+                : String(watch(`stones.${index}.quantity`) || 1)
+              const weightDisplay = weightStrings[index] !== undefined
+                ? weightStrings[index]
+                : String(watch(`stones.${index}.weightCt`) || "")
+
+              return (
+                <div key={field.id} className="grid grid-cols-12 gap-2 items-end bg-[#F5F2EE]/30 p-3 rounded-md border border-[#F5F2EE]">
+                  <div className="col-span-2">
+                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Lote</label>
+                    <input
+                      {...register(`stones.${index}.lotCode`)}
+                      onBlur={(e) => handleLotCodeChange(index, e.target.value)}
+                      className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white uppercase"
+                      placeholder="Ej: D-001"
+                    />
+                  </div>
+                  <div className="col-span-3 relative">
+                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Nombre</label>
+                    <input disabled {...register(`stones.${index}.stoneName`)} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-[#8E8D8A]" />
+                    {isPZ && (
+                      <span className="absolute top-1 right-2 text-[9px] bg-[#D8D3CC] text-[#333333] px-1 rounded">Precio por Pieza</span>
+                    )}
+                  </div>
+                  <div className="col-span-1">
+                    {/* FIX: Campo cantidad manejado como string para permitir borrar libremente */}
+                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1" title="Cantidad de piezas">Cant.</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      disabled={!isPZ}
+                      value={qtyDisplay}
+                      onChange={(e) => handleQuantityStringChange(index, e.target.value)}
+                      onBlur={() => handleQuantityStringBlur(index)}
+                      className={`w-full border ${!isPZ ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A]' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-center`}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    {/* FIX: Campo peso CT con máscara 00.00, sin letras */}
+                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                      {isPZ ? "Peso total (CT)" : "Peso (CT)"} <span className="text-[#C5B358] font-bold" title="Requerido para el certificado">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={weightDisplay}
+                      onChange={(e) => handleWeightStringChange(index, e.target.value)}
+                      onBlur={() => handleWeightStringBlur(index)}
+                      className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Subtotal</label>
+                    <input
+                      disabled
+                      value={`$${(watch(`stones.${index}.stoneSubtotal`) || 0).toLocaleString()}`}
+                      className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-right"
+                      title={isPZ ? "Precio fijo por pieza. No se multiplica por CT." : "Multiplicado por CT"}
+                    />
+                  </div>
+                  <div className="col-span-1 flex justify-end pb-2">
+                    <button type="button" onClick={() => {
+                      remove(index)
+                      setInvalidLots(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i))
+                      setQuantityStrings(prev => {
+                        const next = { ...prev }
+                        delete next[index]
+                        return next
+                      })
+                      setWeightStrings(prev => {
+                        const next = { ...prev }
+                        delete next[index]
+                        return next
+                      })
+                    }} className="text-red-400 hover:text-red-600 transition-colors">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  {invalidLots.includes(index) && (
+                    <div className="col-span-12">
+                      <span className="text-xs text-red-500 mt-1 block">Lote de piedra inválido o no encontrado.</span>
+                    </div>
                   )}
                 </div>
-                <div className="col-span-1">
-                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1" title="Cantidad de piezas">Cant.</label>
-                  <input type="number" min="1" step="1" disabled={watch(`stones.${index}.pricingMode`) !== "PZ"} {...register(`stones.${index}.quantity`, { valueAsNumber: true })} onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 1)} className={`w-full border ${watch(`stones.${index}.pricingMode`) !== "PZ" ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A]' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-center`} />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
-                    {watch(`stones.${index}.pricingMode`) === "PZ" ? "Peso total (CT)" : "Peso (CT)"} <span className="text-[#C5B358] font-bold" title="Requerido para el certificado">*</span>
-                  </label>
-                  <input type="number" step="0.01" {...register(`stones.${index}.weightCt`, { valueAsNumber: true })} onChange={(e) => handleWeightChange(index, parseFloat(e.target.value) || 0)} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white" placeholder="0.00" />
-                </div>
-                <div className="col-span-3">
-                  <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Subtotal</label>
-                  <input disabled value={`$${(watch(`stones.${index}.stoneSubtotal`) || 0).toLocaleString()}`} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-right" title={watch(`stones.${index}.pricingMode`) === "PZ" ? "Precio fijo por pieza. No se multiplica por CT." : "Multiplicado por CT"} />
-                </div>
-                <div className="col-span-1 flex justify-end pb-2">
-                  <button type="button" onClick={() => {
-                    remove(index)
-                    setInvalidLots(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i))
-                  }} className="text-red-400 hover:text-red-600 transition-colors">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                {invalidLots.includes(index) && (
-                  <div className="col-span-12">
-                    <span className="text-xs text-red-500 mt-1 block">Lote de piedra inválido o no encontrado.</span>
-                  </div>
-                )}
-              </div>
-            ))}
+              )
+            })}
             {fields.length === 0 && <p className="text-sm text-center text-[#8E8D8A] py-4">No hay piedras agregadas.</p>}
           </div>
         </section>
@@ -395,8 +494,8 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
           </div>
 
           <div className="pt-4 border-t border-[#D8D3CC] mt-4 flex justify-between items-center">
-             <label className="text-sm text-[#333333]">Descuento (%)</label>
-             <input readOnly={!!initialData} type="number" step="0.1" min="0" max="100" {...register("discountPercent", { valueAsNumber: true })} className={`w-24 border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]`} placeholder="0" />
+            <label className="text-sm text-[#333333]">Descuento (%)</label>
+            <input readOnly={!!initialData} type="number" step="0.1" min="0" max="100" {...register("discountPercent", { valueAsNumber: true })} className={`w-24 border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]`} placeholder="0" />
           </div>
 
         </section>

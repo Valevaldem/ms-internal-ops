@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { AlertCircle, Clock, FileWarning, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Clock, FileWarning, CheckCircle2, Star } from "lucide-react";
 import Link from "next/link";
 import DashboardDateFilter from "./_components/DashboardDateFilter";
 import { getCurrentUser, verifyAccess } from "@/lib/auth";
@@ -20,12 +20,15 @@ export default async function Dashboard({
   const advisorQuotationFilter = user.role === 'advisor' && user.salesAssociateId ? { salesAssociateId: user.salesAssociateId } : {};
   const advisorOrderFilter = user.role === 'advisor' && user.salesAssociateId ? { quotation: { salesAssociateId: user.salesAssociateId } } : {};
 
-  // Fetch expiring quotations (less than 3 days remaining)
+  // FIX: Fetch expiring quotations — filtra por status que NO sean convertidas/declinadas
   const expiringQuotations = await prisma.quotation.findMany({
     where: {
       ...advisorQuotationFilter,
-      status: { in: ["Sent", "Waiting for Response", "In Follow-Up", "Extended"] },
-      validUntil: { lte: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000) }
+      status: { notIn: ["Convertida", "Declinada"] },
+      validUntil: {
+        gte: now,
+        lte: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
+      }
     },
     orderBy: { validUntil: 'asc' }
   });
@@ -40,7 +43,7 @@ export default async function Dashboard({
     include: { quotation: true }
   });
 
-  // Fetch pending follow-ups (5 days or 1 month)
+  // FIX: Fetch pending follow-ups — include quotation para que el render no falle
   const pendingFollowUps = await prisma.order.findMany({
     where: {
       ...advisorOrderFilter,
@@ -52,14 +55,26 @@ export default async function Dashboard({
     include: { quotation: true }
   });
 
-  // Fetch expired quotations holding stones (day 15/16 alert)
+  // FIX: Fetch expired quotations holding stones — usa valores correctos en español y filtra las ya convertidas a orden
   const stonesToReturn = await prisma.quotation.findMany({
     where: {
       ...advisorQuotationFilter,
       validUntil: { lt: now },
-      status: { notIn: ["Converted", "Archived", "Deleted", "Cancelled"] }
+      status: { not: "Declinada" },
+      order: { is: null }
     },
     orderBy: { validUntil: 'asc' }
+  });
+
+  // NEW: Órdenes prioritarias
+  const priorityOrders = await prisma.order.findMany({
+    where: {
+      ...advisorOrderFilter,
+      isPriority: true,
+      stage: { notIn: ["Entregado", "Cycle Closed"] }
+    },
+    include: { quotation: true },
+    orderBy: { createdAt: 'asc' }
   });
 
   // Calculate filtered quotation metrics
@@ -104,7 +119,7 @@ export default async function Dashboard({
           },
           include: { order: true }
         })
-      : Promise.resolve([]) // Return empty array if not comparing to keep default view clean
+      : Promise.resolve([])
   ]);
 
   type QuotationWithOrder = {
@@ -166,7 +181,6 @@ export default async function Dashboard({
       categorizedStatus = 'declinada';
     }
 
-    // Advisor metrics
     const advisorName = q.salesAssociate?.name || "Desconocido";
     if (!advisorBreakdown.has(advisorName)) {
       advisorBreakdown.set(advisorName, {
@@ -192,68 +206,54 @@ export default async function Dashboard({
 
   const getChangeIndicator = (current: number, previous: number) => {
     const diff = current - previous;
-    if (previous === 0) {
-      if (current === 0) return null;
-      return <span className="text-gray-500 ml-2">(+{current})</span>;
-    }
-
-    const percentChange = ((diff / previous) * 100).toFixed(1);
+    if (diff === 0) return null;
     const isPositive = diff > 0;
-    const isNegative = diff < 0;
-
-    // Using neutral gray shades to keep simple and readable, instead of bright red/green
     return (
-      <span className={`ml-2 text-[10px] font-medium ${isPositive ? 'text-gray-600' : isNegative ? 'text-gray-500' : 'text-gray-400'}`}>
-        (vs {previous}) {isPositive ? '↑' : isNegative ? '↓' : ''} {Math.abs(diff)} ({isPositive ? '+' : ''}{percentChange}%)
+      <span className={`text-xs ml-2 font-medium ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
+        {isPositive ? `+${diff}` : `${diff}`}
       </span>
     );
   };
 
   const sortedAdvisors = Array.from(advisorBreakdown.values()).sort((a, b) => b.total - a.total);
 
-  const drillDownUrl = (status?: string, advisorName?: string) => {
+  const drillDownUrl = (status?: string, advisor?: string) => {
     const p = new URLSearchParams();
-    // Use the actual date bounds applied to the query, formatted properly
-    p.set('startDate', startDate.toLocaleDateString('en-CA'));
-    p.set('endDate', endDate.toLocaleDateString('en-CA'));
-
+    if (startDateStr) p.set('startDate', startDateStr);
+    if (endDateStr) p.set('endDate', endDateStr);
     if (status) p.set('status', status);
-    if (advisorName) p.set('advisorName', advisorName);
+    if (advisor) p.set('advisor', advisor);
     return `/cotizaciones/historial?${p.toString()}`;
   };
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-2xl font-serif text-[#333333]">Resumen Operativo</h2>
-          <p className="text-[#8E8D8A] mt-1">Métricas de cotización y alertas internas</p>
-        </div>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-serif text-[#333333]">Resumen</h2>
         <DashboardDateFilter />
       </div>
 
+      {/* Metrics grid */}
       <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm overflow-hidden">
-        <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC] flex justify-between items-start">
+        <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC] flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">
-              Resumen de Cotizaciones ({startDate.toLocaleDateString('es-MX')} - {endDate.toLocaleDateString('es-MX')})
-            </h3>
+            <h3 className="text-sm font-semibold text-[#333333] uppercase tracking-wider">Cotizaciones del Periodo</h3>
             <p className="text-xs text-[#8E8D8A] mt-1">
-              Basado en fecha de creación. Total en periodo:{' '}
-              <Link href={drillDownUrl()} className="font-semibold text-[#333333] hover:text-[#C5B358] hover:underline">
+              {startDate.toLocaleDateString('es-MX')} — {endDate.toLocaleDateString('es-MX')}
+              {isComparing && <span className="ml-2 text-[#C5B358]">(comparando)</span>}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-3xl font-serif text-[#333333]">
+              <Link href={drillDownUrl()} className="hover:text-[#C5B358] hover:underline">
                 {currentMetrics.total}
               </Link>
               {isComparing && getChangeIndicator(currentMetrics.total, prevMetrics.total)}
             </p>
+            <p className="text-xs text-[#8E8D8A] mt-1">total cotizaciones</p>
           </div>
-          {isComparing && prevStartDate && prevEndDate && (
-            <div className="text-right">
-              <p className="text-[10px] text-[#8E8D8A] uppercase tracking-wider">Comparado con</p>
-              <p className="text-xs text-[#8E8D8A]">({prevStartDate.toLocaleDateString('es-MX')} - {prevEndDate.toLocaleDateString('es-MX')})</p>
-            </div>
-          )}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-[#D8D3CC]">
+        <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-[#D8D3CC]">
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Convertidas</p>
             <div className="flex items-baseline justify-center">
@@ -262,14 +262,7 @@ export default async function Dashboard({
               </Link>
               {isComparing && getChangeIndicator(currentMetrics.convertida, prevMetrics.convertida)}
             </div>
-            <p className="text-xs text-[#C5B358] font-medium mt-1">
-              {formatPercent(currentMetrics.convertida, currentMetrics.total)}
-              {isComparing && (
-                <span className="text-[#8E8D8A] font-normal ml-1">
-                  (vs {formatPercent(prevMetrics.convertida, prevMetrics.total)})
-                </span>
-              )}
-            </p>
+            <p className="text-xs text-[#8E8D8A] mt-1">{formatPercent(currentMetrics.convertida, currentMetrics.total)}</p>
           </div>
           <div className="p-4 flex flex-col items-center justify-center text-center">
             <p className="text-xs text-[#8E8D8A] uppercase tracking-wider mb-2">Pendiente</p>
@@ -384,8 +377,33 @@ export default async function Dashboard({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Expiring Quotations Alert */}
+      {/* Alert Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+
+        {/* Órdenes Prioritarias — NUEVO */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Star className="text-yellow-600" size={20} />
+            <h3 className="font-semibold text-yellow-900">Órdenes Prioritarias</h3>
+          </div>
+          {priorityOrders.length === 0 ? (
+            <p className="text-sm text-yellow-700/70">No hay órdenes prioritarias activas.</p>
+          ) : (
+            <ul className="space-y-3">
+              {priorityOrders.map(o => (
+                <li key={o.id} className="text-sm">
+                  <Link href={`/ordenes/produccion`} className="text-yellow-800 hover:underline font-medium">
+                    {o.quotation.folio || o.id}
+                  </Link>
+                  <span className="text-yellow-700 ml-2">({o.quotation.clientNameOrUsername})</span>
+                  <div className="text-yellow-600 text-xs mt-1">{o.stage}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Cotizaciones por Expirar */}
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Clock className="text-amber-600" size={20} />
@@ -408,32 +426,7 @@ export default async function Dashboard({
           )}
         </div>
 
-        {/* Overdue Production Alert */}
-        <div className="bg-red-50 border border-red-200 rounded-lg p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertCircle className="text-red-600" size={20} />
-            <h3 className="font-semibold text-red-900">Producción Atrasada</h3>
-          </div>
-          {overdueOrders.length === 0 ? (
-            <p className="text-sm text-red-700/70">Todo en tiempo.</p>
-          ) : (
-            <ul className="space-y-3">
-              {overdueOrders.map(o => (
-                <li key={o.id} className="text-sm">
-                  <Link href={`/ordenes/produccion`} className="text-red-800 hover:underline font-medium">
-                    {o.id}
-                  </Link>
-                  <span className="text-red-700 ml-2">({o.quotation.clientNameOrUsername})</span>
-                  <div className="text-red-600 text-xs mt-1">
-                    Debió terminar: {o.estimatedProductionEnd?.toLocaleDateString('es-MX')}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Stones to Return / Archivable Quotations */}
+        {/* Piedras por Devolver */}
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <FileWarning className="text-purple-600" size={20} />
@@ -458,7 +451,7 @@ export default async function Dashboard({
           )}
         </div>
 
-        {/* Pending Follow-ups */}
+        {/* Seguimientos Post-Venta */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <CheckCircle2 className="text-blue-600" size={20} />
@@ -471,17 +464,16 @@ export default async function Dashboard({
               {pendingFollowUps.map(o => (
                 <li key={o.id} className="text-sm">
                   <Link href={`/ordenes/historial`} className="text-blue-800 hover:underline font-medium">
-                    {o.id}
+                    {o.quotation.folio || o.id}
                   </Link>
                   <span className="text-blue-700 ml-2">({o.quotation.clientNameOrUsername})</span>
-                  <div className="text-blue-600 text-xs mt-1">
-                    {o.stage}
-                  </div>
+                  <div className="text-blue-600 text-xs mt-1">{o.stage}</div>
                 </li>
               ))}
             </ul>
           )}
         </div>
+
       </div>
     </div>
   );
