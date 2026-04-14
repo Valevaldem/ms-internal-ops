@@ -35,8 +35,8 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   const router = useRouter()
   const [invalidLots, setInvalidLots] = useState<number[]>([])
   const isAdvisor = activeUser.role === "advisor";
-
-  // FIX: State para manejar los strings de cantidad y peso mientras se editan
+  const [discountMode, setDiscountMode] = useState<'percent' | 'amount'>('percent')
+  const [discountAmountInput, setDiscountAmountInput] = useState<number>(0)
   const [quantityStrings, setQuantityStrings] = useState<Record<number, string>>({})
   const [weightStrings, setWeightStrings] = useState<Record<number, string>>({})
 
@@ -54,19 +54,14 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
       marginProtectionEnabled: initialData?.marginProtectionEnabled || false,
       discountPercent: initialData?.discountPercent || 0,
       stones: initialData?.stones?.map((s: any) => ({
-        lotCode: s.lotCode,
-        stoneName: s.stoneName,
-        quantity: s.quantity || 1,
-        weightCt: s.weightCt,
-        pricePerCt: s.pricePerCt,
-        pricingMode: s.pricingMode || "CT",
-        stoneSubtotal: s.stoneSubtotal
+        lotCode: s.lotCode, stoneName: s.stoneName, quantity: s.quantity || 1,
+        weightCt: s.weightCt, pricePerCt: s.pricePerCt,
+        pricingMode: s.pricingMode || "CT", stoneSubtotal: s.stoneSubtotal
       })) || []
     }
   })
 
   const { fields, append, remove } = useFieldArray({ control, name: "stones" })
-
   const modelId = watch("modelId")
   const associateId = watch("salesAssociateId")
   const marginProtectionEnabled = watch("marginProtectionEnabled")
@@ -77,17 +72,14 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
 
   const selectedModel = catalogs.models.find((m: any) => m.id === modelId)
   const selectedAssociate = catalogs.associates.find((a: any) => a.id === associateId)
-
   const selectedPieceTypeObj = catalogs.pieceTypes?.find((pt: any) => pt.name === pieceType)
   const filteredModels = catalogs.models.filter((m: any) => m.pieceTypeId === selectedPieceTypeObj?.id)
 
-  // Calculations
   const modelBasePrice = activeUser.role === 'manager' && manualBasePrice !== undefined ? manualBasePrice : (selectedModel?.basePrice || 0)
   const totalStonesPrice = stones.reduce((sum, s) => sum + (s.stoneSubtotal || 0), 0)
   const subtotalBeforeAdjustments = totalStonesPrice + modelBasePrice
   const msInternalAdjustment = selectedAssociate?.appliesMsAdjustment ? 5000 : 0
-
-  let baseForMargin = subtotalBeforeAdjustments + msInternalAdjustment
+  const baseForMargin = subtotalBeforeAdjustments + msInternalAdjustment
   const marginProtectionAmount = marginProtectionEnabled ? baseForMargin * 0.15 : 0
   const rawClientPrice = baseForMargin + marginProtectionAmount
 
@@ -95,7 +87,6 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
     if (price === 0) return 0;
     const baseThousand = Math.floor(price / 1000) * 1000;
     const remainder = price - baseThousand;
-
     if (remainder === 0) return baseThousand;
     if (remainder <= 500) return baseThousand + 500;
     if (remainder <= 850) return baseThousand + 850;
@@ -103,409 +94,282 @@ export default function NuevaCotizacionClient({ catalogs, initialData, activeUse
   };
 
   const roundedPriceBeforeDiscount = getRoundedCommercialPrice(rawClientPrice);
-  const calculatedDiscountAmount = (roundedPriceBeforeDiscount * (discountPercent || 0)) / 100;
-  const finalClientPrice = roundedPriceBeforeDiscount - calculatedDiscountAmount;
 
-  const handleLotCodeChange = (index: number, code: string) => {
-    if (!code) {
-      setInvalidLots(prev => prev.filter(i => i !== index))
-      setValue(`stones.${index}.stoneName`, "")
-      setValue(`stones.${index}.pricePerCt`, 0)
-      setValue(`stones.${index}.stoneSubtotal`, 0)
-      return
-    }
-
-    const lot = catalogs.stones.find((s: any) => s.code.toUpperCase() === code.toUpperCase())
-    if (lot) {
-      setInvalidLots(prev => prev.filter(i => i !== index))
-      setValue(`stones.${index}.lotCode`, lot.code)
-      setValue(`stones.${index}.stoneName`, lot.stoneName)
-      setValue(`stones.${index}.pricePerCt`, lot.pricePerCt)
-      setValue(`stones.${index}.pricingMode`, lot.pricingMode || "CT")
-
-      const weight = watch(`stones.${index}.weightCt`) || 0
-      const qty = watch(`stones.${index}.quantity`) || 1
-      if (lot.pricingMode === "PZ") {
-        setValue(`stones.${index}.stoneSubtotal`, lot.pricePerCt * qty)
-      } else {
-        setValue(`stones.${index}.stoneSubtotal`, weight * lot.pricePerCt)
-      }
-    } else {
-      setInvalidLots(prev => !prev.includes(index) ? [...prev, index] : prev)
-      setValue(`stones.${index}.stoneName`, "")
-      setValue(`stones.${index}.pricePerCt`, 0)
-      setValue(`stones.${index}.pricingMode`, "CT")
-      setValue(`stones.${index}.stoneSubtotal`, 0)
-    }
+  let effectiveDiscountPercent = 0, effectiveDiscountAmount = 0;
+  if (discountMode === 'percent') {
+    effectiveDiscountPercent = discountPercent || 0;
+    effectiveDiscountAmount = (roundedPriceBeforeDiscount * effectiveDiscountPercent) / 100;
+  } else {
+    effectiveDiscountAmount = discountAmountInput || 0;
+    effectiveDiscountPercent = roundedPriceBeforeDiscount > 0 ? (effectiveDiscountAmount / roundedPriceBeforeDiscount) * 100 : 0;
   }
+  const finalClientPrice = roundedPriceBeforeDiscount - effectiveDiscountAmount;
 
-  const handleWeightChange = (index: number, weight: number) => {
-    const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
-    const pricingMode = watch(`stones.${index}.pricingMode`) || "CT"
-    const qty = watch(`stones.${index}.quantity`) || 1
-
-    if (pricingMode === "PZ") {
-      setValue(`stones.${index}.stoneSubtotal`, pricePerCt * qty)
+  const handleDiscountModeToggle = (mode: 'percent' | 'amount') => {
+    setDiscountMode(mode);
+    if (mode === 'percent') {
+      const pct = roundedPriceBeforeDiscount > 0 ? (discountAmountInput / roundedPriceBeforeDiscount) * 100 : 0;
+      setValue('discountPercent', Math.round(pct * 10) / 10);
     } else {
-      setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt)
+      setDiscountAmountInput(Math.round((roundedPriceBeforeDiscount * (discountPercent || 0)) / 100));
     }
-  }
+  };
 
-  const handleQuantityChange = (index: number, qty: number) => {
-    setValue(`stones.${index}.quantity`, qty)
-    const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
-    const pricingMode = watch(`stones.${index}.pricingMode`) || "CT"
-    const weight = watch(`stones.${index}.weightCt`) || 0
-
-    if (pricingMode === "PZ") {
-      setValue(`stones.${index}.stoneSubtotal`, pricePerCt * qty)
-    } else {
-      setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt)
-    }
-  }
-
-  // FIX: Handler para cantidad como string — permite borrar el "1" sin que se resetee
-  const handleQuantityStringChange = (index: number, raw: string) => {
-    // Solo permitir dígitos
-    const cleaned = raw.replace(/[^0-9]/g, '')
+  const handleQuantityStringChange = (index: number, value: string) => {
+    const cleaned = value.replace(/[^0-9]/g, '')
     setQuantityStrings(prev => ({ ...prev, [index]: cleaned }))
+    const num = parseInt(cleaned)
+    if (!isNaN(num) && num > 0) {
+      const pricingMode = watch(`stones.${index}.pricingMode`)
+      const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
+      const weightCt = watch(`stones.${index}.weightCt`) || 0
+      setValue(`stones.${index}.quantity`, num)
+      setValue(`stones.${index}.stoneSubtotal`, pricingMode === "PZ" ? pricePerCt * num : weightCt * pricePerCt)
+    }
   }
 
   const handleQuantityStringBlur = (index: number) => {
-    const raw = quantityStrings[index] ?? ""
-    const num = parseInt(raw, 10)
-    const validNum = (!isNaN(num) && num >= 1) ? num : 1
+    const num = parseInt(quantityStrings[index] ?? "")
+    const validNum = (!isNaN(num) && num > 0) ? num : 1
     setQuantityStrings(prev => ({ ...prev, [index]: String(validNum) }))
-    handleQuantityChange(index, validNum)
     setValue(`stones.${index}.quantity`, validNum)
   }
 
-  // FIX: Handler para peso CT — limita a formato 00.00, sin letras
-  const handleWeightStringChange = (index: number, raw: string) => {
-    // Quitar todo lo que no sea dígito o punto
-    let cleaned = raw.replace(/[^0-9.]/g, '')
-    // Solo un punto decimal
+  const handleWeightChange = (index: number, weight: number) => {
+    const pricingMode = watch(`stones.${index}.pricingMode`)
+    const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
+    if (pricingMode !== "PZ") setValue(`stones.${index}.stoneSubtotal`, weight * pricePerCt)
+  }
+
+  const handleWeightStringChange = (index: number, value: string) => {
+    let cleaned = value.replace(/[^0-9.]/g, '')
     const parts = cleaned.split('.')
-    if (parts.length > 2) {
-      cleaned = parts[0] + '.' + parts.slice(1).join('')
-    }
-    // Máximo 2 dígitos antes del punto
-    if (parts[0].length > 2) {
-      const intPart = parts[0].slice(0, 2)
-      cleaned = parts.length > 1 ? intPart + '.' + parts[1] : intPart
-    }
-    // Máximo 2 dígitos después del punto
-    if (parts.length > 1 && parts[1].length > 2) {
-      cleaned = parts[0].slice(0, 2) + '.' + parts[1].slice(0, 2)
-    }
+    if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('')
+    const intPart = parts[0].slice(0, 2)
+    cleaned = parts.length > 1 ? intPart + '.' + parts[1] : intPart
+    if (parts.length > 1 && parts[1].length > 2) cleaned = parts[0].slice(0, 2) + '.' + parts[1].slice(0, 2)
     setWeightStrings(prev => ({ ...prev, [index]: cleaned }))
   }
 
   const handleWeightStringBlur = (index: number) => {
-    const raw = weightStrings[index] ?? ""
-    const num = parseFloat(raw)
+    const num = parseFloat(weightStrings[index] ?? "")
     const validNum = (!isNaN(num) && num > 0) ? num : 0
-    // No actualizar el string display en blur para no forzar formato
     handleWeightChange(index, validNum)
     setValue(`stones.${index}.weightCt`, validNum)
   }
 
-  const onSubmit = async (data: any) => {
-    if (initialData?.id) {
-      data.versionFromId = initialData.id;
-    }
-    if (data.stones.some((s: any) => !s.stoneName) || invalidLots.length > 0) {
-      alert("Por favor corrige los lotes inválidos antes de continuar.")
+  const handleLotCodeChange = (index: number, code: string) => {
+    if (!code) {
+      setInvalidLots(prev => prev.filter(i => i !== index))
+      setValue(`stones.${index}.stoneName`, ""); setValue(`stones.${index}.pricePerCt`, 0); setValue(`stones.${index}.stoneSubtotal`, 0)
       return
     }
-
-    const payload = {
-      ...data,
-      associateId: data.salesAssociateId,
-      modelName: selectedModel?.name || "Desconocido",
-      modelBasePrice,
-      totalStonesPrice,
-      subtotalBeforeAdjustments,
-      msInternalAdjustment,
-      marginProtectionAmount,
-      discountPercent: discountPercent || 0,
-      finalClientPrice,
-      validUntilDate: new Date(new Date().getTime() + 15 * 24 * 60 * 60 * 1000)
+    const lot = catalogs.stones.find((s: any) => s.code.toUpperCase() === code.toUpperCase())
+    if (lot) {
+      setInvalidLots(prev => prev.filter(i => i !== index))
+      setValue(`stones.${index}.lotCode`, lot.code); setValue(`stones.${index}.stoneName`, lot.stoneName)
+      setValue(`stones.${index}.pricePerCt`, lot.pricePerCt); setValue(`stones.${index}.pricingMode`, lot.pricingMode || "CT")
+      const weight = watch(`stones.${index}.weightCt`) || 0, qty = watch(`stones.${index}.quantity`) || 1
+      setValue(`stones.${index}.stoneSubtotal`, lot.pricingMode === "PZ" ? lot.pricePerCt * qty : weight * lot.pricePerCt)
+    } else {
+      setInvalidLots(prev => !prev.includes(index) ? [...prev, index] : prev)
+      setValue(`stones.${index}.stoneName`, "")
     }
+  }
 
-    try {
-      await createQuotation(payload)
-      router.push("/cotizaciones/historial")
-    } catch (e) {
-      console.error(e)
-      alert("Error al guardar.")
-    }
+  const buildPayload = (data: any, asDraft = false) => {
+    if (initialData?.id) data.versionFromId = initialData.id;
+    return { ...data, associateId: data.salesAssociateId, modelName: selectedModel?.name || "Desconocido", modelBasePrice, totalStonesPrice, subtotalBeforeAdjustments, msInternalAdjustment, marginProtectionAmount, discountPercent: effectiveDiscountPercent, finalClientPrice, validUntilDate: new Date(Date.now() + 15 * 86400000), asDraft }
+  }
+
+  const onSubmit = async (data: any) => {
+    if (data.stones.some((s: any) => !s.stoneName) || invalidLots.length > 0) { alert("Por favor corrige los lotes inválidos."); return }
+    try { await createQuotation(buildPayload(data, false)); router.push("/cotizaciones/historial") } catch (e) { console.error(e); alert("Error al guardar.") }
+  }
+
+  const onSaveDraft = async (data: any) => {
+    try { const result = await createQuotation(buildPayload(data, true)); router.push(`/cotizaciones/${result?.id}`) } catch (e) { console.error(e); alert("Error al guardar borrador.") }
   }
 
   return (
     <div className="max-w-4xl mx-auto pb-10">
       <h2 className="text-2xl font-serif text-[#333333] mb-6">Nueva Cotización</h2>
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
 
-        {/* Cabecera */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2">Datos Generales</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#333333] mb-1">Cliente / Usuario</label>
-              <input readOnly={!!initialData} {...register("clientNameOrUsername")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} placeholder="Ej. Maria Lopez / @marialopez" />
+              <input readOnly={!!initialData} {...register("clientNameOrUsername")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} placeholder="Ej. Maria Lopez" />
             </div>
             <div>
               <label className="block text-sm text-[#333333] mb-1">Teléfono</label>
-              <input readOnly={!!initialData} {...register("phoneNumber")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} />
+              <input readOnly={!!initialData} {...register("phoneNumber")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} placeholder="Opcional" />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#333333] mb-1">Canal de Venta</label>
-              <select {...register("salesChannel")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={initialData ? -1 : 0}>
-                <option value="Store">Tienda Física</option>
-                <option value="WhatsApp">WhatsApp</option>
-                <option value="Instagram">Instagram</option>
-                <option value="Facebook">Facebook</option>
-                <option value="TikTok">TikTok</option>
-                <option value="Form">Formulario Web</option>
+              <select disabled={!!initialData} {...register("salesChannel")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}>
+                <option value="Store">Tienda</option><option value="WhatsApp">WhatsApp</option><option value="Instagram">Instagram</option><option value="Facebook">Facebook</option><option value="TikTok">TikTok</option><option value="Form">Formulario</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-[#333333] mb-1">Asesor(a)</label>
-              <select {...register("salesAssociateId")} className={`w-full border ${(initialData || isAdvisor) ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={(initialData || isAdvisor) ? -1 : 0}>
-                <option value="">Selecciona...</option>
-                {catalogs.associates.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
+              <label className="block text-sm text-[#333333] mb-1">Asesora</label>
+              {isAdvisor ? (
+                <input disabled value={activeUser.name || ''} className="w-full border border-transparent bg-[#F5F2EE] text-[#8E8D8A] rounded p-2 text-sm cursor-not-allowed" />
+              ) : (
+                <select disabled={!!initialData} {...register("salesAssociateId")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}>
+                  <option value="">Selecciona asesora</option>
+                  {catalogs.associates.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              )}
             </div>
           </div>
         </section>
 
-        {/* Pieza */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
-          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2">Información de la Pieza</h3>
+          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2">Pieza</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[#333333] mb-1">Tipo de Pieza</label>
-              <select {...register("pieceType")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} tabIndex={initialData ? -1 : 0}>
-                {catalogs.pieceTypes?.map((pt: any) => (
-                  <option key={pt.id} value={pt.name}>{pt.name}</option>
-                ))}
-                {initialData && (!catalogs.pieceTypes || !catalogs.pieceTypes.some((pt: any) => pt.name === initialData.pieceType)) && (
-                  <option value={initialData.pieceType}>{initialData.pieceType}</option>
-                )}
+              <select disabled={!!initialData} {...register("pieceType")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}>
+                {catalogs.pieceTypes?.map((pt: any) => <option key={pt.id} value={pt.name}>{pt.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm text-[#333333] mb-1">Modelo Base</label>
-              <select
-                {...register("modelId", {
-                  onChange: (e) => {
-                    const newModelId = e.target.value;
-                    const newModel = catalogs.models.find((m: any) => m.id === newModelId);
-                    if (newModel) {
-                      setValue("modelBasePrice", newModel.basePrice);
-                    }
-                  }
-                })}
-                className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] pointer-events-none appearance-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}
-                tabIndex={initialData ? -1 : 0}
-              >
-                <option value="">Selecciona modelo...</option>
-                {filteredModels.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              <label className="block text-sm text-[#333333] mb-1">Modelo</label>
+              <select disabled={!!initialData} {...register("modelId")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}>
+                <option value="">Selecciona modelo</option>
+                {filteredModels.map((m: any) => <option key={m.id} value={m.id}>{m.name} — ${m.basePrice.toLocaleString('es-MX')}</option>)}
               </select>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm text-[#333333] mb-1">Precio Base</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8E8D8A]">$</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  readOnly={activeUser.role !== 'manager' || !!initialData}
-                  {...register("modelBasePrice", { valueAsNumber: true })}
-                  className={`w-full pl-8 pr-3 border ${activeUser.role !== 'manager' || initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}
-                />
-              </div>
+              {errors.modelId && <span className="text-xs text-red-500">{errors.modelId.message as string}</span>}
             </div>
           </div>
+          {activeUser.role === 'manager' && (
+            <div className="w-1/2">
+              <label className="block text-sm text-[#333333] mb-1">Precio Base Manual (Manager)</label>
+              <input type="number" step="0.01" {...register("modelBasePrice", { valueAsNumber: true })} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
+            </div>
+          )}
           <div>
             <label className="block text-sm text-[#333333] mb-1">Notas del diseño</label>
-            <textarea readOnly={!!initialData} {...register("notes")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} rows={2}></textarea>
+            <textarea readOnly={!!initialData} {...register("notes")} className={`w-full border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`} rows={2}></textarea>
           </div>
         </section>
 
-        {/* Piedras */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-[#F5F2EE] pb-2">
             <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold">Piedras</h3>
-            <button
-              type="button"
-              onClick={() => append({ lotCode: "", stoneName: "", quantity: 1, weightCt: 0, pricePerCt: 0, pricingMode: "CT", stoneSubtotal: 0 })}
-              className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium"
-            >
+            <button type="button" onClick={() => append({ lotCode: "", stoneName: "", quantity: 1, weightCt: 0, pricePerCt: 0, pricingMode: "CT", stoneSubtotal: 0 })} className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium">
               <Plus size={14} /> Agregar Piedra
             </button>
           </div>
-
           <div className="space-y-3">
             {fields.map((field, index) => {
               const pricingMode = watch(`stones.${index}.pricingMode`)
               const isPZ = pricingMode === "PZ"
-              // Usa el string local si existe, si no usa el valor del form como string
-              const qtyDisplay = quantityStrings[index] !== undefined
-                ? quantityStrings[index]
-                : String(watch(`stones.${index}.quantity`) || 1)
-              const weightDisplay = weightStrings[index] !== undefined
-                ? weightStrings[index]
-                : String(watch(`stones.${index}.weightCt`) || "")
-
+              const qtyDisplay = quantityStrings[index] !== undefined ? quantityStrings[index] : String(watch(`stones.${index}.quantity`) || 1)
+              const weightDisplay = weightStrings[index] !== undefined ? weightStrings[index] : String(watch(`stones.${index}.weightCt`) || "")
               return (
                 <div key={field.id} className="grid grid-cols-12 gap-2 items-end bg-[#F5F2EE]/30 p-3 rounded-md border border-[#F5F2EE]">
                   <div className="col-span-2">
                     <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Lote</label>
-                    <input
-                      {...register(`stones.${index}.lotCode`)}
-                      onBlur={(e) => handleLotCodeChange(index, e.target.value)}
-                      className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white uppercase"
-                      placeholder="Ej: D-001"
-                    />
+                    <input {...register(`stones.${index}.lotCode`)} onBlur={(e) => handleLotCodeChange(index, e.target.value)} className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white uppercase" placeholder="Ej: D-001" />
                   </div>
                   <div className="col-span-3 relative">
                     <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Nombre</label>
                     <input disabled {...register(`stones.${index}.stoneName`)} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-[#8E8D8A]" />
-                    {isPZ && (
-                      <span className="absolute top-1 right-2 text-[9px] bg-[#D8D3CC] text-[#333333] px-1 rounded">Precio por Pieza</span>
-                    )}
+                    {isPZ && <span className="absolute top-1 right-2 text-[9px] bg-[#D8D3CC] text-[#333333] px-1 rounded">Precio por Pieza</span>}
                   </div>
                   <div className="col-span-1">
-                    {/* FIX: Campo cantidad manejado como string para permitir borrar libremente */}
-                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1" title="Cantidad de piezas">Cant.</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      disabled={!isPZ}
-                      value={qtyDisplay}
-                      onChange={(e) => handleQuantityStringChange(index, e.target.value)}
-                      onBlur={() => handleQuantityStringBlur(index)}
-                      className={`w-full border ${!isPZ ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A]' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-center`}
-                    />
+                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Cant.</label>
+                    <input type="text" inputMode="numeric" disabled={!isPZ} value={qtyDisplay} onChange={(e) => handleQuantityStringChange(index, e.target.value)} onBlur={() => handleQuantityStringBlur(index)} className={`w-full border ${!isPZ ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A]' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-center`} />
                   </div>
                   <div className="col-span-2">
-                    {/* FIX: Campo peso CT con máscara 00.00, sin letras */}
-                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
-                      {isPZ ? "Peso total (CT)" : "Peso (CT)"} <span className="text-[#C5B358] font-bold" title="Requerido para el certificado">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={weightDisplay}
-                      onChange={(e) => handleWeightStringChange(index, e.target.value)}
-                      onBlur={() => handleWeightStringBlur(index)}
-                      className="w-full border border-[#D8D3CC] rounded p-2 text-sm bg-white"
-                      placeholder="0.00"
-                    />
+                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1 whitespace-nowrap overflow-hidden text-ellipsis">{isPZ ? 'Peso CT (ref)' : 'Peso CT'}</label>
+                    <input type="text" inputMode="decimal" disabled={isPZ} value={weightDisplay} onChange={(e) => handleWeightStringChange(index, e.target.value)} onBlur={() => handleWeightStringBlur(index)} className={`w-full border ${isPZ ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A]' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-right`} placeholder="0.00" />
                   </div>
-                  <div className="col-span-3">
+                  <div className="col-span-2">
+                    <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Precio/CT</label>
+                    <input disabled {...register(`stones.${index}.pricePerCt`, { valueAsNumber: true })} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-[#8E8D8A] text-right" />
+                  </div>
+                  <div className="col-span-2">
                     <label className="block text-[10px] uppercase text-[#8E8D8A] mb-1">Subtotal</label>
-                    <input
-                      disabled
-                      value={`$${(watch(`stones.${index}.stoneSubtotal`) || 0).toLocaleString()}`}
-                      className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-right"
-                      title={isPZ ? "Precio fijo por pieza. No se multiplica por CT." : "Multiplicado por CT"}
-                    />
+                    <input disabled {...register(`stones.${index}.stoneSubtotal`, { valueAsNumber: true })} className="w-full border border-transparent rounded p-2 text-sm bg-[#F5F2EE] text-[#C5B358] font-semibold text-right" />
                   </div>
-                  <div className="col-span-1 flex justify-end pb-2">
-                    <button type="button" onClick={() => {
-                      remove(index)
-                      setInvalidLots(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i))
-                      setQuantityStrings(prev => {
-                        const next = { ...prev }
-                        delete next[index]
-                        return next
-                      })
-                      setWeightStrings(prev => {
-                        const next = { ...prev }
-                        delete next[index]
-                        return next
-                      })
-                    }} className="text-red-400 hover:text-red-600 transition-colors">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  {invalidLots.includes(index) && (
-                    <div className="col-span-12">
-                      <span className="text-xs text-red-500 mt-1 block">Lote de piedra inválido o no encontrado.</span>
+                  <div className="col-span-12 flex justify-between items-center mt-1">
+                    {invalidLots.includes(index) && <span className="text-xs text-red-500">Lote no encontrado en inventario</span>}
+                    <div className="ml-auto">
+                      <button type="button" onClick={() => { remove(index); setInvalidLots(prev => prev.filter(i => i !== index)) }} className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1 transition-colors">
+                        <Trash2 size={12} /> Quitar
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
               )
             })}
-            {fields.length === 0 && <p className="text-sm text-center text-[#8E8D8A] py-4">No hay piedras agregadas.</p>}
+            {fields.length === 0 && <p className="text-xs text-[#8E8D8A] italic">Sin piedras. Haz clic en "Agregar Piedra" para incluir.</p>}
           </div>
         </section>
 
-        {/* Precios (Interno) */}
-        <section className="bg-[#F5F2EE]/50 border border-[#D8D3CC] text-[#333333] p-6 rounded-lg shadow-sm space-y-3">
-          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#D8D3CC] pb-2 mb-4">Desglose (Uso Interno)</h3>
-
-          <div className="flex justify-between text-sm">
-            <span className="text-[#8E8D8A]">Base del Modelo:</span>
-            <span>${modelBasePrice.toLocaleString()}</span>
+        <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-3">
+          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Precio Final</h3>
+          <div className="flex justify-between text-sm text-[#333333]">
+            <span>Subtotal:</span><span>${subtotalBeforeAdjustments.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-[#8E8D8A]">Subtotal Piedras:</span>
-            <span>${totalStonesPrice.toLocaleString()}</span>
-          </div>
-
           {msInternalAdjustment > 0 && (
-            <div className="flex justify-between text-sm text-[#C5B358] font-medium">
-              <span>Ajuste MS (+):</span>
-              <span>${msInternalAdjustment.toLocaleString()}</span>
+            <div className="flex justify-between text-sm text-[#8E8D8A]">
+              <span>Ajuste MS:</span><span>+${msInternalAdjustment.toLocaleString()}</span>
             </div>
           )}
-
-          <div className="flex items-center justify-between text-sm pt-2 border-t border-[#D8D3CC] mt-2">
-            <label className={`flex items-center gap-2 text-[#333333] font-medium ${initialData ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
+          <div className="flex justify-between text-sm items-center">
+            <label className={`flex items-center gap-2 text-sm text-[#333333] ${initialData ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
               <input type="checkbox" disabled={!!initialData} {...register("marginProtectionEnabled")} className="rounded text-[#C5B358] focus:ring-[#C5B358] bg-white border-[#D8D3CC] disabled:opacity-50" />
-              {initialData && <input type="hidden" {...register("marginProtectionEnabled")} />}
               Ajuste interno
             </label>
             {marginProtectionEnabled && <span className="text-[#C5B358] font-medium">${marginProtectionAmount.toLocaleString()}</span>}
           </div>
-
-          {discountPercent ? discountPercent > 0 && (
-            <div className="flex justify-between text-sm text-red-500 font-medium">
-              <span>Descuento Aplicado ({discountPercent}%):</span>
-              <span>-${calculatedDiscountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+          <div className="pt-3 border-t border-[#F5F2EE]">
+            <div className="flex justify-between items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-[#333333]">Descuento</span>
+                <div className="flex rounded border border-[#D8D3CC] overflow-hidden text-xs">
+                  <button type="button" onClick={() => handleDiscountModeToggle('percent')} className={`px-2 py-1 transition-colors ${discountMode === 'percent' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>%</button>
+                  <button type="button" onClick={() => handleDiscountModeToggle('amount')} className={`px-2 py-1 transition-colors ${discountMode === 'amount' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>$</button>
+                </div>
+              </div>
+              {discountMode === 'percent' ? (
+                <input readOnly={!!initialData} type="number" step="0.1" min="0" max="100" {...register("discountPercent", { valueAsNumber: true })} className={`w-24 border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]`} placeholder="0" />
+              ) : (
+                <input type="number" step="1" min="0" value={discountAmountInput} onChange={(e) => setDiscountAmountInput(Number(e.target.value))} className="w-28 border border-[#D8D3CC] bg-white rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]" placeholder="0" />
+              )}
             </div>
-          ) : null}
-
-          <div className="flex justify-between text-lg font-serif pt-4 mt-4 border-t border-[#D8D3CC]">
+            {effectiveDiscountAmount > 0 && (
+              <div className="flex justify-between text-sm text-red-500 font-medium mt-2">
+                <span>Descuento ({effectiveDiscountPercent.toFixed(1)}%):</span>
+                <span>-${effectiveDiscountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-between text-lg font-serif pt-4 mt-2 border-t border-[#D8D3CC]">
             <span>Precio Final Cliente:</span>
             <div className="flex flex-col items-end">
-              {discountPercent && discountPercent > 0 ? (
-                <span className="text-sm line-through text-[#8E8D8A] mb-1">
-                  ${roundedPriceBeforeDiscount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                </span>
-              ) : null}
+              {effectiveDiscountAmount > 0 && <span className="text-sm line-through text-[#8E8D8A] mb-1">${roundedPriceBeforeDiscount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>}
               <span className="text-[#C5B358] font-semibold">${finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
-
-          <div className="pt-4 border-t border-[#D8D3CC] mt-4 flex justify-between items-center">
-            <label className="text-sm text-[#333333]">Descuento (%)</label>
-            <input readOnly={!!initialData} type="number" step="0.1" min="0" max="100" {...register("discountPercent", { valueAsNumber: true })} className={`w-24 border ${initialData ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm text-right focus:outline-none focus:border-[#C5B358]`} placeholder="0" />
-          </div>
-
         </section>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end gap-3 pt-4">
+          <button type="button" disabled={isSubmitting} onClick={handleSubmit(onSaveDraft)} className="bg-white border border-[#D8D3CC] text-[#8E8D8A] hover:bg-[#F5F2EE] hover:text-[#333333] px-6 py-3 rounded-md text-sm font-semibold transition-colors disabled:opacity-50">
+            Guardar borrador
+          </button>
           <button type="submit" disabled={isSubmitting} className="bg-[#333333] hover:bg-black text-white px-8 py-3 rounded-md text-sm uppercase tracking-wider font-semibold transition-colors disabled:opacity-50">
             {isSubmitting ? "Guardando..." : "Crear Cotización"}
           </button>
         </div>
-
       </form>
     </div>
   )

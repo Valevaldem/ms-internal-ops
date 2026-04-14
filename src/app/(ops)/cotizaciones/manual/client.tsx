@@ -22,34 +22,24 @@ const schema = z.object({
 export default function NuevaCotizacionManualClient({ catalogs, activeUser }: { catalogs: any, activeUser: ActiveUser }) {
   const router = useRouter()
   const isAdvisor = activeUser.role === "advisor";
-
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: {
-      clientNameOrUsername: "",
-      phoneNumber: "",
-      salesChannel: "Store",
-      salesAssociateId: isAdvisor ? activeUser.salesAssociateId : "",
-      pieceType: (catalogs.pieceTypes && catalogs.pieceTypes[0]?.name) || "Ring",
-      manualPieceDescription: "",
-      productionTiming: "Regular" as const,
-      finalClientPrice: 0,
-      notes: "",
-    }
+    defaultValues: { clientNameOrUsername: "", phoneNumber: "", salesChannel: "Store", salesAssociateId: isAdvisor ? activeUser.salesAssociateId : "", pieceType: (catalogs.pieceTypes && catalogs.pieceTypes[0]?.name) || "Ring", manualPieceDescription: "", productionTiming: "Regular" as const, finalClientPrice: 0, notes: "" }
   })
 
+  const buildPayload = (data: any, asDraft: boolean) => {
+    const validUntilDate = new Date(); validUntilDate.setDate(validUntilDate.getDate() + 15);
+    return { ...data, associateId: data.salesAssociateId, validUntilDate, asDraft };
+  };
+
   const onSubmit = async (data: any) => {
-    const validUntilDate = new Date();
-    validUntilDate.setDate(validUntilDate.getDate() + 15);
+    const res = await createManualQuotation(buildPayload(data, false));
+    if (res?.id) router.push(`/cotizaciones/${res.id}`);
+  }
 
-    const payload = {
-      ...data,
-      associateId: data.salesAssociateId,
-      validUntilDate
-    };
-
-    const res = await createManualQuotation(payload);
-    router.push(`/cotizaciones/${res.id}`);
+  const onSaveDraft = async (data: any) => {
+    const res = await createManualQuotation(buildPayload(data, true));
+    if (res?.id) router.push(`/cotizaciones/${res.id}`);
   }
 
   return (
@@ -60,75 +50,66 @@ export default function NuevaCotizacionManualClient({ catalogs, activeUser }: { 
           <p className="text-sm text-[#8E8D8A] mt-1">Registro de cotización fuera de modelo</p>
         </div>
       </div>
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
-          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Información General</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Datos Generales</h3>
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[#333333] mb-1">Cliente / Usuario (IG) <span className="text-red-500">*</span></label>
-              <input {...register("clientNameOrUsername")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" placeholder="Nombre completo o @usuario" />
+              <label className="block text-sm text-[#333333] mb-1">Cliente / Usuario <span className="text-red-500">*</span></label>
+              <input {...register("clientNameOrUsername")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" placeholder="Ej. Maria Lopez" />
               {errors.clientNameOrUsername && <span className="text-xs text-red-500">{errors.clientNameOrUsername.message as string}</span>}
             </div>
             <div>
+              <label className="block text-sm text-[#333333] mb-1">Teléfono</label>
+              <input {...register("phoneNumber")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" placeholder="Opcional" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <label className="block text-sm text-[#333333] mb-1">Canal de Venta</label>
-              <select {...register("salesChannel")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]">
-                <option value="Store">Tienda Física</option>
-                <option value="WhatsApp">WhatsApp</option>
-                <option value="Instagram">Instagram</option>
-                <option value="Facebook">Facebook</option>
-                <option value="TikTok">TikTok</option>
-                <option value="Form">Formulario Web</option>
+              <select {...register("salesChannel")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]">
+                <option value="Store">Tienda</option><option value="WhatsApp">WhatsApp</option><option value="Instagram">Instagram</option><option value="Facebook">Facebook</option><option value="TikTok">TikTok</option><option value="Form">Formulario</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-[#333333] mb-1">Teléfono (Opcional)</label>
-              <input {...register("phoneNumber")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" placeholder="10 dígitos" />
-            </div>
-            <div>
-              <label className="block text-sm text-[#333333] mb-1">Asesor <span className="text-red-500">*</span></label>
-              <select disabled={isAdvisor} {...register("salesAssociateId")} className={`w-full border ${isAdvisor ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A]' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}>
-                <option value="">Selecciona asesor...</option>
-                {catalogs.associates.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-              {isAdvisor && <input type="hidden" {...register("salesAssociateId")} value={activeUser.salesAssociateId || ""} />}
-              {errors.salesAssociateId && <span className="text-xs text-red-500">Seleccione un asesor</span>}
+              <label className="block text-sm text-[#333333] mb-1">Asesora</label>
+              {isAdvisor ? (
+                <input disabled value={activeUser.name || ''} className="w-full border border-transparent bg-[#F5F2EE] text-[#8E8D8A] rounded p-2 text-sm cursor-not-allowed" />
+              ) : (
+                <select {...register("salesAssociateId")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]">
+                  <option value="">Selecciona asesora</option>
+                  {catalogs.associates.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              )}
             </div>
           </div>
         </section>
-
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
-          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Diseño</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Pieza</h3>
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[#333333] mb-1">Tipo de Pieza <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-[#333333] mb-1">Tipo de Pieza</label>
               <select {...register("pieceType")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]">
-                {catalogs.pieceTypes.map((pt: any) => (
-                  <option key={pt.id} value={pt.name}>{pt.name}</option>
-                ))}
+                {catalogs.pieceTypes?.map((pt: any) => <option key={pt.id} value={pt.name}>{pt.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm text-[#333333] mb-1">Tiempo de Producción <span className="text-red-500">*</span></label>
-              <select {...register("productionTiming")} className="w-full border border-[#D8D3CC] rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]">
-                <option value="Express">Express (5 días hábiles)</option>
-                <option value="Regular">Regular (20 días hábiles)</option>
-                <option value="Special">Especial (50 días hábiles)</option>
+              <label className="block text-sm text-[#333333] mb-1">Tiempo de Producción</label>
+              <select {...register("productionTiming")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]">
+                <option value="Regular">Regular (20 días)</option><option value="Express">Express (5 días)</option><option value="Special">Especial (+50 días)</option>
               </select>
             </div>
           </div>
           <div>
             <label className="block text-sm text-[#333333] mb-1">Descripción de la Pieza <span className="text-red-500">*</span></label>
-            <textarea {...register("manualPieceDescription")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" rows={3} placeholder="Describe el diseño, modelo o características de la pieza..."></textarea>
+            <textarea {...register("manualPieceDescription")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" rows={2} placeholder="Describe el diseño, material, medidas, etc." />
             {errors.manualPieceDescription && <span className="text-xs text-red-500">{errors.manualPieceDescription.message as string}</span>}
           </div>
           <div>
-            <label className="block text-sm text-[#333333] mb-1">Notas adicionales (Internas)</label>
-            <textarea {...register("notes")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" rows={2}></textarea>
+            <label className="block text-sm text-[#333333] mb-1">Notas adicionales</label>
+            <textarea {...register("notes")} className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]" rows={2} />
           </div>
         </section>
-
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Total Manual</h3>
           <div className="w-1/2">
@@ -138,13 +119,14 @@ export default function NuevaCotizacionManualClient({ catalogs, activeUser }: { 
             <p className="text-xs text-[#8E8D8A] mt-1">Este precio no aplicará redondeo comercial ni descuentos automáticos.</p>
           </div>
         </section>
-
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end gap-3 pt-4">
+          <button type="button" disabled={isSubmitting} onClick={handleSubmit(onSaveDraft)} className="bg-white border border-[#D8D3CC] text-[#8E8D8A] hover:bg-[#F5F2EE] hover:text-[#333333] px-6 py-3 rounded-md text-sm font-semibold transition-colors disabled:opacity-50">
+            Guardar borrador
+          </button>
           <button type="submit" disabled={isSubmitting} className="bg-[#333333] hover:bg-black text-white px-8 py-3 rounded-md text-sm uppercase tracking-wider font-semibold transition-colors disabled:opacity-50">
             {isSubmitting ? "Guardando..." : "Crear Cotización Manual"}
           </button>
         </div>
-
       </form>
     </div>
   )
