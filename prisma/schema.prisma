@@ -265,14 +265,3 @@ model SalesChannel {
   @@map("sales_channels")
 }
 
-// 5. Sales Channels Catalog
-model SalesChannel {
-  id           String  @id @default(cuid()) @map("sales_channel_id")
-  name         String  @unique @map("sales_channel_name")
-  activeStatus Boolean @default(true) @map("active_status")
-
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  @@map("sales_channels")
-}
