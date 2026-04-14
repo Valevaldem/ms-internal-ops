@@ -1,8 +1,6 @@
-"use server";
-
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { Clock, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { translateStage } from "@/lib/translations";
@@ -60,9 +58,7 @@ export default async function ProduccionPage() {
       (stage === "Producción" || stage === "Certificación") &&
       order.isCertificatePending
     ) {
-      throw new Error(
-        "No se puede avanzar la etapa porque el certificado está pendiente de confirmación."
-      );
+      throw new Error("No se puede avanzar la etapa porque el certificado está pendiente de confirmación.");
     }
 
     let nextStage = stage;
@@ -71,29 +67,14 @@ export default async function ProduccionPage() {
     } else if (stage === "Producción") {
       nextStage = "Certificación";
     } else if (stage === "Certificación") {
-      nextStage =
-        order.deliveryMethod === "Shipping"
-          ? "Revisión final de asesora"
-          : "Listo para entrega";
-    } else if (
-      stage === "Revisión final de asesora" &&
-      order.deliveryMethod === "Shipping"
-    ) {
+      nextStage = order.deliveryMethod === "Shipping" ? "Revisión final de asesora" : "Listo para entrega";
+    } else if (stage === "Revisión final de asesora" && order.deliveryMethod === "Shipping") {
       nextStage = "Creación de Guía";
-    } else if (
-      stage === "Creación de Guía" &&
-      order.deliveryMethod === "Shipping"
-    ) {
+    } else if (stage === "Creación de Guía" && order.deliveryMethod === "Shipping") {
       nextStage = "Preparando envío";
-    } else if (
-      stage === "Preparando envío" &&
-      order.deliveryMethod === "Shipping"
-    ) {
+    } else if (stage === "Preparando envío" && order.deliveryMethod === "Shipping") {
       nextStage = "En tránsito";
-    } else if (
-      stage === "Listo para entrega" &&
-      order.deliveryMethod === "Store Pickup"
-    ) {
+    } else if (stage === "Listo para entrega" && order.deliveryMethod === "Store Pickup") {
       nextStage = "Entregado";
     } else if (stage === "En tránsito") {
       nextStage = "Entregado";
@@ -102,28 +83,17 @@ export default async function ProduccionPage() {
     if (nextStage === stage) return;
 
     const isMovingToProduction = nextStage === "Producción";
-    const totalDays =
-      order.productionTiming === "Express"
-        ? 5
-        : order.productionTiming === "Special"
-        ? 50
-        : 20;
+    const totalDays = order.productionTiming === "Express" ? 5 : order.productionTiming === "Special" ? 50 : 20;
 
     await prisma.order.update({
       where: { id },
       data: {
         stage: nextStage,
-        ...(isMovingToProduction
-          ? {
-              productionStartDate: new Date(),
-              estimatedProductionEnd: new Date(
-                new Date().getTime() + totalDays * 24 * 60 * 60 * 1000
-              ),
-            }
-          : {}),
-        stageHistory: {
-          create: { stage: nextStage },
-        },
+        ...(isMovingToProduction ? {
+          productionStartDate: new Date(),
+          estimatedProductionEnd: new Date(new Date().getTime() + totalDays * 24 * 60 * 60 * 1000),
+        } : {}),
+        stageHistory: { create: { stage: nextStage } },
       },
     });
     revalidatePath("/ordenes/produccion");
@@ -139,9 +109,7 @@ export default async function ProduccionPage() {
 
     const order = await prisma.order.findUnique({
       where: { id },
-      include: {
-        stageHistory: { orderBy: { createdAt: "desc" }, take: 2 },
-      },
+      include: { stageHistory: { orderBy: { createdAt: "desc" }, take: 2 } },
     });
 
     if (!order) throw new Error("Order not found");
@@ -154,16 +122,12 @@ export default async function ProduccionPage() {
     const isRevertingProduction = currentHistoryRecord.stage === "Producción";
 
     await prisma.$transaction([
-      prisma.orderStageHistory.delete({
-        where: { id: currentHistoryRecord.id },
-      }),
+      prisma.orderStageHistory.delete({ where: { id: currentHistoryRecord.id } }),
       prisma.order.update({
         where: { id },
         data: {
           stage: previousHistoryRecord.stage,
-          ...(isRevertingProduction
-            ? { productionStartDate: null, estimatedProductionEnd: null }
-            : {}),
+          ...(isRevertingProduction ? { productionStartDate: null, estimatedProductionEnd: null } : {}),
         },
       }),
     ]);
@@ -197,16 +161,9 @@ export default async function ProduccionPage() {
               const start = o.productionStartDate ? new Date(o.productionStartDate) : null;
               const now = new Date();
               const daysElapsed = start ? countBusinessDays(start, now) : 0;
-              const totalDays =
-                o.productionTiming === "Express" ? 5
-                : o.productionTiming === "Special" ? 50
-                : 20;
+              const totalDays = o.productionTiming === "Express" ? 5 : o.productionTiming === "Special" ? 50 : 20;
               const isOverdue = daysElapsed > totalDays && o.stage === "Producción";
-              const showProductionTimer = [
-                "Producción","Certificación","Revisión final de asesora",
-                "Creación de Guía","Preparando envío","Listo para entrega",
-                "En tránsito","Entregado",
-              ].includes(o.stage);
+              const showProductionTimer = ["Producción","Certificación","Revisión final de asesora","Creación de Guía","Preparando envío","Listo para entrega","En tránsito","Entregado"].includes(o.stage);
               const productionTimerActive = showProductionTimer && o.productionStartDate;
 
               return (
