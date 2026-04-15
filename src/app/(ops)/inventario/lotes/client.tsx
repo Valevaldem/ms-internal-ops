@@ -37,6 +37,7 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [ctPerPieceStr, setCtPerPieceStr] = useState("")
 
   const filteredLots = lots.filter(lot =>
     lot.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -56,6 +57,7 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
     })
     setErrors({})
     setSubmitError(null)
+    setCtPerPieceStr("")
     setIsFormOpen(true)
   }
 
@@ -360,11 +362,18 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
                     {formData.ctPerPiece !== null && formData.ctPerPiece !== undefined && (
                       <div className="flex items-center gap-2">
                         <input
-                          type="number" min="0.001" step="0.001"
-                          value={formData.ctPerPiece || ""}
-                          onChange={e => setFormData(p => ({ ...p, ctPerPiece: parseFloat(e.target.value) || 0 }))}
+                          type="text"
+                          inputMode="decimal"
+                          value={ctPerPieceStr}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (/^\d*\.?\d*$/.test(val)) {
+                              setCtPerPieceStr(val);
+                              setFormData(p => ({ ...p, ctPerPiece: parseFloat(val) || null }));
+                            }
+                          }}
                           className="w-28 px-3 py-2 border border-[#D8D3CC] rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#C5B358]"
-                          placeholder="0.25" />
+                          placeholder="0.03" />
                         <span className="text-sm text-[#8E8D8A]">CT por pieza</span>
                       </div>
                     )}

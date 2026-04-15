@@ -12,16 +12,14 @@ const lotSchema = z.object({
   color: z.string().min(1, "El color es requerido"),
   pricePerCt: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
   pricingMode: z.enum(["CT", "PZ"], { message: "El modo de precio debe ser CT o PZ" }),
+  ctPerPiece: z.coerce.number().nullable().optional(),
   activeStatus: z.boolean().default(true),
 })
 
 export async function getStoneLots() {
   const user = await getCurrentUser()
   verifyAccess(user, ['manager'])
-
-  return prisma.stoneLot.findMany({
-    orderBy: { code: 'asc' }
-  })
+  return prisma.stoneLot.findMany({ orderBy: { code: 'asc' } })
 }
 
 export async function createStoneLot(formData: any) {
@@ -29,37 +27,27 @@ export async function createStoneLot(formData: any) {
   verifyAccess(user, ['manager'])
 
   const parsed = lotSchema.safeParse(formData)
-
-  if (!parsed.success) {
-    return {
-      success: false,
-      errors: parsed.error.flatten().fieldErrors
-    }
-  }
+  if (!parsed.success) return { success: false, errors: parsed.error.flatten().fieldErrors }
 
   const data = parsed.data
-
-  const existingLot = await prisma.stoneLot.findUnique({
-    where: { code: data.code }
-  })
-
-  if (existingLot) {
-    return {
-      success: false,
-      errors: {
-        code: ["Ya existe un lote con este código"]
-      }
-    }
-  }
+  const existingLot = await prisma.stoneLot.findUnique({ where: { code: data.code } })
+  if (existingLot) return { success: false, errors: { code: ["Ya existe un lote con este código"] } }
 
   try {
     const newLot = await prisma.stoneLot.create({
-      data
+      data: {
+        code: data.code,
+        stoneName: data.stoneName,
+        cut: data.cut,
+        color: data.color,
+        pricePerCt: data.pricePerCt,
+        pricingMode: data.pricingMode,
+        ctPerPiece: data.pricingMode === "PZ" ? (data.ctPerPiece ?? null) : null,
+        activeStatus: data.activeStatus,
+      }
     })
-
     revalidatePath("/inventario/lotes")
     revalidatePath("/cotizaciones/nueva")
-
     return { success: true, lot: newLot }
   } catch (error) {
     console.error("Error creating stone lot:", error)
@@ -72,13 +60,7 @@ export async function updateStoneLot(code: string, formData: any) {
   verifyAccess(user, ['manager'])
 
   const parsed = lotSchema.safeParse(formData)
-
-  if (!parsed.success) {
-    return {
-      success: false,
-      errors: parsed.error.flatten().fieldErrors
-    }
-  }
+  if (!parsed.success) return { success: false, errors: parsed.error.flatten().fieldErrors }
 
   const data = parsed.data
 
@@ -91,13 +73,12 @@ export async function updateStoneLot(code: string, formData: any) {
         color: data.color,
         pricePerCt: data.pricePerCt,
         pricingMode: data.pricingMode,
+        ctPerPiece: data.pricingMode === "PZ" ? (data.ctPerPiece ?? null) : null,
         activeStatus: data.activeStatus,
       }
     })
-
     revalidatePath("/inventario/lotes")
     revalidatePath("/cotizaciones/nueva")
-
     return { success: true, lot: updatedLot }
   } catch (error) {
     console.error("Error updating stone lot:", error)
@@ -110,11 +91,6 @@ export async function bulkUpsertStoneLots(lots: Record<string, unknown>[]) {
   verifyAccess(user, ['manager'])
 
   try {
-    // Process sequentially or within a transaction
-    // SQLite might have concurrency limits with raw massive transactions,
-    // but Prisma $transaction array works fine for typical batch sizes.
-    // For large uploads, processing sequentially or in chunks is safer.
-
     await prisma.$transaction(
       lots.map((lot) => {
         const parsed = lotSchema.parse(lot)
@@ -140,10 +116,8 @@ export async function bulkUpsertStoneLots(lots: Record<string, unknown>[]) {
         })
       })
     )
-
     revalidatePath("/inventario/lotes")
     revalidatePath("/cotizaciones/nueva")
-
     return { success: true }
   } catch (error) {
     console.error("Error in bulk upsert:", error)
