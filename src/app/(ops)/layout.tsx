@@ -78,8 +78,8 @@ export default async function OpsLayout({
                 <div className="pt-4 pb-2">
                   <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Administración</p>
                 </div>
-                <SidebarLink href="/usuarios" icon={<Users size={18} />} label="Usuarios" />
-                <SidebarLink href="/asesoras" icon={<UserPlus size={18} />} label="Asesoras" />
+                <SidebarLink href="/equipo" icon={<Users size={18} />} label="Equipo" />
+                
                 <div className="pt-4 pb-2">
                   <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Inventario</p>
                 </div>
