@@ -255,7 +255,7 @@ model OrderStageHistory {
 }
 
 model ManualCertificateRequest {
-  id               String   @id @default(cuid()) @map("request_id")
+  id               String   @id @default(cuid())
   folio            String?  @unique
   clientName       String   @map("client_name")
   invoiceNumber    String?  @map("invoice_number")
