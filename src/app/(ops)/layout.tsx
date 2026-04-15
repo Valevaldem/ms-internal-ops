@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award, User, LogOut, Users, UserPlus, BookOpen } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award, User, LogOut, Users, UserPlus, BookOpen, Radio } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 function SidebarLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
@@ -47,6 +47,7 @@ export default async function OpsLayout({ children }: Readonly<{ children: React
               <div className="pt-4 pb-2"><p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Inventario</p></div>
               <SidebarLink href="/inventario/modelos" icon={<Award size={18} />} label="Modelos Base" />
               <SidebarLink href="/inventario/lotes" icon={<Settings size={18} />} label="Lotes de Piedras" />
+              <SidebarLink href="/inventario/canales" icon={<Radio size={18} />} label="Canales de Venta" />
             </>
           )}
           <div className="pt-4 pb-2"><p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Sistema</p></div>
