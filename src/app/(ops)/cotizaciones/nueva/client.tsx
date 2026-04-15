@@ -147,8 +147,12 @@ export default function NuevaCotizacionClient({
       setValue(`stones.${index}.stoneName`, lot.stoneName)
       setValue(`stones.${index}.pricePerCt`, lot.pricePerCt)
       setValue(`stones.${index}.pricingMode`, lot.pricingMode || "CT")
-      const weight = watch(`stones.${index}.weightCt`) || 0
       const qty = watch(`stones.${index}.quantity`) || 1
+      // Si PZ con ctPerPiece fijo, autocalcular weight
+      if (lot.pricingMode === "PZ" && lot.ctPerPiece) {
+        setValue(`stones.${index}.weightCt`, lot.ctPerPiece * qty)
+      }
+      const weight = watch(`stones.${index}.weightCt`) || 0
       if (lot.pricingMode === "PZ") {
         setValue(`stones.${index}.stoneSubtotal`, lot.pricePerCt * qty)
       } else {
@@ -178,6 +182,12 @@ export default function NuevaCotizacionClient({
     setValue(`stones.${index}.quantity`, qty)
     const pricePerCt = watch(`stones.${index}.pricePerCt`) || 0
     const pricingMode = watch(`stones.${index}.pricingMode`) || "CT"
+    // Si PZ con ctPerPiece fijo en el catálogo, autocalcular weight
+    const lotCode = watch(`stones.${index}.lotCode`)
+    const catalogLot = catalogs.stones.find((s: any) => s.code?.toUpperCase() === lotCode?.toUpperCase())
+    if (pricingMode === "PZ" && catalogLot?.ctPerPiece) {
+      setValue(`stones.${index}.weightCt`, catalogLot.ctPerPiece * qty)
+    }
     const weight = watch(`stones.${index}.weightCt`) || 0
     if (pricingMode === "PZ") {
       setValue(`stones.${index}.stoneSubtotal`, pricePerCt * qty)
@@ -542,21 +552,21 @@ export default function NuevaCotizacionClient({
                       placeholder="Auto"
                     />
                   </div>
-                  {!isPZ && (
-                    <div className="col-span-2">
-                      <label className="block text-xs text-[#8E8D8A] mb-1">Peso CT</label>
-                      <input
-                        readOnly={!!initialData}
-                        type="text"
-                        inputMode="decimal"
-                        value={weightDisplay}
-                        onChange={(e) => handleWeightStringChange(index, e.target.value)}
-                        onBlur={() => handleWeightStringBlur(index)}
-                        className={`w-full border border-[#D8D3CC] ${initialData ? 'bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'bg-white'} rounded p-1.5 text-xs focus:outline-none focus:border-[#C5B358]`}
-                        placeholder="0.00"
-                      />
-                    </div>
-                  )}
+                  <div className="col-span-2">
+                    <label className="block text-xs text-[#8E8D8A] mb-1">
+                      Peso CT {isPZ && (() => { const cl = catalogs.stones.find((s: any) => s.code?.toUpperCase() === watch(`stones.${index}.lotCode`)?.toUpperCase()); return cl?.ctPerPiece ? <span className="text-[#C5B358]">auto</span> : <span className="text-[#8E8D8A]">manual</span>; })()}
+                    </label>
+                    <input
+                      readOnly={!!initialData || (isPZ && !!catalogs.stones.find((s: any) => s.code?.toUpperCase() === watch(`stones.${index}.lotCode`)?.toUpperCase())?.ctPerPiece)}
+                      type="text"
+                      inputMode="decimal"
+                      value={weightDisplay}
+                      onChange={(e) => handleWeightStringChange(index, e.target.value)}
+                      onBlur={() => handleWeightStringBlur(index)}
+                      className={`w-full border border-[#D8D3CC] ${(initialData || (isPZ && !!catalogs.stones.find((s: any) => s.code?.toUpperCase() === watch(`stones.${index}.lotCode`)?.toUpperCase())?.ctPerPiece)) ? 'bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'bg-white'} rounded p-1.5 text-xs focus:outline-none focus:border-[#C5B358]`}
+                      placeholder="0.00"
+                    />
+                  </div>
                   <div className={`${isPZ ? 'col-span-2' : 'col-span-2'}`}>
                     <label className="block text-xs text-[#8E8D8A] mb-1">PZ</label>
                     <input

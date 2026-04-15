@@ -81,6 +81,7 @@ model StoneLot {
   color        String
   pricePerCt   Float   @map("price_per_ct")
   pricingMode  String  @default("CT") @map("pricing_mode") // CT or PZ
+  ctPerPiece   Float?  @map("ct_per_piece") // Solo para PZ: peso fijo en CT por pieza (opcional)
   activeStatus Boolean @default(true) @map("active_status")
 
   @@map("stone_lots")

@@ -13,6 +13,7 @@ type StoneLot = {
   color: string
   pricePerCt: number
   pricingMode: string
+  ctPerPiece: number | null
   activeStatus: boolean
 }
 
@@ -28,6 +29,7 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
     color: "",
     pricePerCt: 0,
     pricingMode: "CT",
+    ctPerPiece: null,
     activeStatus: true,
   })
 
@@ -333,6 +335,41 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
                   </select>
                   {errors.pricingMode && <p className="text-red-500 text-xs mt-1">{errors.pricingMode[0]}</p>}
                 </div>
+
+                {formData.pricingMode === "PZ" && (
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-sm font-medium text-[#555555]">
+                      Peso por pieza (CT) <span className="text-[#8E8D8A] font-normal text-xs">(solo para certificados — no afecta precio)</span>
+                    </label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm text-[#555555]">
+                        <input type="radio" name="ctPerPieceMode" value="fixed"
+                          checked={formData.ctPerPiece !== null && formData.ctPerPiece !== undefined}
+                          onChange={() => setFormData(p => ({ ...p, ctPerPiece: 0.01 }))}
+                          className="text-[#C5B358]" />
+                        Peso fijo por pieza
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-sm text-[#555555]">
+                        <input type="radio" name="ctPerPieceMode" value="manual"
+                          checked={formData.ctPerPiece === null || formData.ctPerPiece === undefined}
+                          onChange={() => setFormData(p => ({ ...p, ctPerPiece: null }))}
+                          className="text-[#C5B358]" />
+                        CT manual en cotización
+                      </label>
+                    </div>
+                    {formData.ctPerPiece !== null && formData.ctPerPiece !== undefined && (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number" min="0.001" step="0.001"
+                          value={formData.ctPerPiece || ""}
+                          onChange={e => setFormData(p => ({ ...p, ctPerPiece: parseFloat(e.target.value) || 0 }))}
+                          className="w-28 px-3 py-2 border border-[#D8D3CC] rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#C5B358]"
+                          placeholder="0.25" />
+                        <span className="text-sm text-[#8E8D8A]">CT por pieza</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-[#555555] mb-1">
