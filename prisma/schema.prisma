@@ -86,6 +86,16 @@ model StoneLot {
   @@map("stone_lots")
 }
 
+// 5. Sales Channels Catalog
+model SalesChannel {
+  id           String   @id @default(cuid()) @map("channel_id")
+  name         String   @unique @map("channel_name")
+  activeStatus Boolean  @default(true) @map("active_status")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  @@map("sales_channels")
+}
+
 // Create Quotation Module
 model Quotation {
   id                   String   @id @default(cuid()) @map("quotation_id")
