@@ -1,103 +1,92 @@
 "use client"
 
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
-import SalesChannelFilter from "@/components/SalesChannelFilter"
 
 interface Props {
-  tab: string
-  view: string
-  sort: string
-  search: string
-  startDate: string
-  endDate: string
-  salesChannel: string
-  isManager: boolean
+  tab: string; view: string; sort: string; search: string
+  startDate: string; endDate: string; salesChannel: string
+  isManager: boolean; status?: string
 }
 
-export default function FiltrosHistorial({ tab, view, sort, search, startDate, endDate, salesChannel, isManager }: Props) {
+const STATUS_OPTIONS = [
+  { value: "", label: "Todos los estados" },
+  { value: "Pendiente de respuesta", label: "Pendiente de respuesta" },
+  { value: "En seguimiento", label: "En seguimiento" },
+  { value: "Oportunidad de cierre", label: "Oportunidad de cierre" },
+  { value: "Declinada", label: "Declinada" },
+]
+
+export default function FiltrosHistorial({ tab, view, sort, search, startDate, endDate, salesChannel, isManager, status = "" }: Props) {
   const router = useRouter()
   const pathname = usePathname()
-
   const [searchInput, setSearchInput] = useState(search)
 
   const pushUrl = useCallback((overrides: Record<string, string>) => {
     const p = new URLSearchParams()
-    const current: Record<string, string> = { tab, view, sort, search: searchInput, startDate, endDate, salesChannel }
+    const current: Record<string, string> = { tab, view, sort, search: searchInput, startDate, endDate, salesChannel, statusFilter: status }
     const merged = { ...current, ...overrides }
-    Object.entries(merged).forEach(([k, v]) => { if (v) p.set(k, v) })
+    Object.entries(merged).forEach(([k, v]) => {
+      if (v && !(k === "tab" && v === "active") && !(k === "view" && v === "grid") && !(k === "sort" && v === "date_desc")) p.set(k, v)
+    })
     router.push(`${pathname}?${p.toString()}`)
-  }, [tab, view, sort, searchInput, startDate, endDate, salesChannel, router, pathname])
+  }, [tab, view, sort, searchInput, startDate, endDate, salesChannel, status, router, pathname])
 
-  // Debounce del buscador de texto (400ms)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchInput !== search) pushUrl({ search: searchInput })
-    }, 400)
+    const timer = setTimeout(() => { if (searchInput !== search) pushUrl({ search: searchInput }) }, 400)
     return () => clearTimeout(timer)
   }, [searchInput])
 
+  const hasFilters = searchInput || startDate || endDate || salesChannel || status
+
   return (
     <div className="flex flex-wrap gap-3 items-end mb-2">
-      {/* Buscador */}
-      <div className="flex-1 min-w-[200px]">
+      <div className="flex-1 min-w-[180px]">
         <label className="block text-xs font-medium text-[#8E8D8A] mb-1">Buscar</label>
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
+        <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Folio, cliente, asesora..."
-          className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]"
-        />
+          className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
       </div>
 
-      {/* Desde */}
+      {tab === "active" && (
+        <div className="w-52">
+          <label className="block text-xs font-medium text-[#8E8D8A] mb-1">Estado</label>
+          <select value={status} onChange={(e) => pushUrl({ statusFilter: e.target.value })}
+            className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358] bg-white">
+            {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+      )}
+
       <div className="w-36">
         <label className="block text-xs font-medium text-[#8E8D8A] mb-1">Desde</label>
-        <input
-          type="date"
-          defaultValue={startDate}
-          onChange={(e) => pushUrl({ startDate: e.target.value })}
-          className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]"
-        />
+        <input type="date" defaultValue={startDate} onChange={(e) => pushUrl({ startDate: e.target.value })}
+          className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
       </div>
 
-      {/* Hasta */}
       <div className="w-36">
         <label className="block text-xs font-medium text-[#8E8D8A] mb-1">Hasta</label>
-        <input
-          type="date"
-          defaultValue={endDate}
-          onChange={(e) => pushUrl({ endDate: e.target.value })}
-          className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]"
-        />
+        <input type="date" defaultValue={endDate} onChange={(e) => pushUrl({ endDate: e.target.value })}
+          className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]" />
       </div>
 
-      {/* Sort */}
       <div className="w-44">
         <label className="block text-xs font-medium text-[#8E8D8A] mb-1">Ordenar por</label>
-        <select
-          defaultValue={sort}
-          onChange={(e) => pushUrl({ sort: e.target.value })}
-          className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]"
-        >
-          <option value="date_desc">Más reciente primero</option>
-          <option value="date_asc">Más antiguo primero</option>
-          <option value="price_desc">Precio mayor primero</option>
-          <option value="price_asc">Precio menor primero</option>
+        <select defaultValue={sort} onChange={(e) => pushUrl({ sort: e.target.value })}
+          className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]">
+          <option value="date_desc">Más reciente</option>
+          <option value="date_asc">Más antiguo</option>
+          <option value="price_desc">Precio mayor</option>
+          <option value="price_asc">Precio menor</option>
           <option value="client_asc">Cliente A-Z</option>
         </select>
       </div>
 
-      {/* Canal (solo manager) */}
       {isManager && (
-        <div>
+        <div className="w-40">
           <label className="block text-xs font-medium text-[#8E8D8A] mb-1">Canal</label>
-          <select
-            defaultValue={salesChannel}
-            onChange={(e) => pushUrl({ salesChannel: e.target.value })}
-            className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]"
-          >
+          <select defaultValue={salesChannel} onChange={(e) => pushUrl({ salesChannel: e.target.value })}
+            className="w-full border border-[#D8D3CC] rounded-md p-2 text-sm focus:outline-none focus:border-[#C5B358]">
             <option value="">Todos</option>
             <option value="Store">Tienda</option>
             <option value="WhatsApp">WhatsApp</option>
@@ -109,13 +98,10 @@ export default function FiltrosHistorial({ tab, view, sort, search, startDate, e
         </div>
       )}
 
-      {/* Limpiar */}
-      {(searchInput || startDate || endDate || salesChannel) && (
-        <button
-          type="button"
-          onClick={() => { setSearchInput(""); pushUrl({ search: "", startDate: "", endDate: "", salesChannel: "" }) }}
-          className="text-sm text-[#8E8D8A] hover:text-[#333333] underline px-2 py-2"
-        >
+      {hasFilters && (
+        <button type="button"
+          onClick={() => { setSearchInput(""); pushUrl({ search: "", startDate: "", endDate: "", salesChannel: "", statusFilter: "" }) }}
+          className="text-sm text-[#8E8D8A] hover:text-[#333333] underline px-2 py-2">
           Limpiar
         </button>
       )}

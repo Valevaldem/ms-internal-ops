@@ -44,6 +44,7 @@ export default async function HistorialCotizaciones(props: {
   const startDateStr = sp.startDate || '';
   const endDateStr = sp.endDate || '';
   const drillStatus = sp.status;
+  const statusFilter = sp.statusFilter || '';
   const advisorName = sp.advisorName;
   const salesChannel = sp.salesChannel || '';
 
@@ -69,6 +70,11 @@ export default async function HistorialCotizaciones(props: {
   }
   if (advisorName) whereClause.salesAssociate = { name: advisorName };
   if (salesChannel) whereClause.salesChannel = salesChannel;
+  if (statusFilter && !drillStatus) {
+    whereClause.status = statusFilter;
+    whereClause.order = null;
+  }
+
   if (drillStatus) {
     if (drillStatus === 'convertida') { whereClause.order = { isNot: null }; delete whereClause.status; }
     else {
@@ -92,7 +98,7 @@ export default async function HistorialCotizaciones(props: {
 
   const buildUrl = (overrides: Record<string, string>) => {
     const p = new URLSearchParams();
-    const merged = { tab, view, sort, search, startDate: startDateStr, endDate: endDateStr, salesChannel, ...overrides };
+    const merged = { tab, view, sort, search, startDate: startDateStr, endDate: endDateStr, salesChannel, statusFilter, ...overrides };
     Object.entries(merged).forEach(([k, v]) => { if (v && !(k === 'tab' && v === 'active') && !(k === 'view' && v === 'grid') && !(k === 'sort' && v === 'date_desc')) p.set(k, v); });
     return `/cotizaciones/historial${p.toString() ? '?' + p.toString() : ''}`;
   };
@@ -124,7 +130,7 @@ export default async function HistorialCotizaciones(props: {
         <Link href={buildUrl({ tab: 'archived' })} className={`pb-2 px-1 text-sm font-medium ${tab === 'archived' ? 'text-[#333333] border-b-2 border-[#C5B358]' : 'text-[#8E8D8A] hover:text-[#333333]'}`}>Archivadas</Link>
       </div>
 
-      <FiltrosHistorial tab={tab} view={view} sort={sort} search={search} startDate={startDateStr} endDate={endDateStr} salesChannel={salesChannel} isManager={user.role === 'manager'} />
+      <FiltrosHistorial tab={tab} view={view} sort={sort} search={search} startDate={startDateStr} endDate={endDateStr} salesChannel={salesChannel} isManager={user.role === 'manager'} status={statusFilter} />
 
       <div className="flex justify-end gap-2 mb-2">
         <Link href={buildUrl({ view: 'grid' })} className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${view === 'grid' ? 'bg-[#333333] text-white border-[#333333]' : 'bg-white text-[#8E8D8A] border-[#D8D3CC] hover:bg-[#F5F2EE]'}`}>⊞ Mosaico</Link>
