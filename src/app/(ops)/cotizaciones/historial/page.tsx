@@ -156,6 +156,7 @@ export default async function HistorialCotizaciones(props: {
                 <div>
                   <div className="text-xs text-[#555555]">{q.type === 'Manual' ? q.manualPieceDescription : q.modelName}</div>
                   <div className="text-xs text-[#8E8D8A]">{q.salesAssociate.name} · {q.salesChannel}</div>
+                  {q.notes && <div className="text-xs text-[#8E8D8A] italic mt-1 line-clamp-2">📝 {q.notes}</div>}
                 </div>
                 <div className="flex justify-between items-end mt-auto">
                   <div className={`text-[10px] font-medium ${isExpired ? 'text-red-500' : daysRemaining <= 3 ? 'text-yellow-600' : 'text-[#8E8D8A]'}`}>

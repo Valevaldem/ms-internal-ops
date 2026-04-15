@@ -24,6 +24,7 @@ const schema = z.object({
   notes: z.string().optional(),
   marginProtectionEnabled: z.boolean().default(false),
   discountPercent: z.number().min(0).max(100).optional(),
+  discountType: z.enum(["percent", "amount"]).default("percent"),
   stones: z.array(z.object({
     lotCode: z.string().min(1, "Requerido"),
     stoneName: z.string(),
@@ -66,6 +67,7 @@ export default function NuevaCotizacionClient({
       notes: initialData?.notes || "",
       marginProtectionEnabled: initialData?.marginProtectionEnabled || false,
       discountPercent: initialData?.discountPercent || 0,
+      discountType: "percent" as const,
       stones: initialData?.stones?.map((s: any) => ({
         lotCode: s.lotCode,
         stoneName: s.stoneName,
@@ -84,6 +86,7 @@ export default function NuevaCotizacionClient({
   const associateId = watch("salesAssociateId")
   const marginProtectionEnabled = watch("marginProtectionEnabled")
   const discountPercent = watch("discountPercent")
+  const discountType = watch("discountType")
   const stones = watch("stones")
   const pieceType = watch("pieceType")
   const manualBasePrice = watch("modelBasePrice")
@@ -123,7 +126,9 @@ export default function NuevaCotizacionClient({
   }
 
   const roundedPriceBeforeDiscount = getRoundedCommercialPrice(rawClientPrice)
-  const calculatedDiscountAmount = (roundedPriceBeforeDiscount * (discountPercent || 0)) / 100
+  const calculatedDiscountAmount = discountType === "amount"
+    ? Math.min(discountPercent || 0, roundedPriceBeforeDiscount)
+    : (roundedPriceBeforeDiscount * (discountPercent || 0)) / 100
   const finalClientPrice = roundedPriceBeforeDiscount - calculatedDiscountAmount
 
   const handleLotCodeChange = (index: number, code: string) => {
@@ -240,6 +245,7 @@ export default function NuevaCotizacionClient({
       msInternalAdjustment,
       marginProtectionAmount,
       discountPercent: discountPercent || 0,
+      discountType: discountType || "percent",
       finalClientPrice,
       validUntilDate: new Date(new Date().getTime() + 15 * 24 * 60 * 60 * 1000)
     }
@@ -538,6 +544,19 @@ export default function NuevaCotizacionClient({
           </div>
         </section>
 
+        {/* Notas */}
+        {!initialData && (
+          <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm">
+            <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Notas <span className="font-normal normal-case text-[#8E8D8A]">(opcional)</span></h3>
+            <textarea
+              {...register("notes")}
+              rows={2}
+              placeholder="Notas internas sobre el diseño, preferencias del cliente, etc."
+              className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358] resize-none"
+            />
+          </section>
+        )}
+
         {/* Precios */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Resumen de Precios</h3>
@@ -577,7 +596,37 @@ export default function NuevaCotizacionClient({
             )}
           </div>
 
-          <div className="bg-[#F5F2EE] rounded-lg p-4 flex justify-between items-center mt-4">
+          {!initialData && (
+            <div className="flex items-center gap-3 pt-2">
+              <label className="text-[#555555] text-sm whitespace-nowrap">Descuento</label>
+              <div className="flex rounded-md overflow-hidden border border-[#D8D3CC]">
+                <button type="button" onClick={() => setValue("discountType", "percent")}
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${discountType === 'percent' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>
+                  %
+                </button>
+                <button type="button" onClick={() => setValue("discountType", "amount")}
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${discountType === 'amount' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>
+                  $
+                </button>
+              </div>
+              <input
+                type="number"
+                min="0"
+                step={discountType === 'percent' ? '0.5' : '10'}
+                {...register("discountPercent", { valueAsNumber: true })}
+                className="w-24 border border-[#D8D3CC] rounded p-1.5 text-sm focus:outline-none focus:border-[#C5B358]"
+                placeholder={discountType === 'percent' ? '0' : '0'}
+              />
+              <span className="text-xs text-[#8E8D8A]">{discountType === 'percent' ? '%' : 'MXN'}</span>
+              {(discountPercent || 0) > 0 && (
+                <span className="text-red-500 text-sm font-medium">
+                  = −${calculatedDiscountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </span>
+              )}
+            </div>
+          )}
+
+                    <div className="bg-[#F5F2EE] rounded-lg p-4 flex justify-between items-center mt-4">
             <span className="text-sm font-medium text-[#555555]">Precio Final Cliente</span>
             <span className="text-2xl font-bold text-[#C5B358]">
               ${finalClientPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
