@@ -347,14 +347,14 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
                       <label className="flex items-center gap-2 cursor-pointer text-sm text-[#555555]">
                         <input type="radio" name="ctPerPieceMode" value="fixed"
                           checked={formData.ctPerPiece !== null && formData.ctPerPiece !== undefined}
-                          onChange={() => setFormData(p => ({ ...p, ctPerPiece: 0.01 }))}
+                          onChange={() => { setCtPerPieceStr(""); setFormData(p => ({ ...p, ctPerPiece: 0.01 })); }}
                           className="text-[#C5B358]" />
                         Peso fijo por pieza
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer text-sm text-[#555555]">
                         <input type="radio" name="ctPerPieceMode" value="manual"
                           checked={formData.ctPerPiece === null || formData.ctPerPiece === undefined}
-                          onChange={() => setFormData(p => ({ ...p, ctPerPiece: null }))}
+                          onChange={() => { setCtPerPieceStr(""); setFormData(p => ({ ...p, ctPerPiece: null })); }}
                           className="text-[#C5B358]" />
                         CT manual en cotización
                       </label>
@@ -369,7 +369,8 @@ export default function StoneLotsClient({ lots }: { lots: StoneLot[] }) {
                             const val = e.target.value;
                             if (/^\d*\.?\d*$/.test(val)) {
                               setCtPerPieceStr(val);
-                              setFormData(p => ({ ...p, ctPerPiece: parseFloat(val) || null }));
+                              const num = parseFloat(val);
+                              setFormData(p => ({ ...p, ctPerPiece: isNaN(num) ? null : num }));
                             }
                           }}
                           className="w-28 px-3 py-2 border border-[#D8D3CC] rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#C5B358]"
