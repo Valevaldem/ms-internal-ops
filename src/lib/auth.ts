@@ -1,6 +1,6 @@
 import prisma from "./prisma";
 
-export type UserRole = "advisor" | "manager" | "certificate_operator" | "stock_operator";
+export type UserRole = "advisor" | "manager" | "designer" | "certificate_operator" | "stock_operator" | "viewer";
 
 export interface ActiveUser {
   id: string;
@@ -34,4 +34,28 @@ export function verifyAccess(
   if (!allowedRoles.includes(user.role)) {
     redirect(redirectTo);
   }
+}
+
+export function getRoleLabel(role: string): string {
+  const labels: Record<string, string> = {
+    manager: "Manager",
+    designer: "Diseñadora",
+    advisor: "Asesora",
+    stock_operator: "Stock",
+    certificate_operator: "Certificadora",
+    viewer: "Viewer",
+  };
+  return labels[role] || role;
+}
+
+export function getRoleDescription(role: string): string {
+  const descriptions: Record<string, string> = {
+    manager: "Acceso completo — administra usuarios, inventario y operaciones",
+    designer: "Ve todo y cotiza — aplica ajuste MS de diseño",
+    advisor: "Cotiza y gestiona sus propias órdenes y certificados",
+    stock_operator: "Registra piezas de stock para producción",
+    certificate_operator: "Opera certificados físicos únicamente",
+    viewer: "Acceso de solo lectura — ve todo sin modificar",
+  };
+  return descriptions[role] || "";
 }
