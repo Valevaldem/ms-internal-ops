@@ -13,8 +13,10 @@ export async function createChannel(name: string) {
   const existing = await prisma.salesChannel.findUnique({ where: { name: name.trim() } })
   if (existing) throw new Error("Ya existe un canal con ese nombre")
 
+  const id = `sc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+
   await prisma.salesChannel.create({
-    data: { name: name.trim(), activeStatus: true }
+    data: { id, name: name.trim(), activeStatus: true }
   })
 
   revalidatePath('/inventario/canales')
