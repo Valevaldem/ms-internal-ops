@@ -4,7 +4,7 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useState } from "react"
-import { createQuotation } from "./actions"
+import { createQuotation, saveDraftQuotation } from "./actions"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Info } from "lucide-react"
 import type { ActiveUser } from "@/lib/auth"
@@ -50,6 +50,7 @@ export default function NuevaCotizacionClient({
   const isAdvisor = activeUser.role === "advisor"
 
   const [quantityStrings, setQuantityStrings] = useState<Record<number, string>>({})
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [weightStrings, setWeightStrings] = useState<Record<number, string>>({})
 
   const { register, control, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
@@ -259,6 +260,55 @@ export default function NuevaCotizacionClient({
     }
   }
 
+  const onSaveDraft = async () => {
+    setIsSavingDraft(true)
+    try {
+      const data = {
+        ...{
+          clientNameOrUsername: watch("clientNameOrUsername") || "Borrador",
+          phoneNumber: watch("phoneNumber"),
+          salesChannel: watch("salesChannel") || "Store",
+          salesAssociateId: watch("salesAssociateId"),
+          pieceType: watch("pieceType"),
+          modelId: watch("modelId"),
+          modelBasePrice: watch("modelBasePrice"),
+          customProductionDays: watch("customProductionDays"),
+          manualPieceDescription: watch("manualPieceDescription"),
+          notes: watch("notes"),
+          stones: watch("stones").filter((s: any) => s.lotCode && s.lotCode.trim() !== ''),
+          discountPercent: watch("discountPercent"),
+          discountType: watch("discountType"),
+        }
+      }
+      const isCustom = data.modelId === CUSTOM_MODEL_ID
+      const payload = {
+        ...data,
+        associateId: data.salesAssociateId,
+        modelName: isCustom ? "Personalizado" : (selectedModel?.name || ""),
+        modelId: isCustom ? null : data.modelId,
+        isCustomModel: isCustom,
+        modelBasePrice,
+        customProductionDays: isCustom ? (data.customProductionDays || 20) : null,
+        manualPieceDescription: isCustom ? (data.manualPieceDescription || null) : null,
+        totalStonesPrice,
+        subtotalBeforeAdjustments,
+        msInternalAdjustment,
+        marginProtectionAmount: 0,
+        discountPercent: data.discountPercent || 0,
+        finalClientPrice,
+        validUntilDate: new Date(new Date().getTime() + 15 * 24 * 60 * 60 * 1000),
+        isDraft: true,
+      }
+      await saveDraftQuotation(payload)
+      router.push("/cotizaciones/historial?tab=drafts")
+    } catch (e) {
+      console.error(e)
+      alert("Error al guardar borrador.")
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto pb-10">
       <h2 className="text-2xl font-serif text-[#333333] mb-6">Nueva Cotización</h2>
@@ -411,14 +461,14 @@ export default function NuevaCotizacionClient({
               <>
                 <div>
                   <label className="block text-sm text-[#333333] mb-1">Días hábiles de producción <span className="text-red-500">*</span></label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="365"
+                  <select
                     {...register("customProductionDays", { valueAsNumber: true })}
                     className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]"
-                    placeholder="Ej. 15"
-                  />
+                  >
+                    <option value={5}>5 días hábiles — Express</option>
+                    <option value={20}>20 días hábiles — Regular</option>
+                    <option value={50}>50 días hábiles — Especial</option>
+                  </select>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm text-[#333333] mb-1">Descripción de la pieza personalizada <span className="text-red-500">*</span></label>
@@ -635,10 +685,18 @@ export default function NuevaCotizacionClient({
         </section>
 
         {!initialData && (
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onSaveDraft}
+              disabled={isSavingDraft || isSubmitting}
+              className="bg-white border border-[#D8D3CC] text-[#555555] hover:bg-[#F5F2EE] px-6 py-3 rounded-md text-sm uppercase tracking-wider font-semibold transition-colors disabled:opacity-50"
+            >
+              {isSavingDraft ? "Guardando..." : "Guardar Borrador"}
+            </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSavingDraft}
               className="bg-[#333333] hover:bg-black text-white px-8 py-3 rounded-md text-sm uppercase tracking-wider font-semibold transition-colors disabled:opacity-50"
             >
               {isSubmitting ? "Guardando..." : "Crear Cotización"}
