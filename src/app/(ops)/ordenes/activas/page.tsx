@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { translateStage } from "@/lib/translations";
 import { getCurrentUser, verifyAccess } from "@/lib/auth";
 import { AlertTriangle } from "lucide-react";
+import SortSelect from "./SortSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -410,28 +411,7 @@ export default async function OrdenesActivasPage(props: {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium text-[#8E8D8A]">Ordenar por</label>
-          <form method="GET" className="inline-flex">
-            {q && <input type="hidden" name="q" value={q} />}
-            {filterStage && <input type="hidden" name="stage" value={filterStage} />}
-            {filterDelivery && <input type="hidden" name="delivery" value={filterDelivery} />}
-            {filterPayment && <input type="hidden" name="payment" value={filterPayment} />}
-            {filterBlocked && <input type="hidden" name="blocked" value={filterBlocked} />}
-            {filterSalesChannel && <input type="hidden" name="salesChannel" value={filterSalesChannel} />}
-            {filterPriority && <input type="hidden" name="priority" value={filterPriority} />}
-            <input type="hidden" name="view" value={view} />
-            <select
-              name="sort"
-              defaultValue={sortBy}
-              onChange={(e) => e.currentTarget.form?.submit()}
-              className="text-xs border border-[#D8D3CC] rounded px-2 py-1.5 bg-white focus:outline-none focus:border-[#C5B358]"
-            >
-              <option value="recent">Actualización reciente</option>
-              <option value="oldest">Más antiguas</option>
-              <option value="createdDesc">Creación reciente</option>
-              <option value="production">Inicio de producción</option>
-              <option value="client">Cliente (A–Z)</option>
-            </select>
-          </form>
+          <SortSelect defaultValue={sortBy} />
         </div>
         <div className="flex gap-2">
           <Link
