@@ -172,6 +172,17 @@ export default async function Dashboard({
         <DashboardDateFilter />
       </div>
 
+      {/* Alertas pendientes — arriba de todo para visibilidad inmediata */}
+      <section>
+        <h3 className="text-sm font-semibold text-[#8E8D8A] uppercase tracking-wider mb-3">Alertas pendientes</h3>
+        <AlertCards
+          priorityOrders={JSON.parse(JSON.stringify(priorityOrders))}
+          expiringQuotations={JSON.parse(JSON.stringify(expiringQuotations))}
+          stonesToReturn={JSON.parse(JSON.stringify(stonesToReturn))}
+          pendingFollowUps={JSON.parse(JSON.stringify(pendingFollowUps))}
+        />
+      </section>
+
       {/* Metrics */}
       <div className="bg-white border border-[#D8D3CC] rounded-lg shadow-sm overflow-hidden">
         <div className="p-4 bg-[#F5F2EE] border-b border-[#D8D3CC] flex items-center justify-between">
@@ -252,13 +263,6 @@ export default async function Dashboard({
         </div>
       )}
 
-      {/* Alert Cards con modal — componente cliente */}
-      <AlertCards
-        priorityOrders={JSON.parse(JSON.stringify(priorityOrders))}
-        expiringQuotations={JSON.parse(JSON.stringify(expiringQuotations))}
-        stonesToReturn={JSON.parse(JSON.stringify(stonesToReturn))}
-        pendingFollowUps={JSON.parse(JSON.stringify(pendingFollowUps))}
-      />
     </div>
   );
 }
