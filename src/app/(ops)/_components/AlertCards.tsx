@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Clock, FileWarning, CheckCircle2, Star, X, Phone, User, Tag, Gem, Calendar } from "lucide-react"
+import { Clock, FileWarning, CheckCircle2, Star, X, Phone, User, Tag, Gem, Calendar, AlertTriangle } from "lucide-react"
 
 type Stone = {
   stoneName: string
@@ -34,10 +34,11 @@ type Order = {
   isPriority: boolean
   productionTiming: string | null
   paymentStatus: string
+  estimatedProductionEnd?: string | null
   quotation: Quotation
 }
 
-type CardType = 'priority' | 'expiring' | 'stones' | 'followup' | null
+type CardType = 'priority' | 'expiring' | 'stones' | 'followup' | 'production' | null
 
 function formatPrice(n: number) {
   return `$${n.toLocaleString('es-MX', { minimumFractionDigits: 0 })}`
@@ -260,6 +261,65 @@ const CARD_CONFIG = {
     emptyColor: 'text-blue-700/70',
     numColor: 'text-blue-700',
   },
+  production: {
+    icon: AlertTriangle,
+    title: 'Producción en Riesgo',
+    bg: 'bg-red-50',
+    border: 'border-red-200',
+    iconColor: 'text-red-600',
+    titleColor: 'text-red-900',
+    emptyText: 'Todas las órdenes en producción están en tiempo.',
+    emptyColor: 'text-red-700/70',
+    numColor: 'text-red-700',
+  },
+}
+
+// Helper: días calendario entre hoy y la fecha estimada de fin de producción.
+// Retorna número NEGATIVO si ya venció, 0 si vence hoy, positivo si faltan días.
+function daysUntilProductionEnd(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null
+  const end = new Date(dateStr)
+  const now = new Date()
+  end.setHours(0, 0, 0, 0)
+  now.setHours(0, 0, 0, 0)
+  return Math.round((end.getTime() - now.getTime()) / 86400000)
+}
+
+function ProductionRow({ o, onClick }: { o: Order; onClick: () => void }) {
+  const days = daysUntilProductionEnd(o.estimatedProductionEnd)
+  const isOverdue = days !== null && days < 0
+  const badgeText = days === null
+    ? 'Sin fecha estimada'
+    : isOverdue
+      ? `Vencida hace ${Math.abs(days)} día${Math.abs(days) !== 1 ? 's' : ''}`
+      : days === 0
+        ? 'Vence hoy'
+        : `Vence en ${days} día${days !== 1 ? 's' : ''}`
+  const badgeCls = isOverdue || days === 0
+    ? 'bg-red-100 text-red-700 border-red-200'
+    : 'bg-amber-100 text-amber-700 border-amber-200'
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left p-3 rounded-lg border border-[#D8D3CC] hover:border-[#C5B358] hover:bg-[#F5F2EE] transition-all"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <span className="font-medium text-[#333333] text-sm">{o.quotation.folio || o.id}</span>
+          <span className="text-[#8E8D8A] text-sm ml-2">{o.quotation.clientNameOrUsername}</span>
+        </div>
+        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${badgeCls}`}>
+          {badgeText}
+        </span>
+      </div>
+      <div className="flex gap-3 mt-1 text-xs text-[#8E8D8A]">
+        <span>{o.quotation.pieceType}</span>
+        {o.quotation.modelName && <span>· {o.quotation.modelName}</span>}
+        {o.productionTiming && <span>· {o.productionTiming}</span>}
+      </div>
+    </button>
+  )
 }
 
 export default function AlertCards({
@@ -267,11 +327,13 @@ export default function AlertCards({
   expiringQuotations,
   stonesToReturn,
   pendingFollowUps,
+  productionAtRisk = [],
 }: {
   priorityOrders: Order[]
   expiringQuotations: Quotation[]
   stonesToReturn: Quotation[]
   pendingFollowUps: Order[]
+  productionAtRisk?: Order[]
 }) {
   const [openCard, setOpenCard] = useState<CardType>(null)
   const [detail, setDetail] = useState<DetailItem>(null)
@@ -297,6 +359,7 @@ export default function AlertCards({
     if (type === 'expiring') return expiringQuotations.length
     if (type === 'stones') return stonesToReturn.length
     if (type === 'followup') return pendingFollowUps.length
+    if (type === 'production') return productionAtRisk.length
     return 0
   }
 
@@ -357,6 +420,13 @@ export default function AlertCards({
                           <OrderRow key={o.id} o={o} onClick={() => setDetail({ type: 'order', data: o })} />
                         ))
                   )}
+                  {openCard === 'production' && (
+                    productionAtRisk.length === 0
+                      ? <p className="text-sm text-[#8E8D8A]">Todas las órdenes en producción están en tiempo.</p>
+                      : productionAtRisk.map(o => (
+                          <ProductionRow key={o.id} o={o} onClick={() => setDetail({ type: 'order', data: o })} />
+                        ))
+                  )}
                 </div>
               )}
             </div>
@@ -365,8 +435,8 @@ export default function AlertCards({
       )}
 
       {/* Cards — solo muestran número */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {(['priority', 'expiring', 'stones', 'followup'] as CardType[]).map(type => {
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+        {(['production', 'priority', 'expiring', 'stones', 'followup'] as CardType[]).map(type => {
           const c = CARD_CONFIG[type!]
           const Icon = c.icon
           const count = getCount(type)

@@ -34,13 +34,17 @@ export default async function Dashboard({
     orderBy: { validUntil: 'asc' }
   });
 
-  const overdueOrders = await prisma.order.findMany({
+  // Producción retrasada o próxima a vencer (3 días o menos / ya vencida)
+  const productionAtRisk = await prisma.order.findMany({
     where: {
       ...advisorOrderFilter,
-      stage: { in: ["Producción"] },
-      estimatedProductionEnd: { lt: now }
+      stage: "Producción",
+      estimatedProductionEnd: {
+        lte: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000) // hoy + 3 días o antes
+      }
     },
-    include: { quotation: { include: { stones: true, salesAssociate: true } } }
+    include: { quotation: { include: { stones: true, salesAssociate: true } } },
+    orderBy: { estimatedProductionEnd: 'asc' }
   });
 
   const pendingFollowUps = await prisma.order.findMany({
@@ -180,6 +184,7 @@ export default async function Dashboard({
           expiringQuotations={JSON.parse(JSON.stringify(expiringQuotations))}
           stonesToReturn={JSON.parse(JSON.stringify(stonesToReturn))}
           pendingFollowUps={JSON.parse(JSON.stringify(pendingFollowUps))}
+          productionAtRisk={JSON.parse(JSON.stringify(productionAtRisk))}
         />
       </section>
 
