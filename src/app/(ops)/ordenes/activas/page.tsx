@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { translateStage } from "@/lib/translations";
 import { getCurrentUser, verifyAccess } from "@/lib/auth";
+import { AlertTriangle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+// Sólo para UI: lista plana usada por el filtro de etapa y orden lógico visual
 const STAGE_ORDER = [
   "Por confirmar diseño final",
   "Producción",
@@ -18,10 +20,39 @@ const STAGE_ORDER = [
   "En tránsito",
 ];
 
-function getNextStage(stage: string): string | null {
-  const idx = STAGE_ORDER.indexOf(stage);
-  if (idx === -1 || idx === STAGE_ORDER.length - 1) return null;
-  return STAGE_ORDER[idx + 1];
+// Sugerencia de siguiente etapa tomando en cuenta el método de entrega.
+// Retorna null si no hay siguiente (o si está al final del ciclo activo).
+function getNextStage(stage: string, deliveryMethod: string | null): string | null {
+  switch (stage) {
+    case "Por confirmar diseño final": return "Producción";
+    case "Producción": return "Certificación";
+    case "Certificación":
+      return deliveryMethod === "Shipping" ? "Revisión final de asesora" : "Listo para entrega";
+    case "Revisión final de asesora":
+      return deliveryMethod === "Shipping" ? "Creación de Guía" : null;
+    case "Creación de Guía":
+      return deliveryMethod === "Shipping" ? "Preparando envío" : null;
+    case "Preparando envío":
+      return deliveryMethod === "Shipping" ? "En tránsito" : null;
+    case "Listo para entrega":
+      return deliveryMethod === "Store Pickup" ? "Entregado" : null;
+    case "En tránsito": return "Entregado";
+    default: return null;
+  }
+}
+
+function countBusinessDays(start: Date, end: Date): number {
+  let count = 0;
+  const cur = new Date(start);
+  cur.setHours(0, 0, 0, 0);
+  const endDay = new Date(end);
+  endDay.setHours(0, 0, 0, 0);
+  while (cur < endDay) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
 }
 
 export default async function OrdenesActivasPage(props: {
@@ -38,7 +69,9 @@ export default async function OrdenesActivasPage(props: {
   const filterPayment = typeof searchParams.payment === 'string' ? searchParams.payment : '';
   const filterBlocked = typeof searchParams.blocked === 'string' ? searchParams.blocked : '';
   const filterSalesChannel = typeof searchParams.salesChannel === 'string' ? searchParams.salesChannel : '';
-  const view = typeof searchParams.view === 'string' ? searchParams.view : 'mosaic'; // mosaic por defecto
+  const filterPriority = typeof searchParams.priority === 'string' ? searchParams.priority : '';
+  const sortBy = typeof searchParams.sort === 'string' ? searchParams.sort : 'recent';
+  const view = typeof searchParams.view === 'string' ? searchParams.view : 'mosaic';
 
   const whereClause: any = {
     stage: {
@@ -46,27 +79,23 @@ export default async function OrdenesActivasPage(props: {
     }
   };
 
-  // ADVISOR FILTER — solo ven sus propias órdenes
+  // ADVISOR — solo sus propias órdenes
   if (user.role === 'advisor' && user.salesAssociateId) {
-    whereClause.quotation = {
-      salesAssociateId: user.salesAssociateId
-    };
+    whereClause.quotation = { salesAssociateId: user.salesAssociateId };
   }
 
   if (filterStage) whereClause.stage = filterStage;
   if (filterDelivery) whereClause.deliveryMethod = filterDelivery;
   if (filterPayment) whereClause.paymentStatus = filterPayment;
+  if (filterPriority === 'true') whereClause.isPriority = true;
 
   if (filterSalesChannel) {
-    whereClause.quotation = {
-      ...whereClause.quotation,
-      salesChannel: filterSalesChannel
-    };
+    whereClause.quotation = { ...(whereClause.quotation || {}), salesChannel: filterSalesChannel };
   }
 
   if (q) {
     whereClause.quotation = {
-      ...whereClause.quotation,
+      ...(whereClause.quotation || {}),
       OR: [
         { folio: { contains: q } },
         { clientNameOrUsername: { contains: q } }
@@ -74,22 +103,28 @@ export default async function OrdenesActivasPage(props: {
     };
   }
 
+  // Orden configurable desde el dropdown "Sort by"
+  let orderBy: any = { updatedAt: 'desc' };
+  if (sortBy === 'oldest') orderBy = { createdAt: 'asc' };
+  else if (sortBy === 'createdDesc') orderBy = { createdAt: 'desc' };
+  else if (sortBy === 'production') orderBy = { productionStartDate: 'asc' };
+  else if (sortBy === 'client') orderBy = { quotation: { clientNameOrUsername: 'asc' } };
+
   const orders = await prisma.order.findMany({
     where: whereClause,
     include: {
-      quotation: {
-        include: { salesAssociate: true }
-      },
-      stageHistory: {
-        orderBy: { createdAt: 'desc' }
-      }
+      quotation: { include: { salesAssociate: true } },
+      stageHistory: { orderBy: { createdAt: 'desc' } }
     },
-    orderBy: { updatedAt: 'desc' }
+    orderBy
   });
 
   function getRequiredAction(order: any) {
     if (order.stage === "Por confirmar diseño final") return "Confirmar diseño final";
-    if (order.stage === "Producción") return "Producción en curso";
+    if (order.stage === "Producción") {
+      if (order.isCertificatePending) return "Esperando datos certificado";
+      return "Producción en curso";
+    }
     if (order.stage === "Certificación") {
       if (order.isCertificatePending) return "Esperando certificado";
       return "Completar certificación";
@@ -110,16 +145,25 @@ export default async function OrdenesActivasPage(props: {
     const currentStageHistory = order.stageHistory.find((h: any) => h.stage === order.stage);
     if (!currentStageHistory) return 0;
     const start = new Date(currentStageHistory.createdAt).getTime();
-    const now = new Date().getTime();
-    return Math.max(0, Math.floor((now - start) / (1000 * 60 * 60 * 24)));
+    return Math.max(0, Math.floor((Date.now() - start) / 86400000));
   }
 
-  let processedOrders = orders.map(order => ({
-    ...order,
-    requiredAction: getRequiredAction(order),
-    daysInStage: getDaysInStage(order),
-    nextStage: getNextStage(order.stage),
-  }));
+  let processedOrders = orders.map(order => {
+    const nextStage = getNextStage(order.stage, order.deliveryMethod);
+    let productionProgress: { businessDays: number; totalDays: number; isOverdue: boolean } | null = null;
+    if (order.stage === "Producción" && order.productionStartDate) {
+      const totalDays = order.productionTiming === "Express" ? 5 : order.productionTiming === "Special" ? 50 : 20;
+      const businessDays = countBusinessDays(new Date(order.productionStartDate), new Date());
+      productionProgress = { businessDays, totalDays, isOverdue: businessDays > totalDays };
+    }
+    return {
+      ...order,
+      requiredAction: getRequiredAction(order),
+      daysInStage: getDaysInStage(order),
+      nextStage,
+      productionProgress,
+    };
+  });
 
   if (filterBlocked === 'blocked') {
     processedOrders = processedOrders.filter(o =>
@@ -131,16 +175,32 @@ export default async function OrdenesActivasPage(props: {
     );
   }
 
-  // SERVER ACTION: avanzar etapa
+  // Alerta global: órdenes en producción con 10+ días hábiles y certificado pendiente
+  const certAlerts = processedOrders.filter(o =>
+    o.stage === "Producción" &&
+    o.isCertificatePending &&
+    o.productionProgress &&
+    o.productionProgress.businessDays >= 10
+  );
+
+  // SERVER ACTION: avanzar etapa con branching correcto
   async function advanceStage(formData: FormData) {
     "use server";
     const id = formData.get("id") as string;
     const currentStage = formData.get("stage") as string;
-    const nextStage = getNextStage(currentStage);
-    if (!nextStage) return;
 
-    const isMovingToProduction = currentStage === "Por confirmar diseño final";
-    const totalDays = 20; // default
+    const order = await prisma.order.findUnique({ where: { id } });
+    if (!order) throw new Error("Order not found");
+
+    if ((currentStage === "Producción" || currentStage === "Certificación") && order.isCertificatePending) {
+      throw new Error("Certificado pendiente.");
+    }
+
+    const nextStage = getNextStage(currentStage, order.deliveryMethod);
+    if (!nextStage || nextStage === currentStage) return;
+
+    const isMovingToProduction = nextStage === "Producción";
+    const totalDays = order.productionTiming === "Express" ? 5 : order.productionTiming === "Special" ? 50 : 20;
 
     await prisma.order.update({
       where: { id },
@@ -148,18 +208,42 @@ export default async function OrdenesActivasPage(props: {
         stage: nextStage,
         ...(isMovingToProduction ? {
           productionStartDate: new Date(),
-          estimatedProductionEnd: new Date(new Date().getTime() + totalDays * 24 * 60 * 60 * 1000)
+          estimatedProductionEnd: new Date(Date.now() + totalDays * 86400000)
         } : {}),
         stageHistory: { create: { stage: nextStage } }
       }
     });
 
     revalidatePath("/ordenes/activas");
-    revalidatePath("/ordenes/produccion");
 
     if (nextStage === "Entregado") {
       redirect("/ordenes/historial");
     }
+  }
+
+  // SERVER ACTION: deshacer último avance de etapa
+  async function undoLastAdvance(formData: FormData) {
+    "use server";
+    const id = formData.get("id") as string;
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { stageHistory: { orderBy: { createdAt: "desc" }, take: 2 } }
+    });
+    if (!order || order.stageHistory.length < 2) return;
+    const [cur, prev] = order.stageHistory;
+
+    await prisma.$transaction([
+      prisma.orderStageHistory.delete({ where: { id: cur.id } }),
+      prisma.order.update({
+        where: { id },
+        data: {
+          stage: prev.stage,
+          ...(cur.stage === "Producción" ? { productionStartDate: null, estimatedProductionEnd: null } : {})
+        }
+      }),
+    ]);
+
+    revalidatePath("/ordenes/activas");
   }
 
   const isBlocked = (o: any) =>
@@ -176,21 +260,62 @@ export default async function OrdenesActivasPage(props: {
     "En tránsito": "bg-cyan-50 border-cyan-200 text-cyan-700",
   };
 
+  // URL helper que preserva todos los filtros actuales (para toggles de view y sort)
+  const buildUrl = (overrides: Record<string, string>) => {
+    const p = new URLSearchParams();
+    const base: Record<string, string> = {
+      ...(q && { q }),
+      ...(filterStage && { stage: filterStage }),
+      ...(filterDelivery && { delivery: filterDelivery }),
+      ...(filterPayment && { payment: filterPayment }),
+      ...(filterBlocked && { blocked: filterBlocked }),
+      ...(filterSalesChannel && { salesChannel: filterSalesChannel }),
+      ...(filterPriority && { priority: filterPriority }),
+      sort: sortBy,
+      view,
+      ...overrides,
+    };
+    Object.entries(base).forEach(([k, v]) => v && p.set(k, v));
+    return `/ordenes/activas?${p.toString()}`;
+  };
+
+  const hasAnyFilter = q || filterStage || filterDelivery || filterPayment || filterBlocked || filterSalesChannel || filterPriority;
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-2xl font-serif text-[#333333]">Órdenes Activas</h2>
-          <p className="text-sm text-[#8E8D8A] mt-1">Vista operativa de órdenes en curso</p>
+          <p className="text-sm text-[#8E8D8A] mt-1">Control total de órdenes en curso — producción, certificación y entrega</p>
         </div>
         <div className="text-sm text-[#8E8D8A] font-medium">
           {processedOrders.length} orden{processedOrders.length !== 1 ? 'es' : ''}
         </div>
       </div>
 
+      {/* Alerta certificados pendientes en producción */}
+      {certAlerts.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3 items-start">
+          <AlertTriangle size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800 mb-1">
+              {certAlerts.length === 1 ? "1 orden lleva 10+ días hábiles en producción sin datos de certificado" : `${certAlerts.length} órdenes llevan 10+ días hábiles en producción sin datos de certificado`}
+            </p>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {certAlerts.map((o) => (
+                <Link key={o.id} href={`/ordenes/${o.id}`} className="text-xs text-amber-700 underline hover:text-amber-900 font-medium">
+                  {o.quotation.folio || o.id.split("-")[0] + ".."}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filtros */}
-      <form method="GET" className="bg-white p-4 border border-[#D8D3CC] rounded-lg shadow-sm flex flex-wrap gap-3 items-end mb-2">
+      <form method="GET" className="bg-white p-4 border border-[#D8D3CC] rounded-lg shadow-sm flex flex-wrap gap-3 items-end">
         <input type="hidden" name="view" value={view} />
+        <input type="hidden" name="sort" value={sortBy} />
 
         <div className="flex-1 min-w-[180px]">
           <label className="block text-xs font-medium text-[#8E8D8A] mb-1">Buscar</label>
@@ -198,7 +323,7 @@ export default async function OrdenesActivasPage(props: {
             type="text"
             name="q"
             defaultValue={q}
-            placeholder="Folio o Cliente..."
+            placeholder="Folio o cliente..."
             className="w-full text-sm border border-[#D8D3CC] rounded px-3 py-2 bg-[#F5F2EE] focus:outline-none focus:border-[#C5B358]"
           />
         </div>
@@ -240,6 +365,14 @@ export default async function OrdenesActivasPage(props: {
           </select>
         </div>
 
+        <div className="w-32">
+          <label className="block text-xs font-medium text-[#8E8D8A] mb-1">Prioridad</label>
+          <select name="priority" defaultValue={filterPriority} className="w-full text-sm border border-[#D8D3CC] rounded px-3 py-2 bg-[#F5F2EE] focus:outline-none focus:border-[#C5B358]">
+            <option value="">Todas</option>
+            <option value="true">Solo prioritarias</option>
+          </select>
+        </div>
+
         {user.role === 'manager' && (
           <div className="w-32">
             <label className="block text-xs font-medium text-[#8E8D8A] mb-1">Canal</label>
@@ -261,10 +394,10 @@ export default async function OrdenesActivasPage(props: {
           </button>
         </div>
 
-        {(q || filterStage || filterDelivery || filterPayment || filterBlocked || filterSalesChannel) && (
+        {hasAnyFilter && (
           <div>
             <Link
-              href={`/ordenes/activas${view !== 'mosaic' ? `?view=${view}` : ''}`}
+              href={`/ordenes/activas?view=${view}&sort=${sortBy}`}
               className="text-sm text-[#8E8D8A] hover:text-[#333333] underline px-2 py-2 inline-block h-[38px] leading-[22px]"
             >
               Limpiar
@@ -273,20 +406,47 @@ export default async function OrdenesActivasPage(props: {
         )}
       </form>
 
-      {/* Toggle Vista */}
-      <div className="flex gap-2 justify-end mb-2">
-        <Link
-          href={`/ordenes/activas?${new URLSearchParams({ ...(q && { q }), ...(filterStage && { stage: filterStage }), ...(filterDelivery && { delivery: filterDelivery }), ...(filterPayment && { payment: filterPayment }), ...(filterBlocked && { blocked: filterBlocked }), ...(filterSalesChannel && { salesChannel: filterSalesChannel }), view: 'mosaic' }).toString()}`}
-          className={`px-3 py-1.5 text-xs rounded border transition-colors ${view === 'mosaic' ? 'bg-[#333333] text-white border-[#333333]' : 'bg-white text-[#8E8D8A] border-[#D8D3CC] hover:border-[#333333]'}`}
-        >
-          ⊞ Mosaico
-        </Link>
-        <Link
-          href={`/ordenes/activas?${new URLSearchParams({ ...(q && { q }), ...(filterStage && { stage: filterStage }), ...(filterDelivery && { delivery: filterDelivery }), ...(filterPayment && { payment: filterPayment }), ...(filterBlocked && { blocked: filterBlocked }), ...(filterSalesChannel && { salesChannel: filterSalesChannel }), view: 'list' }).toString()}`}
-          className={`px-3 py-1.5 text-xs rounded border transition-colors ${view === 'list' ? 'bg-[#333333] text-white border-[#333333]' : 'bg-white text-[#8E8D8A] border-[#D8D3CC] hover:border-[#333333]'}`}
-        >
-          ☰ Lista
-        </Link>
+      {/* Toggle vista + Sort */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-[#8E8D8A]">Ordenar por</label>
+          <form method="GET" className="inline-flex">
+            {q && <input type="hidden" name="q" value={q} />}
+            {filterStage && <input type="hidden" name="stage" value={filterStage} />}
+            {filterDelivery && <input type="hidden" name="delivery" value={filterDelivery} />}
+            {filterPayment && <input type="hidden" name="payment" value={filterPayment} />}
+            {filterBlocked && <input type="hidden" name="blocked" value={filterBlocked} />}
+            {filterSalesChannel && <input type="hidden" name="salesChannel" value={filterSalesChannel} />}
+            {filterPriority && <input type="hidden" name="priority" value={filterPriority} />}
+            <input type="hidden" name="view" value={view} />
+            <select
+              name="sort"
+              defaultValue={sortBy}
+              onChange={(e) => e.currentTarget.form?.submit()}
+              className="text-xs border border-[#D8D3CC] rounded px-2 py-1.5 bg-white focus:outline-none focus:border-[#C5B358]"
+            >
+              <option value="recent">Actualización reciente</option>
+              <option value="oldest">Más antiguas</option>
+              <option value="createdDesc">Creación reciente</option>
+              <option value="production">Inicio de producción</option>
+              <option value="client">Cliente (A–Z)</option>
+            </select>
+          </form>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href={buildUrl({ view: 'mosaic' })}
+            className={`px-3 py-1.5 text-xs rounded border transition-colors ${view === 'mosaic' ? 'bg-[#333333] text-white border-[#333333]' : 'bg-white text-[#8E8D8A] border-[#D8D3CC] hover:border-[#333333]'}`}
+          >
+            ⊞ Mosaico
+          </Link>
+          <Link
+            href={buildUrl({ view: 'list' })}
+            className={`px-3 py-1.5 text-xs rounded border transition-colors ${view === 'list' ? 'bg-[#333333] text-white border-[#333333]' : 'bg-white text-[#8E8D8A] border-[#D8D3CC] hover:border-[#333333]'}`}
+          >
+            ☰ Lista
+          </Link>
+        </div>
       </div>
 
       {processedOrders.length === 0 && (
@@ -301,6 +461,7 @@ export default async function OrdenesActivasPage(props: {
           {processedOrders.map(o => {
             const blocked = isBlocked(o);
             const stageCls = stageColor[o.stage] || "bg-[#F5F2EE] border-[#D8D3CC] text-[#8E8D8A]";
+            const canUndo = o.stageHistory && o.stageHistory.length >= 2;
             return (
               <div
                 key={o.id}
@@ -334,6 +495,21 @@ export default async function OrdenesActivasPage(props: {
                   )}
                 </div>
 
+                {/* Progreso producción */}
+                {o.productionProgress && (
+                  <div className="flex flex-col gap-1">
+                    <div className="w-full bg-[#F5F2EE] rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-1.5 rounded-full ${o.productionProgress.isOverdue ? "bg-red-500" : "bg-[#C5B358]"}`}
+                        style={{ width: `${Math.min(100, (o.productionProgress.businessDays / o.productionProgress.totalDays) * 100)}%` }}
+                      />
+                    </div>
+                    <span className={`text-[10px] font-semibold tracking-wider ${o.productionProgress.isOverdue ? "text-red-500" : "text-[#8E8D8A]"}`}>
+                      {o.productionProgress.businessDays}/{o.productionProgress.totalDays} días hábiles
+                    </span>
+                  </div>
+                )}
+
                 {/* Días + Pago */}
                 <div className="flex items-center gap-3 text-xs text-[#8E8D8A]">
                   <span className={`${o.daysInStage >= 5 ? 'text-red-500 font-medium' : ''}`}>
@@ -349,27 +525,38 @@ export default async function OrdenesActivasPage(props: {
                   {blocked ? '⚠ ' : ''}{o.requiredAction}
                 </div>
 
-                {/* Botón avanzar etapa (inline) */}
-                {!blocked && o.nextStage && (
-                  <form action={advanceStage}>
-                    <input type="hidden" name="id" value={o.id} />
-                    <input type="hidden" name="stage" value={o.stage} />
-                    <button
-                      type="submit"
-                      className="w-full text-center text-xs bg-[#C5B358] hover:bg-[#b0a04f] text-white px-3 py-1.5 rounded font-medium transition-colors"
-                    >
-                      Avanzar etapa →
-                    </button>
-                  </form>
-                )}
-
-                {/* Link detalle */}
-                <Link
-                  href={`/ordenes/${o.id}`}
-                  className="text-xs text-[#8E8D8A] hover:text-[#C5B358] transition-colors text-center"
-                >
-                  Ver detalle
-                </Link>
+                {/* Botón avanzar etapa (inline) + Undo */}
+                <div className="flex flex-col gap-1.5 mt-auto">
+                  {!blocked && o.nextStage && (
+                    <form action={advanceStage}>
+                      <input type="hidden" name="id" value={o.id} />
+                      <input type="hidden" name="stage" value={o.stage} />
+                      <button
+                        type="submit"
+                        className="w-full text-center text-xs bg-[#C5B358] hover:bg-[#b0a04f] text-white px-3 py-1.5 rounded font-medium transition-colors"
+                      >
+                        Avanzar etapa →
+                      </button>
+                    </form>
+                  )}
+                  {canUndo && (
+                    <form action={undoLastAdvance}>
+                      <input type="hidden" name="id" value={o.id} />
+                      <button
+                        type="submit"
+                        className="w-full text-center text-[10px] text-[#8E8D8A] hover:text-red-500 font-medium transition-colors"
+                      >
+                        ↺ Deshacer último avance
+                      </button>
+                    </form>
+                  )}
+                  <Link
+                    href={`/ordenes/${o.id}`}
+                    className="text-xs text-[#8E8D8A] hover:text-[#C5B358] transition-colors text-center"
+                  >
+                    Ver detalle
+                  </Link>
+                </div>
               </div>
             );
           })}
@@ -388,12 +575,13 @@ export default async function OrdenesActivasPage(props: {
                 <th className="px-6 py-4 font-medium">Acción requerida</th>
                 <th className="px-6 py-4 font-medium text-center">Días en etapa</th>
                 <th className="px-6 py-4 font-medium text-center">Pago</th>
-                <th className="px-6 py-4 font-medium text-right">Avanzar</th>
+                <th className="px-6 py-4 font-medium text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F5F2EE]">
               {processedOrders.map(o => {
                 const blocked = isBlocked(o);
+                const canUndo = o.stageHistory && o.stageHistory.length >= 2;
                 return (
                   <tr key={o.id} className={`hover:bg-[#F5F2EE]/50 transition-colors ${o.isPriority ? 'bg-red-50/30' : ''}`}>
                     <td className="px-6 py-4">
@@ -429,19 +617,29 @@ export default async function OrdenesActivasPage(props: {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {!blocked && o.nextStage ? (
-                        <form action={advanceStage} className="inline-block">
-                          <input type="hidden" name="id" value={o.id} />
-                          <input type="hidden" name="stage" value={o.stage} />
-                          <button type="submit" className="text-xs bg-[#C5B358] hover:bg-[#b0a04f] text-white px-3 py-1.5 rounded font-medium transition-colors whitespace-nowrap">
-                            Avanzar etapa →
-                          </button>
-                        </form>
-                      ) : (
-                        <Link href={`/ordenes/${o.id}`} className="text-xs text-[#8E8D8A] hover:text-[#C5B358] transition-colors">
-                          Ver →
-                        </Link>
-                      )}
+                      <div className="flex flex-col items-end gap-1">
+                        {!blocked && o.nextStage ? (
+                          <form action={advanceStage} className="inline-block">
+                            <input type="hidden" name="id" value={o.id} />
+                            <input type="hidden" name="stage" value={o.stage} />
+                            <button type="submit" className="text-xs bg-[#C5B358] hover:bg-[#b0a04f] text-white px-3 py-1.5 rounded font-medium transition-colors whitespace-nowrap">
+                              Avanzar etapa →
+                            </button>
+                          </form>
+                        ) : (
+                          <Link href={`/ordenes/${o.id}`} className="text-xs text-[#8E8D8A] hover:text-[#C5B358] transition-colors">
+                            Ver →
+                          </Link>
+                        )}
+                        {canUndo && (
+                          <form action={undoLastAdvance} className="inline-block">
+                            <input type="hidden" name="id" value={o.id} />
+                            <button type="submit" className="text-[10px] text-[#8E8D8A] hover:text-red-500 font-medium transition-colors whitespace-nowrap">
+                              ↺ Deshacer
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

@@ -15,6 +15,7 @@ const ROLE_OPTIONS = [
 ];
 
 const NEEDS_ASSOCIATE = ["advisor", "designer"];
+const NEW_ASSOCIATE_VALUE = "__new_associate__";
 
 export default function NuevoMiembroClient({
   salesAssociates,
@@ -27,7 +28,9 @@ export default function NuevoMiembroClient({
 
   const [selectedRole, setSelectedRole] = useState("advisor");
   const [applyMs, setApplyMs] = useState(false);
+  const [selectedAssociate, setSelectedAssociate] = useState("");
   const needsAssociate = NEEDS_ASSOCIATE.includes(selectedRole);
+  const isCreatingNewAssociate = selectedAssociate === NEW_ASSOCIATE_VALUE;
 
   return (
     <div>
@@ -64,8 +67,16 @@ export default function NuevoMiembroClient({
             </div>
             <div>
               <label className="block text-sm font-medium text-[#333333] mb-1">Rol</label>
-              <select name="role" value={selectedRole} onChange={(e) => { setSelectedRole(e.target.value); setApplyMs(false); }}
-                className="w-full border border-[#D8D3CC] rounded-md py-2 px-3 text-sm focus:outline-none focus:border-[#C5B358] bg-white">
+              <select
+                name="role"
+                value={selectedRole}
+                onChange={(e) => {
+                  setSelectedRole(e.target.value);
+                  setApplyMs(false);
+                  setSelectedAssociate("");
+                }}
+                className="w-full border border-[#D8D3CC] rounded-md py-2 px-3 text-sm focus:outline-none focus:border-[#C5B358] bg-white"
+              >
                 {ROLE_OPTIONS.map(r => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
@@ -81,14 +92,51 @@ export default function NuevoMiembroClient({
               <div>
                 <label className="block text-sm font-medium text-[#333333] mb-1">Perfil de ventas vinculado</label>
                 <p className="text-xs text-[#8E8D8A] mb-2">Define qué cotizaciones y órdenes puede ver esta persona.</p>
-                <select name="salesAssociateId" required
-                  className="w-full border border-[#D8D3CC] rounded-md py-2 px-3 text-sm focus:outline-none focus:border-[#C5B358] bg-white">
+                <select
+                  name="salesAssociateId"
+                  required
+                  value={selectedAssociate}
+                  onChange={(e) => setSelectedAssociate(e.target.value)}
+                  className="w-full border border-[#D8D3CC] rounded-md py-2 px-3 text-sm focus:outline-none focus:border-[#C5B358] bg-white"
+                >
                   <option value="">— Seleccionar perfil —</option>
                   {salesAssociates.map(sa => (
                     <option key={sa.id} value={sa.id}>{sa.name}</option>
                   ))}
+                  <option value={NEW_ASSOCIATE_VALUE}>➕ Crear nuevo perfil de ventas…</option>
                 </select>
               </div>
+
+              {isCreatingNewAssociate && (
+                <div className="bg-[#F5F2EE] border border-[#D8D3CC] rounded-md p-4 space-y-3">
+                  <p className="text-xs text-[#8E8D8A]">Se creará un nuevo perfil en el catálogo de ventas y se vinculará a esta persona automáticamente.</p>
+                  <div>
+                    <label htmlFor="newAssociateName" className="block text-sm font-medium text-[#333333] mb-1">Nombre del nuevo perfil de ventas</label>
+                    <input
+                      id="newAssociateName"
+                      name="newAssociateName"
+                      type="text"
+                      required
+                      placeholder="Ej. Dennise Fonseca"
+                      className="w-full border border-[#D8D3CC] rounded-md py-2 px-3 text-sm focus:outline-none focus:border-[#C5B358] bg-white"
+                    />
+                    <p className="text-[10px] text-[#8E8D8A] mt-1">Suele ser igual al nombre de la persona. Puede modificarse después en el equipo.</p>
+                  </div>
+                  {selectedRole !== "designer" && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="newAssociateAppliesMsAdjustment"
+                        name="newAssociateAppliesMsAdjustment"
+                        type="checkbox"
+                        className="accent-[#C5B358]"
+                      />
+                      <label htmlFor="newAssociateAppliesMsAdjustment" className="text-sm text-[#333333] cursor-pointer">
+                        Aplica ajuste MS (+$5,000 en cotizaciones)
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {selectedRole === "designer" && (
                 <div className="flex items-start gap-3 bg-[#FFF9EC] border border-[#C5B358]/30 rounded-lg p-3">
@@ -107,7 +155,19 @@ export default function NuevoMiembroClient({
             </div>
           )}
 
-          <div className="pt-4 flex justify-end">
+          {selectedRole === "stock_operator" && (
+            <div className="bg-[#F5F2EE] border border-[#D8D3CC] rounded-md p-3 text-xs text-[#8E8D8A]">
+              El operador de stock no cotiza — crea pedidos de stock. Se generará automáticamente un perfil interno vinculado.
+            </div>
+          )}
+
+          <div className="pt-4 flex justify-end gap-3">
+            <Link
+              href="/equipo"
+              className="bg-white border border-[#D8D3CC] text-[#333333] px-6 py-2 rounded text-sm hover:bg-[#F5F2EE] transition-colors uppercase tracking-wider font-medium"
+            >
+              Cancelar
+            </Link>
             <button type="submit" disabled={isPending}
               className="bg-[#333333] text-white px-6 py-2 rounded text-sm hover:bg-[#222222] transition-colors disabled:opacity-50 uppercase tracking-wider font-medium">
               {isPending ? "Guardando..." : "Crear Persona"}

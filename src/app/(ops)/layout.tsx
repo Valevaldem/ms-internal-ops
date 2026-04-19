@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Bell, Settings, Calculator, List, Award, User, LogOut, Users, UserPlus } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Settings, Calculator, List, Award, User, LogOut, Users, Tag } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 
 function SidebarLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
@@ -61,8 +61,7 @@ export default async function OpsLayout({
                   <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Órdenes</p>
                 </div>
                 <SidebarLink href="/ordenes/activas" icon={<List size={18} />} label="Órdenes Activas" />
-                <SidebarLink href="/ordenes/produccion" icon={<Settings size={18} />} label="En Producción" />
-                <SidebarLink href="/ordenes/historial" icon={<ShoppingBag size={18} />} label="Historial de Órdenes" />
+                <SidebarLink href="/ordenes/historial" icon={<ShoppingBag size={18} />} label="Post-venta" />
 
                 {/* Certificados — visible para advisor y manager */}
                 <div className="pt-4 pb-2">
@@ -85,13 +84,9 @@ export default async function OpsLayout({
                 </div>
                 <SidebarLink href="/inventario/modelos" icon={<Award size={18} />} label="Modelos Base" />
                 <SidebarLink href="/inventario/lotes" icon={<Settings size={18} />} label="Lotes de Piedras" />
+                <SidebarLink href="/inventario/canales" icon={<Tag size={18} />} label="Canales de Venta" />
               </>
             )}
-
-            <div className="pt-4 pb-2">
-              <p className="text-xs font-semibold text-[#8E8D8A] uppercase tracking-wider pl-4">Sistema</p>
-            </div>
-            <SidebarLink href="/alertas" icon={<Bell size={18} />} label="Alertas" />
           </nav>
 
           <div className="mt-auto w-full border-t border-[#D8D3CC] pt-4 flex flex-col gap-2 px-4">

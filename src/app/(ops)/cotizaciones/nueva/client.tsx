@@ -49,6 +49,10 @@ export default function NuevaCotizacionClient({
   const [invalidLots, setInvalidLots] = useState<number[]>([])
   const isAdvisor = activeUser.role === "advisor"
 
+  // Modo "nueva versión": viene con initialData y versiona datos de cliente/pieza,
+  // pero DEBE permitir editar piedras, precios, descuento, margen y notas.
+  const isVersioning = !!initialData
+
   const [quantityStrings, setQuantityStrings] = useState<Record<number, string>>({})
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [weightStrings, setWeightStrings] = useState<Record<number, string>>({})
@@ -321,7 +325,14 @@ export default function NuevaCotizacionClient({
 
   return (
     <div className="max-w-4xl mx-auto pb-10">
-      <h2 className="text-2xl font-serif text-[#333333] mb-6">Nueva Cotización</h2>
+      <h2 className="text-2xl font-serif text-[#333333] mb-6">
+        {isVersioning ? "Nueva Versión de Cotización" : "Nueva Cotización"}
+      </h2>
+      {isVersioning && (
+        <div className="bg-[#FFF9EC] border border-[#C5B358]/40 rounded-lg p-3 mb-4 text-sm text-[#555555]">
+          Los datos del cliente y la pieza se mantienen del original. Puedes ajustar piedras, precio base, descuento, ajuste interno y notas.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
 
@@ -459,9 +470,9 @@ export default function NuevaCotizacionClient({
                 <input
                   type="number"
                   step="0.01"
-                  readOnly={!isCustomModel && (activeUser.role !== 'manager' || !!initialData)}
+                  readOnly={!isCustomModel && activeUser.role !== 'manager'}
                   {...register("modelBasePrice", { valueAsNumber: true })}
-                  className={`w-full pl-8 pr-3 border ${(!isCustomModel && (activeUser.role !== 'manager' || initialData)) ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}
+                  className={`w-full pl-8 pr-3 border ${(!isCustomModel && activeUser.role !== 'manager') ? 'border-transparent bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed outline-none focus:outline-none' : 'border-[#D8D3CC] bg-white'} rounded p-2 text-sm focus:outline-none focus:border-[#C5B358]`}
                 />
               </div>
             </div>
@@ -499,15 +510,13 @@ export default function NuevaCotizacionClient({
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-[#F5F2EE] pb-2">
             <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold">Piedras</h3>
-            {!initialData && (
-              <button
-                type="button"
-                onClick={() => append({ lotCode: "", stoneName: "", quantity: 1, weightCt: 0, pricePerCt: 0, pricingMode: "CT", stoneSubtotal: 0 })}
-                className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium"
-              >
-                <Plus size={14} /> Agregar Piedra
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => append({ lotCode: "", stoneName: "", quantity: 1, weightCt: 0, pricePerCt: 0, pricingMode: "CT", stoneSubtotal: 0 })}
+              className="text-xs text-[#C5B358] hover:text-[#333333] flex items-center gap-1 transition-colors font-medium"
+            >
+              <Plus size={14} /> Agregar Piedra
+            </button>
           </div>
 
           <div className="space-y-3">
@@ -529,14 +538,13 @@ export default function NuevaCotizacionClient({
                   <div className="col-span-3">
                     <label className="block text-xs text-[#8E8D8A] mb-1">Lote</label>
                     <input
-                      readOnly={!!initialData}
                       placeholder="Código"
                       defaultValue={field.lotCode}
                       onBlur={(e) => handleLotCodeChange(index, e.target.value)}
                       onChange={(e) => {
                         setValue(`stones.${index}.lotCode`, e.target.value.toUpperCase())
                       }}
-                      className={`w-full border ${isInvalid ? 'border-red-400' : 'border-[#D8D3CC]'} ${initialData ? 'bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'bg-white'} rounded p-1.5 text-xs focus:outline-none focus:border-[#C5B358]`}
+                      className={`w-full border ${isInvalid ? 'border-red-400' : 'border-[#D8D3CC]'} bg-white rounded p-1.5 text-xs focus:outline-none focus:border-[#C5B358]`}
                     />
                   </div>
                   <div className="col-span-3">
@@ -557,26 +565,25 @@ export default function NuevaCotizacionClient({
                       Peso CT {isPZ && (() => { const cl = catalogs.stones.find((s: any) => s.code?.toUpperCase() === watch(`stones.${index}.lotCode`)?.toUpperCase()); return cl?.ctPerPiece ? <span className="text-[#C5B358]">auto</span> : <span className="text-[#8E8D8A]">manual</span>; })()}
                     </label>
                     <input
-                      readOnly={!!initialData || (isPZ && !!catalogs.stones.find((s: any) => s.code?.toUpperCase() === watch(`stones.${index}.lotCode`)?.toUpperCase())?.ctPerPiece)}
+                      readOnly={isPZ && !!catalogs.stones.find((s: any) => s.code?.toUpperCase() === watch(`stones.${index}.lotCode`)?.toUpperCase())?.ctPerPiece}
                       type="text"
                       inputMode="decimal"
                       value={weightDisplay}
                       onChange={(e) => handleWeightStringChange(index, e.target.value)}
                       onBlur={() => handleWeightStringBlur(index)}
-                      className={`w-full border border-[#D8D3CC] ${(initialData || (isPZ && !!catalogs.stones.find((s: any) => s.code?.toUpperCase() === watch(`stones.${index}.lotCode`)?.toUpperCase())?.ctPerPiece)) ? 'bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'bg-white'} rounded p-1.5 text-xs focus:outline-none focus:border-[#C5B358]`}
+                      className={`w-full border border-[#D8D3CC] ${(isPZ && !!catalogs.stones.find((s: any) => s.code?.toUpperCase() === watch(`stones.${index}.lotCode`)?.toUpperCase())?.ctPerPiece) ? 'bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'bg-white'} rounded p-1.5 text-xs focus:outline-none focus:border-[#C5B358]`}
                       placeholder="0.00"
                     />
                   </div>
                   <div className={`${isPZ ? 'col-span-2' : 'col-span-2'}`}>
                     <label className="block text-xs text-[#8E8D8A] mb-1">PZ</label>
                     <input
-                      readOnly={!!initialData}
                       type="text"
                       inputMode="numeric"
                       value={qtyDisplay}
                       onChange={(e) => handleQuantityStringChange(index, e.target.value)}
                       onBlur={() => handleQuantityStringBlur(index)}
-                      className={`w-full border border-[#D8D3CC] ${initialData ? 'bg-[#F5F2EE] text-[#8E8D8A] cursor-not-allowed' : 'bg-white'} rounded p-1.5 text-xs focus:outline-none focus:border-[#C5B358]`}
+                      className="w-full border border-[#D8D3CC] bg-white rounded p-1.5 text-xs focus:outline-none focus:border-[#C5B358]"
                     />
                   </div>
                   <div className="col-span-2 flex flex-col justify-end">
@@ -585,37 +592,33 @@ export default function NuevaCotizacionClient({
                       ${stoneSubtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
-                  {!initialData && (
-                    <div className="col-span-1 flex items-end justify-center pb-0.5">
-                      <button type="button" onClick={() => remove(index)} className="text-[#D8D3CC] hover:text-red-400 transition-colors mt-5">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  )}
+                  <div className="col-span-1 flex items-end justify-center pb-0.5">
+                    <button type="button" onClick={() => remove(index)} className="text-[#D8D3CC] hover:text-red-400 transition-colors mt-5">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               )
             })}
 
             {fields.length === 0 && (
               <p className="text-xs text-[#8E8D8A] text-center py-3">
-                {initialData ? "Sin piedras en esta cotización." : "Agrega piedras del inventario para incluirlas en el precio."}
+                Agrega piedras del inventario para incluirlas en el precio.
               </p>
             )}
           </div>
         </section>
 
         {/* Notas */}
-        {!initialData && (
-          <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm">
-            <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Notas <span className="font-normal normal-case text-[#8E8D8A]">(opcional)</span></h3>
-            <textarea
-              {...register("notes")}
-              rows={2}
-              placeholder="Notas internas sobre el diseño, preferencias del cliente, etc."
-              className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358] resize-none"
-            />
-          </section>
-        )}
+        <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm">
+          <h3 className="text-xs uppercase tracking-wider text-[#8E8D8A] font-semibold border-b border-[#F5F2EE] pb-2 mb-4">Notas <span className="font-normal normal-case text-[#8E8D8A]">(opcional)</span></h3>
+          <textarea
+            {...register("notes")}
+            rows={2}
+            placeholder="Notas internas sobre el diseño, preferencias del cliente, etc."
+            className="w-full border border-[#D8D3CC] bg-white rounded p-2 text-sm focus:outline-none focus:border-[#C5B358] resize-none"
+          />
+        </section>
 
         {/* Precios */}
         <section className="bg-white border border-[#D8D3CC] p-6 rounded-lg shadow-sm space-y-4">
@@ -636,55 +639,51 @@ export default function NuevaCotizacionClient({
                 <span>+${msInternalAdjustment.toLocaleString('es-MX')}</span>
               </div>
             )}
-            {!initialData && (
-              <div className="flex items-center gap-2 pt-2 border-t border-[#F5F2EE]">
-                <input
-                  type="checkbox"
-                  id="marginProtectionEnabled"
-                  {...register("marginProtectionEnabled")}
-                  className="accent-[#C5B358]"
-                />
-                <label htmlFor="marginProtectionEnabled" className="text-[#555555] text-sm cursor-pointer">
-                  Protección de margen (15%)
-                </label>
-                {marginProtectionEnabled && (
-                  <span className="text-[#C5B358] text-sm ml-auto">
-                    +${marginProtectionAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {!initialData && (
-            <div className="flex items-center gap-3 pt-2">
-              <label className="text-[#555555] text-sm whitespace-nowrap">Descuento</label>
-              <div className="flex rounded-md overflow-hidden border border-[#D8D3CC]">
-                <button type="button" onClick={() => setValue("discountType", "percent")}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${discountType === 'percent' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>
-                  %
-                </button>
-                <button type="button" onClick={() => setValue("discountType", "amount")}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${discountType === 'amount' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>
-                  $
-                </button>
-              </div>
+            <div className="flex items-center gap-2 pt-2 border-t border-[#F5F2EE]">
               <input
-                type="number"
-                min="0"
-                step={discountType === 'percent' ? '0.5' : '10'}
-                {...register("discountPercent", { valueAsNumber: true })}
-                className="w-24 border border-[#D8D3CC] rounded p-1.5 text-sm focus:outline-none focus:border-[#C5B358]"
-                placeholder={discountType === 'percent' ? '0' : '0'}
+                type="checkbox"
+                id="marginProtectionEnabled"
+                {...register("marginProtectionEnabled")}
+                className="accent-[#C5B358]"
               />
-              <span className="text-xs text-[#8E8D8A]">{discountType === 'percent' ? '%' : 'MXN'}</span>
-              {(discountPercent || 0) > 0 && (
-                <span className="text-red-500 text-sm font-medium">
-                  = −${calculatedDiscountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              <label htmlFor="marginProtectionEnabled" className="text-[#555555] text-sm cursor-pointer">
+                Protección de margen (15%)
+              </label>
+              {marginProtectionEnabled && (
+                <span className="text-[#C5B358] text-sm ml-auto">
+                  +${marginProtectionAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </span>
               )}
             </div>
-          )}
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <label className="text-[#555555] text-sm whitespace-nowrap">Descuento</label>
+            <div className="flex rounded-md overflow-hidden border border-[#D8D3CC]">
+              <button type="button" onClick={() => setValue("discountType", "percent")}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${discountType === 'percent' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>
+                %
+              </button>
+              <button type="button" onClick={() => setValue("discountType", "amount")}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${discountType === 'amount' ? 'bg-[#333333] text-white' : 'bg-white text-[#8E8D8A] hover:bg-[#F5F2EE]'}`}>
+                $
+              </button>
+            </div>
+            <input
+              type="number"
+              min="0"
+              step={discountType === 'percent' ? '0.5' : '10'}
+              {...register("discountPercent", { valueAsNumber: true })}
+              className="w-24 border border-[#D8D3CC] rounded p-1.5 text-sm focus:outline-none focus:border-[#C5B358]"
+              placeholder={discountType === 'percent' ? '0' : '0'}
+            />
+            <span className="text-xs text-[#8E8D8A]">{discountType === 'percent' ? '%' : 'MXN'}</span>
+            {(discountPercent || 0) > 0 && (
+              <span className="text-red-500 text-sm font-medium">
+                = −${calculatedDiscountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              </span>
+            )}
+          </div>
 
                     <div className="bg-[#F5F2EE] rounded-lg p-4 flex justify-between items-center mt-4">
             <span className="text-sm font-medium text-[#555555]">Precio Final Cliente</span>
@@ -694,8 +693,16 @@ export default function NuevaCotizacionClient({
           </div>
         </section>
 
-        {!initialData && (
-          <div className="flex justify-end gap-3 pt-4">
+        <div className="flex justify-end gap-3 pt-4">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            disabled={isSubmitting || isSavingDraft}
+            className="bg-white border border-[#D8D3CC] text-[#555555] hover:bg-[#F5F2EE] px-6 py-3 rounded-md text-sm uppercase tracking-wider font-semibold transition-colors disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          {!isVersioning && (
             <button
               type="button"
               onClick={onSaveDraft}
@@ -704,15 +711,15 @@ export default function NuevaCotizacionClient({
             >
               {isSavingDraft ? "Guardando..." : "Guardar Borrador"}
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || isSavingDraft}
-              className="bg-[#333333] hover:bg-black text-white px-8 py-3 rounded-md text-sm uppercase tracking-wider font-semibold transition-colors disabled:opacity-50"
-            >
-              {isSubmitting ? "Guardando..." : "Crear Cotización"}
-            </button>
-          </div>
-        )}
+          )}
+          <button
+            type="submit"
+            disabled={isSubmitting || isSavingDraft}
+            className="bg-[#333333] hover:bg-black text-white px-8 py-3 rounded-md text-sm uppercase tracking-wider font-semibold transition-colors disabled:opacity-50"
+          >
+            {isSubmitting ? "Guardando..." : (isVersioning ? "Crear Nueva Versión" : "Crear Cotización")}
+          </button>
+        </div>
       </form>
     </div>
   )
