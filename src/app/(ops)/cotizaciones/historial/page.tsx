@@ -32,7 +32,7 @@ async function archiveQuotation(formData: FormData) {
 }
 
 export default async function HistorialCotizaciones(props: {
-  searchParams: Promise<{ search?: string; tab?: string; view?: string; sort?: string; startDate?: string; endDate?: string; status?: string; advisorName?: string; salesChannel?: string }>;
+  searchParams: Promise<{ search?: string; tab?: string; view?: string; sort?: string; startDate?: string; endDate?: string; status?: string; statusFilter?: string; advisorName?: string; salesChannel?: string }>;
 }) {
   const user = await getCurrentUser();
   verifyAccess(user, ['manager', 'advisor', 'stock_operator']);
