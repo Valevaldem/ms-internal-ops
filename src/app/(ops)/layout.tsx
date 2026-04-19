@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, FileText, ShoppingBag, Settings, Calculator, List, Award, User, LogOut, Users, Tag } from 'lucide-react';
+import { Home, FileText, ShoppingBag, Settings, Calculator, List, Award, User, LogOut, Users, Tag, Truck } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 
 function SidebarLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
@@ -85,6 +85,7 @@ export default async function OpsLayout({
                 <SidebarLink href="/inventario/modelos" icon={<Award size={18} />} label="Modelos Base" />
                 <SidebarLink href="/inventario/lotes" icon={<Settings size={18} />} label="Lotes de Piedras" />
                 <SidebarLink href="/inventario/canales" icon={<Tag size={18} />} label="Canales de Venta" />
+                <SidebarLink href="/inventario/proveedores" icon={<Truck size={18} />} label="Proveedores" />
               </>
             )}
           </nav>

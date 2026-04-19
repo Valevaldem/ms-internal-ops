@@ -97,6 +97,117 @@ model SalesChannel {
   @@map("sales_channels")
 }
 
+// 6. Suppliers Catalog (proveedores para pedidos de stock)
+model Supplier {
+  id           String   @id @default(cuid()) @map("supplier_id")
+  name         String   @unique @map("supplier_name")
+  activeStatus Boolean  @default(true) @map("active_status")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  stockOrders  StockOrder[]
+
+  @@map("suppliers")
+}
+
+// 7. Stock Orders (pedidos de stock — flujo Fernanda, sin cliente)
+model StockOrder {
+  id                     String   @id @default(cuid()) @map("stock_order_id")
+  folio                  String?  @unique
+  pieceName              String   @map("piece_name") // nombre de pieza o número de referencia
+
+  supplierId             String?  @map("supplier_id")
+  supplier               Supplier? @relation(fields: [supplierId], references: [id])
+
+  // Tipo de pieza y modelo (reutilizamos tablas existentes)
+  pieceType              String   @map("piece_type")
+  modelName              String?  @map("model_name")
+  modelBasePrice         Float?   @map("model_base_price")
+
+  // Timing
+  productionTiming       String?  @map("production_timing") // Express, Regular, Special, Manual
+  customProductionDays   Int?     @map("custom_production_days")
+
+  // Piedras
+  stones                 StockOrderStone[]
+
+  // Metal (se llena al llegar la pieza del taller)
+  metalWeightGrams       Float?   @map("metal_weight_grams")
+
+  // Pricing — el total NO se redondea; se permite precio final manual
+  totalStonesPrice       Float    @default(0) @map("total_stones_price")
+  rawTotal               Float    @default(0) @map("raw_total") // sin redondeo
+  manualFinalPrice       Float?   @map("manual_final_price") // si está set, overrides rawTotal
+
+  notes                  String?
+  certificateNotes       String?  @map("certificate_notes")
+
+  // Certificate (mismos campos que Order)
+  certificateTitle              String?  @map("certificate_title")
+  familyLastNameOrTitle         String?  @map("family_last_name_or_title")
+  certificateStatus             String   @default("Not Started") @map("certificate_status")
+  certificateVinylReady         Boolean  @default(false) @map("certificate_vinyl_ready")
+  certificatePhotoReady         Boolean  @default(false) @map("certificate_photo_ready")
+  certificatePrintedReady       Boolean  @default(false) @map("certificate_printed_ready")
+  certificateDeliveredToAdvisor Boolean  @default(false) @map("certificate_delivered_to_advisor")
+  certificateNeedsReview        Boolean  @default(false) @map("certificate_needs_review")
+  isCertificatePending          Boolean  @default(false) @map("is_certificate_pending")
+
+  // Fotos
+  photosReady            Boolean  @default(false) @map("photos_ready")
+
+  // Display
+  displayReady           Boolean  @default(false) @map("display_ready")
+
+  // Stage (flujo de stock)
+  // En diseño → Confirmación de diseño final → Producción → Certificación → Fotos → Preparación para display → En exhibición
+  stage                  String   @default("En diseño")
+  productionStartDate    DateTime? @map("production_start_date")
+  estimatedProductionEnd DateTime? @map("estimated_production_end")
+
+  isDraft                Boolean  @default(false) @map("is_draft")
+  isPriority             Boolean  @default(false) @map("is_priority")
+
+  stageHistory           StockOrderStageHistory[]
+
+  createdByUserId        String?  @map("created_by_user_id")
+
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("stock_orders")
+}
+
+model StockOrderStone {
+  id            String     @id @default(cuid())
+  stockOrderId  String     @map("stock_order_id")
+  stockOrder    StockOrder @relation(fields: [stockOrderId], references: [id], onDelete: Cascade)
+
+  consecutive   Int        // número consecutivo de la piedra en el pedido
+  lotCode       String?    @map("lot_code") // opcional: piedras sin lote del inventario
+  stoneName     String     @map("stone_name")
+  quantity      Int        @default(1)
+  weightCt      Float      @map("weight_ct")
+  pricePerCt    Float      @map("price_per_ct")
+  pricingMode   String     @default("CT") @map("pricing_mode")
+  stoneSubtotal Float      @map("stone_subtotal")
+  note          String?    // nota por piedra
+  isCustom      Boolean    @default(false) @map("is_custom") // true si es piedra fuera de inventario
+
+  @@map("stock_order_stones")
+}
+
+model StockOrderStageHistory {
+  id            String     @id @default(cuid())
+  stockOrderId  String     @map("stock_order_id")
+  stockOrder    StockOrder @relation(fields: [stockOrderId], references: [id], onDelete: Cascade)
+
+  stage         String
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  @@map("stock_order_stage_history")
+}
+
 // Create Quotation Module
 model Quotation {
   id                   String   @id @default(cuid()) @map("quotation_id")
